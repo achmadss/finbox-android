@@ -45,18 +45,22 @@ class AccountRepositoryImpl(
             last_sync_at = account.lastSyncAt,
             id = account.id,
         )
+        Unit
     }
 
     override suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.accountQueries.DELETEAccount(id)
+        Unit
     }
 
     override suspend fun setEnabled(id: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         db.accountQueries.SETAccountEnabled(if (enabled) 1L else 0L, System.currentTimeMillis(), id)
+        Unit
     }
 
     override suspend fun updateLastSync(id: String, at: Long) = withContext(Dispatchers.IO) {
         db.accountQueries.SETLastSync(at, id)
+        Unit
     }
 
     private fun Email_account.toModel() = EmailAccount(

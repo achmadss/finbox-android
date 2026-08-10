@@ -29,6 +29,7 @@ class AccountExtensionRepositoryImpl(
 
     override suspend fun deleteForAccount(accountId: String) = withContext(Dispatchers.IO) {
         db.accountExtensionQueries.DELETEForAccount(accountId)
+        Unit
     }
 
     override suspend fun setEnabled(accountId: String, sourceId: Long, enabled: Boolean) =
@@ -46,6 +47,7 @@ class AccountExtensionRepositoryImpl(
                     position = 0L,
                 )
             }
+            Unit
         }
 
     override suspend fun reorder(accountId: String, sourceIds: List<Long>) =

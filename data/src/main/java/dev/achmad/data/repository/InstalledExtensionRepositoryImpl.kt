@@ -39,14 +39,17 @@ class InstalledExtensionRepositoryImpl(
             source_ids = Json.encodeToString(extension.sourceIds),
             enabled = if (extension.enabled) 1L else 0L,
         )
+        Unit
     }
 
     override suspend fun delete(pkg: String) = withContext(Dispatchers.IO) {
         db.installedExtensionQueries.DELETEByPkg(pkg)
+        Unit
     }
 
     override suspend fun setEnabled(pkg: String, enabled: Boolean) = withContext(Dispatchers.IO) {
         db.installedExtensionQueries.SETEnabled(if (enabled) 1L else 0L, pkg)
+        Unit
     }
 
     private fun Installed_extension.toModel() = InstalledExtension(

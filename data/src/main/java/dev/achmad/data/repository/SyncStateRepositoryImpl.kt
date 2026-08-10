@@ -21,6 +21,7 @@ class SyncStateRepositoryImpl(
             historyId = state.historyId,
             lastFullSync = state.lastFullSync,
         )
+        Unit
     }
 
     private fun Sync_state.toModel() = SyncState(

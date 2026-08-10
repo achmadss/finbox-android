@@ -44,10 +44,12 @@ class UnrecognizedEmailRepositoryImpl(
 
     override suspend fun markReviewed(id: String) = withContext(Dispatchers.IO) {
         db.unrecognizedEmailQueries.MARKReviewed(id)
+        Unit
     }
 
     override suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.unrecognizedEmailQueries.DELETEById(id)
+        Unit
     }
 
     private fun Unrecognized_email.toModel() = UnrecognizedEmail(

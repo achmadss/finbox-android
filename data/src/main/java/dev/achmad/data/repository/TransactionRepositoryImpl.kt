@@ -76,10 +76,12 @@ class TransactionRepositoryImpl(
             updated_at = transaction.updatedAt,
             id = transaction.id,
         )
+        Unit
     }
 
     override suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.transactionQueries.DELETEById(System.currentTimeMillis(), id)
+        Unit
     }
 
     private fun Transactions.toModel() = Transaction(
