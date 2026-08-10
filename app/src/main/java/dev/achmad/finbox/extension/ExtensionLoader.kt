@@ -45,8 +45,14 @@ class ExtensionLoader(
             return LoadResult.Error(apk.name, "Invalid or unreadable APK")
         }
 
-        val libVersion = meta.getString("finbox.extension.lib")
+        // aapt stores "1.0" as a float in the binary manifest, so getString can
+        // return null while getInt/getFloat return the numeric value.
+        val libVersionRaw = meta.getString("finbox.extension.lib")
+            ?: meta.getFloat("finbox.extension.lib").toString()
             ?: meta.getInt("finbox.extension.lib").toString()
+        val libVersion = libVersionRaw.toDoubleOrNull()
+            ?.let { d -> if (d == d.toInt().toDouble()) "${d.toInt()}.0" else d.toString() }
+            ?: libVersionRaw
         if (libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) {
             return LoadResult.Error(
                 apk.name,
