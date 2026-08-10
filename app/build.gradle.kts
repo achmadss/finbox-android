@@ -5,15 +5,17 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidstarter"
+    namespace = "dev.achmad.finbox"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.androidstarter"
+        applicationId = "dev.achmad.finbox"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        manifestPlaceholders["appAuthRedirectScheme"] = "dev.achmad.finbox"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -66,7 +68,15 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
 
+    implementation(libs.jsoup)
+    implementation(libs.security.crypto)
+    implementation(libs.appauth)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.coroutines.android)
+    implementation(libs.serialization.json)
+
     implementation(project(":core"))
     implementation(project(":domain"))
     implementation(project(":data"))
+    implementation(project(":extension-api"))
 }

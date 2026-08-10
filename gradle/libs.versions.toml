@@ -16,9 +16,15 @@ coilCompose = "3.3.0"
 okhttp_version = "5.1.0"
 okio = "3.16.0"
 serialization_version = "1.9.0"
-voyager = "1.1.0-beta03"
+voyager = "1.0.1"
 appcompat = "1.7.1"
 material = "1.12.0"
+sqldelight = "2.0.2"
+jsoup = "1.18.3"
+securityCrypto = "1.1.0-alpha06"
+appauth = "0.11.1"
+workManager = "2.10.0"
+coroutines = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +64,16 @@ voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", vers
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
+# finbox
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+appauth = { module = "net.openid:appauth", version.ref = "appauth" }
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
@@ -65,3 +81,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

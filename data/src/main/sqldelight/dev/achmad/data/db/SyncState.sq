@@ -1,0 +1,12 @@
+CREATE TABLE sync_state (
+    account_id TEXT NOT NULL PRIMARY KEY,
+    history_id TEXT,
+    last_full_sync INTEGER
+);
+
+SELECTByAccount:
+SELECT * FROM sync_state WHERE account_id = :accountId;
+
+INSERTOrReplace:
+INSERT OR REPLACE INTO sync_state(account_id, history_id, last_full_sync)
+VALUES (:accountId, :historyId, :lastFullSync);

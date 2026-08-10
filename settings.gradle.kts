@@ -19,8 +19,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Android Starter"
+rootProject.name = "Finbox"
 include(":app")
 include(":core")
 include(":data")
 include(":domain")
+include(":extension-api")

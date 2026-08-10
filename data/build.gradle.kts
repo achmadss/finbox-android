@@ -3,10 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.sqldelight)
 }
 
 android {
-    namespace = "com.example.data"
+    namespace = "dev.achmad.data"
     compileSdk = 36
 
     defaultConfig {
@@ -32,6 +33,14 @@ android {
 
 }
 
+sqldelight {
+    databases {
+        create("FinboxDatabase") {
+            packageName.set("dev.achmad.data.db")
+        }
+    }
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -43,6 +52,11 @@ dependencies {
 
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
+
+    implementation(libs.sqldelight.runtime)
+    implementation(libs.sqldelight.android.driver)
+    implementation(libs.sqldelight.coroutines)
+    implementation(libs.coroutines.android)
 
     implementation(project(":core"))
     implementation(project(":domain"))

@@ -1,0 +1,28 @@
+CREATE TABLE installed_extension (
+    pkg TEXT NOT NULL PRIMARY KEY,
+    provider TEXT NOT NULL,
+    name TEXT NOT NULL,
+    file TEXT NOT NULL,
+    version_code INTEGER NOT NULL,
+    version_name TEXT NOT NULL,
+    lib_version TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    source_ids TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1
+);
+
+SELECTAll:
+SELECT * FROM installed_extension ORDER BY name;
+
+SELECTByPkg:
+SELECT * FROM installed_extension WHERE pkg = :pkg;
+
+INSERTOrReplace:
+INSERT OR REPLACE INTO installed_extension(pkg, provider, name, file, version_code, version_name, lib_version, sha256, source_ids, enabled)
+VALUES (:pkg, :provider, :name, :file, :version_code, :version_name, :lib_version, :sha256, :source_ids, :enabled);
+
+DELETEByPkg:
+DELETE FROM installed_extension WHERE pkg = :pkg;
+
+SETEnabled:
+UPDATE installed_extension SET enabled = :enabled WHERE pkg = :pkg;

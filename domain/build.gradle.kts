@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.domain"
+    namespace = "dev.achmad.domain"
     compileSdk = 36
 
     defaultConfig {

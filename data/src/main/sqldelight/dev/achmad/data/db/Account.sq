@@ -1,0 +1,42 @@
+CREATE TABLE email_account (
+    id TEXT NOT NULL PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    display_name TEXT,
+    auth_token_ref TEXT,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_sync_at INTEGER
+);
+
+SELECTAllAccounts:
+SELECT * FROM email_account ORDER BY email;
+
+SELECTById:
+SELECT * FROM email_account WHERE id = :id;
+
+INSERTAccount:
+INSERT OR IGNORE INTO email_account(id, email, display_name, auth_token_ref, enabled, created_at, updated_at, last_sync_at)
+VALUES (:id, :email, :display_name, :auth_token_ref, :enabled, :created_at, :updated_at, :last_sync_at);
+
+UPDATEAccount:
+UPDATE email_account SET
+    email = :email,
+    display_name = :display_name,
+    auth_token_ref = :auth_token_ref,
+    enabled = :enabled,
+    updated_at = :updated_at,
+    last_sync_at = :last_sync_at
+WHERE id = :id;
+
+DELETEAccount:
+DELETE FROM email_account WHERE id = :id;
+
+SETAccountEnabled:
+UPDATE email_account SET enabled = :enabled, updated_at = :updated_at WHERE id = :id;
+
+SETLastSync:
+UPDATE email_account SET last_sync_at = :at, updated_at = :at WHERE id = :id;
+
+SELECTByEmail:
+SELECT * FROM email_account WHERE email = :email;
