@@ -1,0 +1,44 @@
+name: Setup Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: 'Project Name'
+        required: true
+        default: ''
+      package_name:
+        description: 'Package Name (e.g., com.company.myapp)'
+        required: true
+        default: ''
+      min_sdk:
+        description: 'Minimum SDK Version'
+        required: true
+        default: '26'
+
+permissions:
+  contents: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.repository.is_template }}
+    steps:
+      - name: Configure Git
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+        shell: bash
+
+      - uses: actions/checkout@v4
+
+      - name: Setup Project
+        run: |
+          chmod +x setup.sh
+          ./setup.sh --name "${{ inputs.project_name }}" --package "${{ inputs.package_name }}" --sdk "${{ inputs.min_sdk }}" --yes
+
+      - name: Commit changes
+        run: |
+          git add .
+          git commit -m "Setup project" || echo "No changes to commit"
+          git push -u origin --all
