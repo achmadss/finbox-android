@@ -1,0 +1,6 @@
+# Only the parser extension API is published; the app itself is never a
+# library. Building just this module keeps JitPack off the Compose/app graph.
+jdk:
+  - openjdk21
+install:
+  - ./gradlew :extension-api:publishToMavenLocal
