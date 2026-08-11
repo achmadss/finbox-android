@@ -33,7 +33,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.finbox.core.util.formatDate
-import dev.achmad.finbox.core.extension.TransactionSource
+import dev.achmad.finbox.core.extension.LoadedSource
 
 object AccountsScreen : Screen {
 
@@ -115,7 +115,7 @@ private fun AccountCard(
 @Composable
 private fun ParserAssignmentDialog(
     account: EmailAccount,
-    sources: List<TransactionSource>,
+    sources: List<LoadedSource>,
     enabled: Set<Long>,
     onToggle: (Long, Boolean) -> Unit,
     onDismiss: () -> Unit,

@@ -24,19 +24,42 @@ class GmailApi(
     private val tokens: GmailTokenManager,
 ) {
 
+    /**
+     * One page of message ids for [query]. Pass [MessageListResponse.nextPageToken]
+     * back as [pageToken] for the next one, or use [listAllMessages].
+     */
     suspend fun listMessages(
         accountId: String,
-        query: String = "category:finance",
-        maxResults: Int = 100,
+        query: String,
+        maxResults: Int = PAGE_SIZE,
+        pageToken: String? = null,
+    ): MessageListResponse {
+        val token = tokens.getAccessToken(accountId) ?: return MessageListResponse()
+        val encoded = withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") }
+        val url = "${FinboxConfig.GMAIL_API_BASE}/messages?q=$encoded&maxResults=$maxResults" +
+            pageToken.orEmpty().let { if (it.isEmpty()) "" else "&pageToken=$it" }
+        return getWithRetry(accountId, url, token)
+    }
+
+    /**
+     * Every message matching [query], paged. An import can legitimately span
+     * thousands of emails, so this is capped at [maxMessages] rather than left
+     * unbounded — a source with a too-wide query would otherwise walk the
+     * entire mailbox.
+     */
+    suspend fun listAllMessages(
+        accountId: String,
+        query: String,
+        maxMessages: Int = MAX_MESSAGES,
     ): List<MessageRef> {
-        val token = tokens.getAccessToken(accountId) ?: return emptyList()
-        val url = "${FinboxConfig.GMAIL_API_BASE}/messages" +
-            "?q=${
-                withContext(Dispatchers.IO) {
-                    URLEncoder.encode(query, "UTF-8")
-                }
-            }&maxResults=$maxResults"
-        return getWithRetry<MessageListResponse>(accountId, url, token).messages
+        val refs = mutableListOf<MessageRef>()
+        var pageToken: String? = null
+        do {
+            val page = listMessages(accountId, query, pageToken = pageToken)
+            refs += page.messages
+            pageToken = page.nextPageToken
+        } while (pageToken != null && refs.size < maxMessages)
+        return if (refs.size > maxMessages) refs.take(maxMessages) else refs
     }
 
     suspend fun getMessage(accountId: String, messageId: String): MessageResponse {
@@ -73,7 +96,13 @@ class GmailApi(
     )
 
     companion object {
-        /** Builds a normalized [EmailMessage] for parser extensions. */
+        /** Gmail's own page maximum for messages.list. */
+        private const val PAGE_SIZE = 500
+
+        /** Safety net for a source whose query is too broad. */
+        private const val MAX_MESSAGES = 5_000
+
+        /** Builds a normalized [EmailMessage] for extensions. */
         fun toEmailMessage(response: MessageResponse): EmailMessage {
             val headers = response.payload?.headers.orEmpty()
             fun header(name: String): String? = headers.firstOrNull { it.name.equals(name, true) }?.value

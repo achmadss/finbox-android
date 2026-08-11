@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.extension.TransactionParser
+import dev.achmad.finbox.extension.TransactionSource
 import java.io.File
 
 /**
@@ -14,7 +14,7 @@ import java.io.File
  * 1. Parses its manifest via [PackageManager.getPackageArchiveInfo]
  * 2. Validates the `finbox.extension` feature and `finbox.extension.lib`
  *    against [FinboxConfig.SUPPORTED_LIB_VERSIONS]
- * 3. Instantiates the [TransactionParser] named by `finbox.extension.class`
+ * 3. Instantiates the [TransactionSource] named by `finbox.extension.class`
  *    via a [ChildFirstPathClassLoader] and pairs it with the identity from
  *    the manifest
  */
@@ -86,14 +86,20 @@ class ExtensionLoader(
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
             val clazz = Class.forName(className, false, classLoader)
-            val parser = clazz.getDeclaredConstructor().newInstance() as? TransactionParser
-                ?: return LoadResult.Error(apk.name, "Class $className is not a TransactionParser")
-            val source = TransactionSource(
-                id = sourceIdOf(info.name, info.versionCode),
-                name = info.name,
-                parser = parser,
+            val source = clazz.getDeclaredConstructor().newInstance() as? TransactionSource
+                ?: return LoadResult.Error(apk.name, "Class $className is not a TransactionSource")
+            // An empty query would pull the entire mailbox on every sync.
+            if (source.emailQuery.isEmpty) {
+                return LoadResult.Error(apk.name, "Source declares an empty emailQuery")
+            }
+            LoadResult.Success(
+                info,
+                LoadedSource(
+                    id = sourceIdOf(info.name, info.versionCode),
+                    name = info.name,
+                    source = source,
+                ),
             )
-            LoadResult.Success(info, source)
         } catch (e: Throwable) {
             LoadResult.Error(apk.name, "Failed to instantiate: ${e.message}")
         }

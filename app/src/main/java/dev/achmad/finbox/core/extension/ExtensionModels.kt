@@ -1,7 +1,7 @@
 package dev.achmad.finbox.core.extension
 
 sealed class LoadResult {
-    data class Success(val extension: InstalledExtensionInfo, val source: TransactionSource) : LoadResult()
+    data class Success(val extension: InstalledExtensionInfo, val source: LoadedSource) : LoadResult()
     data class Error(val file: String, val reason: String) : LoadResult()
 }
 

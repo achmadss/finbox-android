@@ -10,7 +10,7 @@ plugins {
 // app at runtime, resolved through ChildFirstPathClassLoader's parent. Bump
 // `apiVersion` whenever a change breaks already-published extensions, and keep
 // it in step with FinboxConfig.SUPPORTED_LIB_VERSIONS in the app.
-val apiVersion = "1.0"
+val apiVersion = "1.1"
 
 group = "com.github.achmadss.finbox-android"
 version = apiVersion

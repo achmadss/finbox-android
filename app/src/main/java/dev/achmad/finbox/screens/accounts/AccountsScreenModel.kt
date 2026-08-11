@@ -10,7 +10,7 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.util.inject
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.TransactionSource
+import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,7 +56,7 @@ class AccountsScreenModel(
         parsersDialogAccount = account
     }
 
-    fun availableSources(): List<TransactionSource> = extensionManager.sources
+    fun availableSources(): List<LoadedSource> = extensionManager.sources
 
     fun setParserEnabled(accountId: String, sourceId: Long, enabled: Boolean) {
         screenModelScope.launch {

@@ -78,7 +78,6 @@ val appModule = module {
         SyncEngine(
             extensionManager = get(),
             accountRepository = get(),
-            accountExtensionRepository = get(),
             transactionRepository = get(),
             gmailApi = get()
         )

@@ -50,10 +50,10 @@ class ExtensionManager(
         }
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
-    /** sourceId -> loaded TransactionSource for enabled extensions. */
-    private val knownSources: LinkedHashMap<Long, TransactionSource> = LinkedHashMap()
+    /** sourceId -> loaded LoadedSource for enabled extensions. */
+    private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
 
-    val sources: List<TransactionSource>
+    val sources: List<LoadedSource>
         get() = knownSources.values.toList()
 
     suspend fun refreshIndex() {
@@ -85,7 +85,7 @@ class ExtensionManager(
     suspend fun reload() = mutex.withLock {
         val results = withContext(Dispatchers.IO) { loader.loadExtensions() }
 
-        val infos = mutableMapOf<InstalledExtensionInfo, TransactionSource>()
+        val infos = mutableMapOf<InstalledExtensionInfo, LoadedSource>()
         val errors = mutableMapOf<String, String>()
         for (result in results) {
             when (result) {
@@ -137,5 +137,5 @@ class ExtensionManager(
         }
     }
 
-    fun getById(sourceId: Long): TransactionSource? = knownSources[sourceId]
+    fun getById(sourceId: Long): LoadedSource? = knownSources[sourceId]
 }

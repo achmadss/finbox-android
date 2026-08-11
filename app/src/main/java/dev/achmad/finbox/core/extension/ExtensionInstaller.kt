@@ -15,10 +15,10 @@ import okhttp3.OkHttpClient
  */
 class ExtensionInstaller(
     private val client: OkHttpClient,
-    private val loader: dev.achmad.finbox.core.extension.ExtensionLoader,
+    private val loader: ExtensionLoader,
 ) {
 
-    suspend fun install(extension: dev.achmad.finbox.core.extension.AvailableExtension): Result<String> = runCatching {
+    suspend fun install(extension: AvailableExtension): Result<String> = runCatching {
         // No cache control: an APK would evict everything else from the 5 MiB cache.
         val bytes = client.get(extension.apkUrl, cacheControl = null).use { it.body.bytes() }
 

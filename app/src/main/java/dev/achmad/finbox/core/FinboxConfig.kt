@@ -34,5 +34,5 @@ object FinboxConfig {
      * declares its own via `finbox.extension.lib`, or by the leading components
      * of its versionName ("1.0.3" -> 1.0).
      */
-    val SUPPORTED_LIB_VERSIONS = listOf(1.0)
+    val SUPPORTED_LIB_VERSIONS = listOf(1.1)
 }
