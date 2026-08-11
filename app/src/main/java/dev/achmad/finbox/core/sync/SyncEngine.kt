@@ -8,7 +8,7 @@ import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.extension.EmailMessage
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.extension.TransactionSource
+import dev.achmad.finbox.core.extension.TransactionSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.model.MessageResponse
 import java.util.UUID

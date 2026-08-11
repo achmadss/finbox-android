@@ -1,9 +1,7 @@
 package dev.achmad.finbox.core.extension
-import dev.achmad.finbox.extension.TransactionSource
-
 
 sealed class LoadResult {
-    data class Success(val extension: InstalledExtensionInfo, val sources: List<TransactionSource>) : LoadResult()
+    data class Success(val extension: InstalledExtensionInfo, val source: TransactionSource) : LoadResult()
     data class Error(val file: String, val reason: String) : LoadResult()
 }
 

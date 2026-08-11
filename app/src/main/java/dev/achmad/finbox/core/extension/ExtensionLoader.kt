@@ -4,8 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.extension.SourceFactory
-import dev.achmad.finbox.extension.TransactionSource
+import dev.achmad.finbox.extension.TransactionParser
 import java.io.File
 
 /**
@@ -15,9 +14,9 @@ import java.io.File
  * 1. Parses its manifest via [PackageManager.getPackageArchiveInfo]
  * 2. Validates the `finbox.extension` feature and `finbox.extension.lib`
  *    against [FinboxConfig.SUPPORTED_LIB_VERSIONS]
- * 3. Instantiates the class in `finbox.extension.class` via a
- *    [ChildFirstPathClassLoader]; if it's a [SourceFactory] its sources are
- *    collected, otherwise it must be a [TransactionSource]
+ * 3. Instantiates the [TransactionParser] named by `finbox.extension.class`
+ *    via a [ChildFirstPathClassLoader] and pairs it with the identity from
+ *    the manifest
  */
 class ExtensionLoader(
     private val context: Context,
@@ -87,19 +86,14 @@ class ExtensionLoader(
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
             val clazz = Class.forName(className, false, classLoader)
-            val sources = when (val instance = clazz.getDeclaredConstructor().newInstance()) {
-                is SourceFactory -> instance.createSources()
-                is TransactionSource -> listOf(instance)
-                else -> return LoadResult.Error(
-                    apk.name,
-                    "Class $className implements neither TransactionSource nor SourceFactory",
-                )
-            }
-            if (sources.isEmpty()) {
-                LoadResult.Error(apk.name, "Extension provides no sources")
-            } else {
-                LoadResult.Success(info, sources)
-            }
+            val parser = clazz.getDeclaredConstructor().newInstance() as? TransactionParser
+                ?: return LoadResult.Error(apk.name, "Class $className is not a TransactionParser")
+            val source = TransactionSource(
+                id = sourceIdOf(info.name, info.versionCode),
+                name = info.name,
+                parser = parser,
+            )
+            LoadResult.Success(info, source)
         } catch (e: Throwable) {
             LoadResult.Error(apk.name, "Failed to instantiate: ${e.message}")
         }

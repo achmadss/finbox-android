@@ -1,14 +1,11 @@
 package dev.achmad.finbox.extension
 
 /**
- * What a parser extension implements: the behaviour, and nothing else.
+ * What a parser extension implements, and the whole of the extension API.
  *
- * Identity — `id`, `name`, `versionId` — comes from the `finbox { }` block in
- * Gradle. The build wraps this into the [TransactionSource] the app consumes,
- * so the same facts never have to be written in two places.
- *
- * Implement [SourceFactory] instead when one APK ships several parsers, since
- * those need an identity each and Gradle only describes one.
+ * Identity — name and version — is not part of it: the app reads those from
+ * the APK manifest, which the `finbox { }` block in Gradle fills in. Annotate
+ * the implementation with [Parser] to make it the APK's entry point.
  */
 interface TransactionParser {
 

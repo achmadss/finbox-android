@@ -33,7 +33,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.finbox.core.util.formatDate
-import dev.achmad.finbox.extension.TransactionSource
+import dev.achmad.finbox.core.extension.TransactionSource
 
 object AccountsScreen : Screen {
 

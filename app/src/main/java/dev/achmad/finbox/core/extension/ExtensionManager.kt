@@ -1,6 +1,4 @@
 package dev.achmad.finbox.core.extension
-import dev.achmad.finbox.extension.TransactionSource
-
 
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.repository.InstalledExtensionRepository
@@ -87,11 +85,11 @@ class ExtensionManager(
     suspend fun reload() = mutex.withLock {
         val results = withContext(Dispatchers.IO) { loader.loadExtensions() }
 
-        val infos = mutableMapOf<InstalledExtensionInfo, List<TransactionSource>>()
+        val infos = mutableMapOf<InstalledExtensionInfo, TransactionSource>()
         val errors = mutableMapOf<String, String>()
         for (result in results) {
             when (result) {
-                is LoadResult.Success -> infos[result.extension] = result.sources
+                is LoadResult.Success -> infos[result.extension] = result.source
                 is LoadResult.Error -> errors[result.file] = result.reason
             }
         }
@@ -102,7 +100,7 @@ class ExtensionManager(
         val dbByPkg = dbExtensions.associateBy { it.pkg }
 
         withContext(Dispatchers.IO) {
-            for ((info, sourceList) in infos) {
+            for ((info, source) in infos) {
                 val existing = dbByPkg[info.pkg]
                 if (existing == null) {
                     repository.upsert(
@@ -119,12 +117,12 @@ class ExtensionManager(
                             versionName = info.versionName,
                             libVersion = info.libVersion.toString(),
                             sha256 = "",
-                            sourceIds = sourceList.map { it.id },
+                            sourceIds = listOf(source.id),
                             enabled = true,
                         ),
                     )
-                } else if (existing.sourceIds != sourceList.map { it.id }) {
-                    repository.upsert(existing.copy(sourceIds = sourceList.map { it.id }))
+                } else if (existing.sourceIds != listOf(source.id)) {
+                    repository.upsert(existing.copy(sourceIds = listOf(source.id)))
                 }
             }
             val loadedPkgs = infos.keys.map { it.pkg }.toSet()
@@ -135,7 +133,7 @@ class ExtensionManager(
         val fresh = repository.extensions().first().filter { it.enabled }
         val sourcesByPkg = infos.entries.associate { it.key.pkg to it.value }
         for (ext in fresh) {
-            sourcesByPkg[ext.pkg]?.forEach { knownSources[it.id] = it }
+            sourcesByPkg[ext.pkg]?.let { knownSources[it.id] = it }
         }
     }
 

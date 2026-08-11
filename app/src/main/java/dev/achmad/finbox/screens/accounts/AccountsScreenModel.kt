@@ -10,7 +10,7 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.util.inject
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.extension.TransactionSource
+import dev.achmad.finbox.core.extension.TransactionSource
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
