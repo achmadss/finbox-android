@@ -29,6 +29,10 @@ object FinboxConfig {
     /** Gmail API base. */
     const val GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 
-    /** Supported parser API versions (checked by ExtensionLoader). */
-    val SUPPORTED_LIB_VERSIONS = setOf("1.0")
+    /**
+     * Supported parser API versions (checked by ExtensionLoader). An extension
+     * declares its own via `finbox.extension.lib`, or by the leading components
+     * of its versionName ("1.0.3" -> 1.0).
+     */
+    val SUPPORTED_LIB_VERSIONS = listOf(1.0)
 }

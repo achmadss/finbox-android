@@ -117,7 +117,7 @@ class ExtensionManager(
                                 ?: "",
                             versionCode = info.versionCode,
                             versionName = info.versionName,
-                            libVersion = info.libVersion,
+                            libVersion = info.libVersion.toString(),
                             sha256 = "",
                             sourceIds = sourceList.map { it.id },
                             enabled = true,

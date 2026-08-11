@@ -9,7 +9,7 @@ import okhttp3.OkHttpClient
 
 @Serializable
 data class ExtensionIndexResponse(
-    @SerialName("extensions") val extensions: List<dev.achmad.finbox.core.extension.ExtensionIndexEntry> = emptyList(),
+    @SerialName("extensions") val extensions: List<ExtensionIndexEntry> = emptyList(),
 )
 
 @Serializable
@@ -29,22 +29,24 @@ class ExtensionIndex(
     private val client: OkHttpClient,
 ) {
 
-    suspend fun fetch(): List<dev.achmad.finbox.core.extension.AvailableExtension> {
+    suspend fun fetch(): List<AvailableExtension> {
         val parsed = client.get(FinboxConfig.EXTENSION_INDEX_URL)
-            .parseAs<dev.achmad.finbox.core.extension.ExtensionIndexResponse>()
-        return parsed.extensions
-            .filter { it.libVersion in FinboxConfig.SUPPORTED_LIB_VERSIONS }
-            .map {
-                dev.achmad.finbox.core.extension.AvailableExtension(
-                    name = it.name,
-                    provider = it.provider,
-                    pkg = it.pkg,
-                    versionCode = it.versionCode,
-                    versionName = it.versionName,
-                    libVersion = it.libVersion,
-                    apkUrl = it.apk,
-                    sha256 = it.sha256,
-                )
-            }
+            .parseAs<ExtensionIndexResponse>()
+        // Entries the app could not load are dropped here rather than offered
+        // and then rejected by ExtensionLoader.
+        return parsed.extensions.mapNotNull { entry ->
+            val libVersion = entry.libVersion.toDoubleOrNull() ?: return@mapNotNull null
+            if (libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) return@mapNotNull null
+            AvailableExtension(
+                name = entry.name,
+                provider = entry.provider,
+                pkg = entry.pkg,
+                versionCode = entry.versionCode,
+                versionName = entry.versionName,
+                libVersion = libVersion,
+                apkUrl = entry.apk,
+                sha256 = entry.sha256,
+            )
+        }
     }
 }

@@ -2,6 +2,7 @@ package dev.achmad.finbox.core.extension
 
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.extension.SourceFactory
 import dev.achmad.finbox.extension.TransactionSource
@@ -43,14 +44,22 @@ class ExtensionLoader(
         val meta = pkgInfo?.applicationInfo?.metaData
             ?: return LoadResult.Error(apk.name, "Invalid or unreadable APK")
 
-        // aapt stores "1.0" as a float in the binary manifest, so getString can
-        // return null while getFloat returns the numeric value.
-        val libVersionRaw = meta.getString("finbox.extension.lib")
-            ?: meta.getFloat("finbox.extension.lib").toString()
-        val libVersion = libVersionRaw.toDoubleOrNull()
-            ?.let { d -> if (d == d.toInt().toDouble()) "${d.toInt()}.0" else d.toString() }
-            ?: libVersionRaw
-        if (libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) {
+        // The APK's own versionName/versionCode, not custom metadata: an extension
+        // that fails to declare them is broken, not defaultable.
+        val versionName = pkgInfo.versionName
+        if (versionName.isNullOrEmpty()) {
+            return LoadResult.Error(apk.name, "Missing versionName")
+        }
+        val versionCode = PackageInfoCompat.getLongVersionCode(pkgInfo)
+
+        // aapt stores "1.0" as a float in the binary manifest, so getString returns
+        // null; 0f means the metadata is absent, in which case the versionName
+        // prefix carries it ("1.0.3" -> 1.0).
+        val libVersion = meta.getFloat("finbox.extension.lib")
+            .takeUnless { it == 0f }
+            ?.toDouble()
+            ?: versionName.substringBeforeLast('.').toDoubleOrNull()
+        if (libVersion == null || libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) {
             return LoadResult.Error(
                 apk.name,
                 "Unsupported extension lib version '$libVersion' " +
@@ -65,9 +74,8 @@ class ExtensionLoader(
             pkg = pkgInfo.packageName,
             provider = meta.getString("finbox.extension.provider") ?: "unknown",
             name = meta.getString("finbox.extension.name") ?: apk.name,
-            versionCode = meta.getInt("finbox.extension.version_code", 1),
-            versionName = meta.getString("finbox.extension.version_name")
-                ?: pkgInfo.versionName ?: "1.0.1",
+            versionCode = versionCode.toInt(),
+            versionName = versionName,
             libVersion = libVersion,
             className = className,
         )
@@ -79,8 +87,7 @@ class ExtensionLoader(
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
             val clazz = Class.forName(className, false, classLoader)
-            val instance = clazz.getDeclaredConstructor().newInstance()
-            val sources = when (instance) {
+            val sources = when (val instance = clazz.getDeclaredConstructor().newInstance()) {
                 is SourceFactory -> instance.createSources()
                 is TransactionSource -> listOf(instance)
                 else -> return LoadResult.Error(

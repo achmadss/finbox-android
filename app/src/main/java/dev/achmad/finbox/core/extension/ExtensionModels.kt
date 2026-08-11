@@ -14,7 +14,7 @@ data class InstalledExtensionInfo(
     val name: String,
     val versionCode: Int,
     val versionName: String,
-    val libVersion: String,
+    val libVersion: Double,
     val className: String,
 )
 
@@ -25,7 +25,7 @@ data class AvailableExtension(
     val pkg: String,
     val versionCode: Int,
     val versionName: String,
-    val libVersion: String,
+    val libVersion: Double,
     val apkUrl: String,
     val sha256: String,
 )
