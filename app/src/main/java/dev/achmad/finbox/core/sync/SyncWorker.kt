@@ -1,4 +1,4 @@
-package dev.achmad.finbox.sync
+package dev.achmad.finbox.core.sync
 
 import android.content.Context
 import androidx.work.CoroutineWorker
@@ -8,7 +8,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import dev.achmad.finbox.core.di.injectLazy
+import dev.achmad.finbox.core.util.injectLazy
 import java.util.concurrent.TimeUnit
 
 /** Periodic sync worker: imports new transaction emails for all enabled accounts. */

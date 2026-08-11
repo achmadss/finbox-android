@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.di
+package dev.achmad.finbox.core.util
 
 import org.koin.core.qualifier.named
 import org.koin.mp.KoinPlatformTools

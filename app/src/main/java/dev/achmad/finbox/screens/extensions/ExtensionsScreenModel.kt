@@ -3,9 +3,9 @@ package dev.achmad.finbox.screens.extensions
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.InstalledExtension
-import dev.achmad.finbox.core.di.inject
-import dev.achmad.finbox.extension.AvailableExtension
-import dev.achmad.finbox.extension.ExtensionManager
+import dev.achmad.finbox.core.util.inject
+import dev.achmad.finbox.core.extension.AvailableExtension
+import dev.achmad.finbox.core.extension.ExtensionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

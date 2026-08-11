@@ -33,7 +33,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import dev.achmad.data.model.InstalledExtension
-import dev.achmad.finbox.extension.AvailableExtension
+import dev.achmad.finbox.core.extension.AvailableExtension
 
 object ExtensionsScreen : Screen {
 

@@ -1,4 +1,4 @@
-package dev.achmad.finbox.extension
+package dev.achmad.finbox.core.extension
 
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.core.network.get
@@ -9,7 +9,7 @@ import okhttp3.OkHttpClient
 
 @Serializable
 data class ExtensionIndexResponse(
-    @SerialName("extensions") val extensions: List<ExtensionIndexEntry> = emptyList(),
+    @SerialName("extensions") val extensions: List<dev.achmad.finbox.core.extension.ExtensionIndexEntry> = emptyList(),
 )
 
 @Serializable
@@ -29,13 +29,13 @@ class ExtensionIndex(
     private val client: OkHttpClient,
 ) {
 
-    suspend fun fetch(): List<AvailableExtension> {
+    suspend fun fetch(): List<dev.achmad.finbox.core.extension.AvailableExtension> {
         val parsed = client.get(FinboxConfig.EXTENSION_INDEX_URL)
-            .parseAs<ExtensionIndexResponse>()
+            .parseAs<dev.achmad.finbox.core.extension.ExtensionIndexResponse>()
         return parsed.extensions
             .filter { it.libVersion in FinboxConfig.SUPPORTED_LIB_VERSIONS }
             .map {
-                AvailableExtension(
+                dev.achmad.finbox.core.extension.AvailableExtension(
                     name = it.name,
                     provider = it.provider,
                     pkg = it.pkg,

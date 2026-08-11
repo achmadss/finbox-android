@@ -27,7 +27,7 @@
         </activity>
 
         <activity
-            android:name=".gmail.AuthCallbackActivity"
+            android:name=".core.gmail.AuthCallbackActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -1,16 +1,13 @@
-package dev.achmad.finbox.gmail
+package dev.achmad.finbox.core.gmail
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.core.network.get
 import dev.achmad.finbox.core.network.parseAs
 import dev.achmad.finbox.core.network.post
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationServiceConfiguration
 import okhttp3.FormBody
@@ -18,6 +15,8 @@ import okhttp3.Headers
 import okhttp3.OkHttpClient
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import dev.achmad.finbox.core.gmail.model.TokenResponse
+import dev.achmad.finbox.core.gmail.model.UserInfo
 
 /**
  * Per-account OAuth tokens, stored in Keystore-backed encrypted prefs.
@@ -57,17 +56,6 @@ class GmailTokenStore(context: Context) {
         }
     }
 }
-
-@Serializable
-data class TokenResponse(
-    @SerialName("access_token") val accessToken: String = "",
-    @SerialName("refresh_token") val refreshToken: String? = null,
-)
-
-@Serializable
-data class UserInfo(
-    @SerialName("email") val email: String = "",
-)
 
 /** Refreshes access tokens and resolves the account email from the token. */
 class GmailTokenManager(

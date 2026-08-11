@@ -4,7 +4,7 @@ import android.app.Application
 import android.util.Log
 import dev.achmad.data.di.dataModule
 import dev.achmad.finbox.di.appModule
-import dev.achmad.finbox.sync.SyncWorker
+import dev.achmad.finbox.core.sync.SyncWorker
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level

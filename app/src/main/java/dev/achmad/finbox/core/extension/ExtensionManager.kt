@@ -1,4 +1,6 @@
-package dev.achmad.finbox.extension
+package dev.achmad.finbox.core.extension
+import dev.achmad.finbox.extension.TransactionSource
+
 
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.repository.InstalledExtensionRepository

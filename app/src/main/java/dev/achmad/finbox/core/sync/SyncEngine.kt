@@ -1,4 +1,4 @@
-package dev.achmad.finbox.sync
+package dev.achmad.finbox.core.sync
 
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
@@ -7,10 +7,10 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.extension.EmailMessage
-import dev.achmad.finbox.extension.ExtensionManager
+import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.extension.TransactionSource
-import dev.achmad.finbox.gmail.GmailApi
-import dev.achmad.finbox.gmail.MessageResponse
+import dev.achmad.finbox.core.gmail.GmailApi
+import dev.achmad.finbox.core.gmail.model.MessageResponse
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 

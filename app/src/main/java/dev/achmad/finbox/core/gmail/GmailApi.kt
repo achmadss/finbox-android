@@ -1,4 +1,4 @@
-package dev.achmad.finbox.gmail
+package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
 import dev.achmad.finbox.core.FinboxConfig
@@ -6,55 +6,17 @@ import dev.achmad.finbox.core.network.HttpException
 import dev.achmad.finbox.core.network.get
 import dev.achmad.finbox.core.network.parseAs
 import dev.achmad.finbox.extension.EmailMessage
+import dev.achmad.finbox.core.gmail.model.MessageListResponse
+import dev.achmad.finbox.core.gmail.model.MessageRef
+import dev.achmad.finbox.core.gmail.model.MessageResponse
+import dev.achmad.finbox.core.gmail.model.Payload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.jsoup.Jsoup
-
-@Serializable
-data class MessageListResponse(
-    @SerialName("messages") val messages: List<MessageRef> = emptyList(),
-    @SerialName("nextPageToken") val nextPageToken: String? = null,
-)
-
-@Serializable
-data class MessageRef(
-    @SerialName("id") val id: String,
-    @SerialName("threadId") val threadId: String? = null,
-)
-
-@Serializable
-data class MessageResponse(
-    @SerialName("id") val id: String = "",
-    @SerialName("threadId") val threadId: String = "",
-    @SerialName("payload") val payload: Payload? = null,
-    @SerialName("internalDate") val internalDate: String? = null,
-)
-
-@Serializable
-data class Payload(
-    @SerialName("headers") val headers: List<Header> = emptyList(),
-    @SerialName("mimeType") val mimeType: String? = null,
-    @SerialName("body") val body: Body = Body(),
-    @SerialName("parts") val parts: List<Payload> = emptyList(),
-)
-
-@Serializable
-data class Header(
-    @SerialName("name") val name: String = "",
-    @SerialName("value") val value: String = "",
-)
-
-@Serializable
-data class Body(
-    @SerialName("size") val size: Int = 0,
-    @SerialName("data") val data: String? = null,
-)
 
 /** Thin Gmail REST client on top of OkHttp. */
 class GmailApi(

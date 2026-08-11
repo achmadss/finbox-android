@@ -1,4 +1,4 @@
-package dev.achmad.finbox.gmail
+package dev.achmad.finbox.core.gmail
 
 import android.content.Context
 import android.content.Intent

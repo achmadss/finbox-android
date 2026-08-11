@@ -8,10 +8,10 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
-import dev.achmad.finbox.core.di.inject
-import dev.achmad.finbox.extension.ExtensionManager
+import dev.achmad.finbox.core.util.inject
+import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.extension.TransactionSource
-import dev.achmad.finbox.gmail.GmailAuthManager
+import dev.achmad.finbox.core.gmail.GmailAuthManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map

@@ -1,4 +1,4 @@
-package dev.achmad.finbox.extension
+package dev.achmad.finbox.core.extension
 
 import dalvik.system.DexClassLoader
 

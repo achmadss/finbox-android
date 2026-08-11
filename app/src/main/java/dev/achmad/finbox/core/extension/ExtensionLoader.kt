@@ -1,8 +1,10 @@
-package dev.achmad.finbox.extension
+package dev.achmad.finbox.core.extension
 
 import android.content.Context
 import android.content.pm.PackageManager
 import dev.achmad.finbox.core.FinboxConfig
+import dev.achmad.finbox.extension.SourceFactory
+import dev.achmad.finbox.extension.TransactionSource
 import java.io.File
 
 /**
