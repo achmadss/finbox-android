@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,7 +22,6 @@ import cafe.adriel.voyager.navigator.tab.TabOptions
 import dev.achmad.finbox.screens.accounts.AccountsScreen
 import dev.achmad.finbox.screens.extensions.ExtensionsScreen
 import dev.achmad.finbox.screens.transactions.TransactionsScreen
-import dev.achmad.finbox.screens.unrecognized.UnrecognizedScreen
 
 object HomeScreen : Screen {
 
@@ -49,7 +47,6 @@ object HomeScreen : Screen {
                         is TransactionsTab -> TransactionsScreen.Content()
                         is AccountsTab -> AccountsScreen.Content()
                         is ExtensionsTab -> ExtensionsScreen.Content()
-                        is UnrecognizedTab -> UnrecognizedScreen.Content()
                     }
                 }
             }
@@ -60,7 +57,6 @@ object HomeScreen : Screen {
         TransactionsTab,
         AccountsTab,
         ExtensionsTab,
-        UnrecognizedTab,
     )
 }
 
@@ -100,14 +96,3 @@ private object ExtensionsTab : Tab {
     override fun Content() {}
 }
 
-private object UnrecognizedTab : Tab {
-    override val options: TabOptions
-        @Composable get() = TabOptions(
-            index = 3u.toUShort(),
-            title = "Unrecognized",
-            icon = rememberVectorPainter(Icons.Filled.MailOutline),
-        )
-
-    @Composable
-    override fun Content() {}
-}

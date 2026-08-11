@@ -2,8 +2,8 @@ package dev.achmad.finbox.gmail
 
 import android.content.Context
 import android.content.Intent
-import dev.achmad.domain.model.EmailAccount
-import dev.achmad.domain.repository.AccountRepository
+import dev.achmad.data.model.EmailAccount
+import dev.achmad.data.repository.AccountRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine

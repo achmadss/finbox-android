@@ -4,10 +4,10 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import dev.achmad.finbox.core.di.injectLazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.koin.android.ext.android.inject
 
 /**
  * Receives the OAuth redirect (`dev.achmad.finbox:/oauth2callback`),
@@ -16,7 +16,7 @@ import org.koin.android.ext.android.inject
  */
 class AuthCallbackActivity : Activity() {
 
-    private val authManager: GmailAuthManager by inject()
+    private val authManager: GmailAuthManager by injectLazy()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

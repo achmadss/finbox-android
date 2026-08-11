@@ -2,9 +2,7 @@ package dev.achmad.finbox.base
 
 import android.app.Application
 import android.util.Log
-import dev.achmad.core.di.coreModule
 import dev.achmad.data.di.dataModule
-import dev.achmad.domain.di.domainModule
 import dev.achmad.finbox.di.appModule
 import dev.achmad.finbox.sync.SyncWorker
 import org.koin.android.ext.koin.androidContext
@@ -31,14 +29,7 @@ class MainApplication: Application() {
                 }
             )
             androidContext(this@MainApplication)
-            modules(
-                listOf(
-                    coreModule,
-                    dataModule,
-                    domainModule,
-                    appModule,
-                )
-            )
+            modules(dataModule, appModule)
         }
         SyncWorker.schedule(this)
     }

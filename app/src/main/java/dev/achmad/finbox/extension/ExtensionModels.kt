@@ -27,6 +27,3 @@ data class AvailableExtension(
     val apkUrl: String,
     val sha256: String,
 )
-
-/** A normalized email handed to parsers. */
-typealias NormalizedEmail = EmailMessage

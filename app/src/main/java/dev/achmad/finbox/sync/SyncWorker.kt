@@ -8,17 +8,16 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import dev.achmad.finbox.core.di.injectLazy
 import java.util.concurrent.TimeUnit
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** Periodic sync worker: imports new transaction emails for all enabled accounts. */
 class SyncWorker(
     context: Context,
     params: WorkerParameters,
-) : CoroutineWorker(context, params), KoinComponent {
+) : CoroutineWorker(context, params) {
 
-    private val syncEngine: SyncEngine by inject()
+    private val syncEngine: SyncEngine by injectLazy()
 
     override suspend fun doWork(): Result = try {
         val processed = syncEngine.syncAll().getOrThrow()

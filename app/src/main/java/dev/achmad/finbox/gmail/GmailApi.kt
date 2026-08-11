@@ -1,45 +1,60 @@
 package dev.achmad.finbox.gmail
 
-import dev.achmad.finbox.config.FinboxConfig
+import android.util.Base64
+import dev.achmad.finbox.core.FinboxConfig
+import dev.achmad.finbox.core.network.HttpException
+import dev.achmad.finbox.core.network.get
+import dev.achmad.finbox.core.network.parseAs
 import dev.achmad.finbox.extension.EmailMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import android.util.Base64
-import java.io.IOException
 import java.net.URLEncoder
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import okhttp3.Headers
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.Jsoup
 
 @Serializable
-data class MessageListResponse(val messages: List<MessageRef> = emptyList(), val nextPageToken: String? = null)
+data class MessageListResponse(
+    @SerialName("messages") val messages: List<MessageRef> = emptyList(),
+    @SerialName("nextPageToken") val nextPageToken: String? = null,
+)
 
 @Serializable
-data class MessageRef(val id: String, val threadId: String? = null)
+data class MessageRef(
+    @SerialName("id") val id: String,
+    @SerialName("threadId") val threadId: String? = null,
+)
 
 @Serializable
 data class MessageResponse(
-    val id: String = "",
-    val threadId: String = "",
-    val payload: Payload? = null,
-    val internalDate: String? = null,
+    @SerialName("id") val id: String = "",
+    @SerialName("threadId") val threadId: String = "",
+    @SerialName("payload") val payload: Payload? = null,
+    @SerialName("internalDate") val internalDate: String? = null,
 )
 
 @Serializable
 data class Payload(
-    val headers: List<Header> = emptyList(),
-    val mimeType: String? = null,
-    val body: Body = Body(),
-    val parts: List<Payload> = emptyList(),
+    @SerialName("headers") val headers: List<Header> = emptyList(),
+    @SerialName("mimeType") val mimeType: String? = null,
+    @SerialName("body") val body: Body = Body(),
+    @SerialName("parts") val parts: List<Payload> = emptyList(),
 )
 
 @Serializable
-data class Header(val name: String = "", val value: String = "")
+data class Header(
+    @SerialName("name") val name: String = "",
+    @SerialName("value") val value: String = "",
+)
 
 @Serializable
-data class Body(val size: Int = 0, val data: String? = null)
+data class Body(
+    @SerialName("size") val size: Int = 0,
+    @SerialName("data") val data: String? = null,
+)
 
 /** Thin Gmail REST client on top of OkHttp. */
 class GmailApi(
@@ -47,50 +62,53 @@ class GmailApi(
     private val tokens: GmailTokenManager,
 ) {
 
-    private val json = Json { ignoreUnknownKeys = true }
-
     suspend fun listMessages(
         accountId: String,
         query: String = "category:finance",
         maxResults: Int = 100,
     ): List<MessageRef> {
         val token = tokens.getAccessToken(accountId) ?: return emptyList()
-        val url = "${FinboxConfig.GMAIL_API_BASE}/messages?q=${URLEncoder.encode(query, "UTF-8")}&maxResults=$maxResults"
-        val response = getWithRetry(accountId, url, token)
-        return json.decodeFromString<MessageListResponse>(response).messages
+        val url = "${FinboxConfig.GMAIL_API_BASE}/messages" +
+            "?q=${
+                withContext(Dispatchers.IO) {
+                    URLEncoder.encode(query, "UTF-8")
+                }
+            }&maxResults=$maxResults"
+        return getWithRetry<MessageListResponse>(accountId, url, token).messages
     }
 
     suspend fun getMessage(accountId: String, messageId: String): MessageResponse {
         val token = tokens.getAccessToken(accountId) ?: error("No token")
         val url = "${FinboxConfig.GMAIL_API_BASE}/messages/$messageId?format=full"
-        val response = getWithRetry(accountId, url, token)
-        return json.decodeFromString<MessageResponse>(response)
+        return getWithRetry(accountId, url, token)
     }
 
     /** GET with a single 401-triggered token refresh retry. */
-    private suspend fun getWithRetry(accountId: String, url: String, token: String): String {
-        val first = get(url, token)
-        if (first.startsWith("{\"error\"")) {
-            tokens.refreshAccessToken(accountId)?.let { fresh ->
-                return get(url, fresh)
-            }
+    private suspend inline fun <reified T> getWithRetry(
+        accountId: String,
+        url: String,
+        token: String,
+    ): T {
+        var response = get(url, token)
+        if (response.code == 401) {
+            response.close()
+            val fresh = tokens.refreshAccessToken(accountId) ?: throw HttpException(401)
+            response = get(url, fresh)
         }
-        return first
+        if (!response.isSuccessful) {
+            response.close()
+            throw HttpException(response.code)
+        }
+        return response.parseAs()
     }
 
-    private suspend fun get(url: String, token: String): String = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url(url)
-            .header("Authorization", "Bearer $token")
-            .get()
-            .build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful && response.code != 401) {
-                throw IOException("Gmail API ${response.code}")
-            }
-            response.body?.string().orEmpty()
-        }
-    }
+    // No cache control: these responses are account-specific and must not be cached.
+    private suspend fun get(url: String, token: String): Response = client.get(
+        url = url,
+        headers = Headers.headersOf("Authorization", "Bearer $token"),
+        cacheControl = null,
+        ensureSuccess = false,
+    )
 
     companion object {
         /** Builds a normalized [EmailMessage] for parser extensions. */

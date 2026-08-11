@@ -34,6 +34,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -73,9 +74,11 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
+    implementation(libs.serialization.json.okio)
 
-    implementation(project(":core"))
-    implementation(project(":domain"))
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging)
+
     implementation(project(":data"))
     implementation(project(":extension-api"))
 }

@@ -1,14 +1,11 @@
 package dev.achmad.finbox.sync
 
-import dev.achmad.domain.model.EmailAccount
-import dev.achmad.domain.model.Transaction
-import dev.achmad.domain.model.TransactionType
-import dev.achmad.domain.model.UnrecognizedEmail
-import dev.achmad.domain.model.UnrecognizedStatus
-import dev.achmad.domain.repository.AccountExtensionRepository
-import dev.achmad.domain.repository.AccountRepository
-import dev.achmad.domain.repository.TransactionRepository
-import dev.achmad.domain.repository.UnrecognizedEmailRepository
+import dev.achmad.data.model.EmailAccount
+import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.TransactionType
+import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountRepository
+import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.extension.EmailMessage
 import dev.achmad.finbox.extension.ExtensionManager
 import dev.achmad.finbox.extension.TransactionSource
@@ -20,7 +17,7 @@ import kotlinx.coroutines.flow.first
 /**
  * Pulls transaction emails for one account and runs the account's enabled
  * parsers in assignment order; the first match claims the email
- * (first-match-wins). Unparsable emails land in the unrecognized queue.
+ * (first-match-wins). Emails no parser claims are ignored.
  * Dedup is enforced by the transactions table unique indexes.
  */
 class SyncEngine(
@@ -28,7 +25,6 @@ class SyncEngine(
     private val accountRepository: AccountRepository,
     private val accountExtensionRepository: AccountExtensionRepository,
     private val transactionRepository: TransactionRepository,
-    private val unrecognizedRepository: UnrecognizedEmailRepository,
     private val gmailApi: GmailApi,
 ) {
 
@@ -70,61 +66,16 @@ class SyncEngine(
         val email = GmailApi.toEmailMessage(message)
         val parser = parsers.firstOrNull { runCatching { it.isEmailForProvider(email) }.getOrDefault(false) }
 
-        if (parser == null) {
-            unrecognizedRepository.insertIgnoringDuplicates(
-                UnrecognizedEmail(
-                    id = UUID.randomUUID().toString(),
-                    accountId = account.id,
-                    emailMessageId = email.messageId,
-                    subject = email.subject,
-                    sender = email.from,
-                    receivedAt = email.date,
-                    reason = "No matching parser found",
-                    status = UnrecognizedStatus.UNREVIEWED,
-                    bodyRef = null,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
-            return true
-        }
+        // An email no parser recognises is not a transaction; drop it.
+        if (parser == null) return true
 
         val parsed = try {
             parser.parseEmail(email)
         } catch (e: Exception) {
-            unrecognizedRepository.insertIgnoringDuplicates(
-                UnrecognizedEmail(
-                    id = UUID.randomUUID().toString(),
-                    accountId = account.id,
-                    emailMessageId = email.messageId,
-                    subject = email.subject,
-                    sender = email.from,
-                    receivedAt = email.date,
-                    reason = "Parser error: ${e.message}",
-                    status = UnrecognizedStatus.UNREVIEWED,
-                    bodyRef = null,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
             return true
         }
 
-        if (parsed.isEmpty()) {
-            unrecognizedRepository.insertIgnoringDuplicates(
-                UnrecognizedEmail(
-                    id = UUID.randomUUID().toString(),
-                    accountId = account.id,
-                    emailMessageId = email.messageId,
-                    subject = email.subject,
-                    sender = email.from,
-                    receivedAt = email.date,
-                    reason = "Parser returned no transactions",
-                    status = UnrecognizedStatus.UNREVIEWED,
-                    bodyRef = null,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
-            return true
-        }
+        if (parsed.isEmpty()) return true
 
         val now = System.currentTimeMillis()
         parsed.forEach { tx ->

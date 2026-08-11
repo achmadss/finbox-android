@@ -28,23 +28,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import dev.achmad.domain.model.InstalledExtension
+import dev.achmad.data.model.InstalledExtension
 import dev.achmad.finbox.extension.AvailableExtension
-import dev.achmad.finbox.extension.ExtensionManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-object ExtensionsScreen : Screen, KoinComponent {
+object ExtensionsScreen : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -111,60 +102,6 @@ object ExtensionsScreen : Screen, KoinComponent {
                 }
             }
         }
-    }
-}
-
-class ExtensionsScreenModel : ScreenModel, KoinComponent {
-
-    private val manager: ExtensionManager by inject()
-
-    val installed: StateFlow<List<InstalledExtension>> = manager.installed
-    val available: StateFlow<List<AvailableExtension>> = manager.available
-    val errors: StateFlow<Map<String, String>> = manager.loadErrors
-
-    private val _busy = MutableStateFlow(false)
-    val busy: StateFlow<Boolean> = _busy
-
-    init {
-        screenModelScope.launch {
-            manager.reload()
-            manager.refreshIndex()
-        }
-    }
-
-    fun refresh() {
-        screenModelScope.launch {
-            _busy.value = true
-            runCatching {
-                manager.refreshIndex()
-                manager.reload()
-            }
-            _busy.value = false
-        }
-    }
-
-    fun install(extension: AvailableExtension) {
-        screenModelScope.launch {
-            _busy.value = true
-            runCatching { manager.install(extension) }
-            _busy.value = false
-        }
-    }
-
-    fun update(pkg: String) {
-        screenModelScope.launch {
-            _busy.value = true
-            runCatching { manager.updateAvailable(pkg) }
-            _busy.value = false
-        }
-    }
-
-    fun setEnabled(pkg: String, enabled: Boolean) {
-        screenModelScope.launch { manager.setEnabled(pkg, enabled) }
-    }
-
-    fun remove(pkg: String) {
-        screenModelScope.launch { manager.remove(pkg) }
     }
 }
 

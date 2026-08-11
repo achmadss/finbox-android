@@ -36,21 +36,13 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.model.rememberScreenModel
-import dev.achmad.domain.model.Transaction
-import dev.achmad.domain.model.TransactionType
-import dev.achmad.domain.repository.TransactionRepository
-import dev.achmad.finbox.util.formatAmount
-import dev.achmad.finbox.util.formatDate
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.TransactionType
+import dev.achmad.finbox.core.util.formatAmount
+import dev.achmad.finbox.core.util.formatDate
 
-object TransactionsScreen : Screen, KoinComponent {
+object TransactionsScreen : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -90,33 +82,6 @@ object TransactionsScreen : Screen, KoinComponent {
                 onSave = { updated -> model.update(updated); editing = null },
             )
         }
-    }
-}
-
-class TransactionsScreenModel : ScreenModel, KoinComponent {
-
-    private val repository: TransactionRepository by inject()
-
-    val query = MutableStateFlow("")
-
-    private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
-    val transactions: StateFlow<List<Transaction>> = _transactions
-
-    init {
-        screenModelScope.launch { repository.transactions().collect { _transactions.value = it } }
-    }
-
-    fun setQuery(q: String) {
-        query.value = q
-        screenModelScope.launch { repository.search(q).collect { _transactions.value = it } }
-    }
-
-    fun update(transaction: Transaction) {
-        screenModelScope.launch { repository.update(transaction) }
-    }
-
-    fun delete(id: String) {
-        screenModelScope.launch { repository.delete(id) }
     }
 }
 

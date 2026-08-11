@@ -2,9 +2,7 @@ package dev.achmad.finbox.extension
 
 import android.content.Context
 import android.content.pm.PackageManager
-import dev.achmad.finbox.config.FinboxConfig
-import dev.achmad.finbox.extension.TransactionSource
-import dev.achmad.finbox.extension.SourceFactory
+import dev.achmad.finbox.core.FinboxConfig
 import java.io.File
 
 /**
@@ -41,15 +39,12 @@ class ExtensionLoader(
             null
         }
         val meta = pkgInfo?.applicationInfo?.metaData
-        if (meta == null || pkgInfo == null) {
-            return LoadResult.Error(apk.name, "Invalid or unreadable APK")
-        }
+            ?: return LoadResult.Error(apk.name, "Invalid or unreadable APK")
 
         // aapt stores "1.0" as a float in the binary manifest, so getString can
-        // return null while getInt/getFloat return the numeric value.
+        // return null while getFloat returns the numeric value.
         val libVersionRaw = meta.getString("finbox.extension.lib")
             ?: meta.getFloat("finbox.extension.lib").toString()
-            ?: meta.getInt("finbox.extension.lib").toString()
         val libVersion = libVersionRaw.toDoubleOrNull()
             ?.let { d -> if (d == d.toInt().toDouble()) "${d.toInt()}.0" else d.toString() }
             ?: libVersionRaw

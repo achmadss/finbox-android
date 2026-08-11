@@ -1,7 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.serialization)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.sqldelight)
 }
 
@@ -43,8 +41,6 @@ sqldelight {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -56,8 +52,5 @@ dependencies {
     implementation(libs.sqldelight.android.driver)
     implementation(libs.sqldelight.coroutines)
     implementation(libs.coroutines.android)
-
-    implementation(project(":core"))
-    implementation(project(":domain"))
-
+    implementation(libs.serialization.json)
 }

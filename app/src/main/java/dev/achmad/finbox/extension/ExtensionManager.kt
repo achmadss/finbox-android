@@ -1,10 +1,10 @@
 package dev.achmad.finbox.extension
 
-import dev.achmad.domain.model.InstalledExtension
-import dev.achmad.domain.repository.InstalledExtensionRepository
-import dev.achmad.finbox.extension.TransactionSource
+import dev.achmad.data.model.InstalledExtension
+import dev.achmad.data.repository.InstalledExtensionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,8 +26,9 @@ class ExtensionManager(
     private val installer: ExtensionInstaller,
     private val index: ExtensionIndex,
     private val repository: InstalledExtensionRepository,
-    private val scope: CoroutineScope,
 ) {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val mutex = Mutex()
 

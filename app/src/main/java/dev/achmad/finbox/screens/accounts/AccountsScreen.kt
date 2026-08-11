@@ -24,34 +24,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import dev.achmad.domain.model.EmailAccount
-import dev.achmad.domain.repository.AccountExtensionRepository
-import dev.achmad.domain.repository.AccountRepository
-import dev.achmad.finbox.extension.ExtensionManager
+import dev.achmad.data.model.EmailAccount
+import dev.achmad.finbox.core.util.formatDate
 import dev.achmad.finbox.extension.TransactionSource
-import dev.achmad.finbox.gmail.GmailAuthManager
-import dev.achmad.finbox.util.formatDate
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-object AccountsScreen : Screen, KoinComponent {
+object AccountsScreen : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -91,61 +75,6 @@ object AccountsScreen : Screen, KoinComponent {
                 onToggle = { sourceId, enabled -> model.setParserEnabled(account.id, sourceId, enabled) },
                 onDismiss = { model.parsersDialogAccount = null },
             )
-        }
-    }
-}
-
-class AccountsScreenModel : ScreenModel, KoinComponent {
-
-    private val accountRepository: AccountRepository by inject()
-    private val accountExtensionRepository: AccountExtensionRepository by inject()
-    private val authManager: GmailAuthManager by inject()
-    private val extensionManager: ExtensionManager by inject()
-
-    private val _accounts = MutableStateFlow<List<EmailAccount>>(emptyList())
-    val accounts: StateFlow<List<EmailAccount>> = _accounts
-
-    private val assignments = accountExtensionRepository.allAssignments()
-        .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
-
-    val enabledByAccount: StateFlow<Map<String, Set<Long>>> = assignments
-        .map { list ->
-            list.filter { it.enabled }
-                .groupBy({ it.accountId }, { it.sourceId })
-                .mapValues { it.value.toSet() }
-        }
-        .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
-
-    var parsersDialogAccount by mutableStateOf<EmailAccount?>(null)
-
-    init {
-        screenModelScope.launch {
-            accountRepository.accounts().collect { _accounts.value = it }
-        }
-    }
-
-    fun addAccount() = authManager.startAuthFlow()
-
-    fun setSyncEnabled(id: String, enabled: Boolean) {
-        screenModelScope.launch { accountRepository.setEnabled(id, enabled) }
-    }
-
-    fun remove(id: String) {
-        screenModelScope.launch {
-            accountRepository.delete(id)
-            accountExtensionRepository.deleteForAccount(id)
-        }
-    }
-
-    fun openParsersDialog(account: EmailAccount) {
-        parsersDialogAccount = account
-    }
-
-    fun availableSources(): List<TransactionSource> = extensionManager.sources
-
-    fun setParserEnabled(accountId: String, sourceId: Long, enabled: Boolean) {
-        screenModelScope.launch {
-            accountExtensionRepository.setEnabled(accountId, sourceId, enabled)
         }
     }
 }
