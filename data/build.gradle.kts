@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "dev.achmad.data"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
