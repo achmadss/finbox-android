@@ -26,3 +26,6 @@ DELETE FROM installed_extension WHERE pkg = :pkg;
 
 SETEnabled:
 UPDATE installed_extension SET enabled = :enabled WHERE pkg = :pkg;
+
+DELETEAllExtensions:
+DELETE FROM installed_extension;

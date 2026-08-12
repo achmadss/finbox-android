@@ -2,7 +2,7 @@ CREATE TABLE transactions (
     id TEXT NOT NULL PRIMARY KEY,
     account_id TEXT NOT NULL,
     source_id INTEGER NOT NULL,
-    parser_id INTEGER NOT NULL,
+    -- Gmail's message id of the email this was parsed from.
     email_message_id TEXT NOT NULL,
     reference TEXT,
     date INTEGER,
@@ -17,16 +17,13 @@ CREATE TABLE transactions (
     deleted INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE UNIQUE INDEX idx_transaction_dedup_ref
-    ON transactions(account_id, source_id, reference)
-    WHERE reference IS NOT NULL AND deleted = 0;
-
-CREATE UNIQUE INDEX idx_transaction_dedup_email
-    ON transactions(account_id, source_id, email_message_id)
-    WHERE deleted = 0;
+CREATE INDEX idx_transaction_email ON transactions(account_id, email_message_id);
 
 SELECTAll:
 SELECT * FROM transactions WHERE deleted = 0 ORDER BY COALESCE(date, created_at) DESC;
+
+SELECTEverything:
+SELECT * FROM transactions;
 
 SELECTById:
 SELECT * FROM transactions WHERE id = :id;
@@ -37,9 +34,11 @@ WHERE deleted = 0
   AND (description LIKE '%' || :query || '%' OR merchant LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%')
 ORDER BY COALESCE(date, created_at) DESC;
 
-INSERTOrIgnore:
-INSERT OR IGNORE INTO transactions(id, account_id, source_id, parser_id, email_message_id, reference, date, amount, currency, type, category, description, merchant, created_at, updated_at, deleted)
-VALUES (:id, :account_id, :source_id, :parser_id, :email_message_id, :reference, :date, :amount, :currency, :type, :category, :description, :merchant, :created_at, :updated_at, :deleted);
+-- Ids derive from the email and parser they came from, so re-parsing the same
+-- email overwrites instead of duplicating.
+INSERTOrReplace:
+INSERT OR REPLACE INTO transactions(id, account_id, source_id, email_message_id, reference, date, amount, currency, type, category, description, merchant, created_at, updated_at, deleted)
+VALUES (:id, :account_id, :source_id, :email_message_id, :reference, :date, :amount, :currency, :type, :category, :description, :merchant, :created_at, :updated_at, :deleted);
 
 UPDATEById:
 UPDATE transactions SET
@@ -55,3 +54,6 @@ WHERE id = :id;
 
 DELETEById:
 UPDATE transactions SET deleted = 1, updated_at = :updated_at WHERE id = :id;
+
+DELETEAllTransactions:
+DELETE FROM transactions;

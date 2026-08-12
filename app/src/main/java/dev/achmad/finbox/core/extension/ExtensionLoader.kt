@@ -88,10 +88,6 @@ class ExtensionLoader(
             val clazz = Class.forName(className, false, classLoader)
             val source = clazz.getDeclaredConstructor().newInstance() as? TransactionSource
                 ?: return LoadResult.Error(apk.name, "Class $className is not a TransactionSource")
-            // An empty query would pull the entire mailbox on every sync.
-            if (source.emailQuery.isEmpty) {
-                return LoadResult.Error(apk.name, "Source declares an empty emailQuery")
-            }
             LoadResult.Success(
                 info,
                 LoadedSource(

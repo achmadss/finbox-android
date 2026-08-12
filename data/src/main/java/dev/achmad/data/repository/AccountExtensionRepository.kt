@@ -26,6 +26,25 @@ class AccountExtensionRepository(
             .mapToList(Dispatchers.IO)
             .map { rows -> rows.map { it.toModel() } }
 
+    suspend fun all(): List<AccountExtension> = withContext(Dispatchers.IO) {
+        db.accountExtensionQueries.SELECTAll().executeAsList().map { it.toModel() }
+    }
+
+    /** Restore path: replaces everything. */
+    suspend fun replaceAll(assignments: List<AccountExtension>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            db.accountExtensionQueries.DELETEAllAssignments()
+            for (assignment in assignments) {
+                db.accountExtensionQueries.INSERTOrReplace(
+                    accountId = assignment.accountId,
+                    sourceId = assignment.sourceId,
+                    enabled = if (assignment.enabled) 1L else 0L,
+                    position = assignment.position.toLong(),
+                )
+            }
+        }
+    }
+
     suspend fun deleteForAccount(accountId: String) = withContext(Dispatchers.IO) {
         db.accountExtensionQueries.DELETEForAccount(accountId)
         Unit

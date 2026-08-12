@@ -6,7 +6,15 @@ CREATE TABLE email_account (
     enabled INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    last_sync_at INTEGER
+    last_sync_at INTEGER,
+    -- Gmail history cursor: the last historyId whose changes were fully processed.
+    last_history_id TEXT,
+    -- Raw Gmail search narrowing what the initial import downloads.
+    sync_query TEXT,
+    -- historyId captured when the initial import began, promoted when it ends.
+    import_cursor TEXT,
+    -- How far back the initial import has got, epoch millis.
+    imported_back_to INTEGER
 );
 
 SELECTAllAccounts:
@@ -16,8 +24,8 @@ SELECTById:
 SELECT * FROM email_account WHERE id = :id;
 
 INSERTAccount:
-INSERT OR IGNORE INTO email_account(id, email, display_name, auth_token_ref, enabled, created_at, updated_at, last_sync_at)
-VALUES (:id, :email, :display_name, :auth_token_ref, :enabled, :created_at, :updated_at, :last_sync_at);
+INSERT OR IGNORE INTO email_account(id, email, display_name, auth_token_ref, enabled, created_at, updated_at, last_sync_at, last_history_id, sync_query, import_cursor, imported_back_to)
+VALUES (:id, :email, :display_name, :auth_token_ref, :enabled, :created_at, :updated_at, :last_sync_at, :last_history_id, :sync_query, :import_cursor, :imported_back_to);
 
 UPDATEAccount:
 UPDATE email_account SET
@@ -26,7 +34,11 @@ UPDATE email_account SET
     auth_token_ref = :auth_token_ref,
     enabled = :enabled,
     updated_at = :updated_at,
-    last_sync_at = :last_sync_at
+    last_sync_at = :last_sync_at,
+    last_history_id = :last_history_id,
+    sync_query = :sync_query,
+    import_cursor = :import_cursor,
+    imported_back_to = :imported_back_to
 WHERE id = :id;
 
 DELETEAccount:
@@ -35,8 +47,19 @@ DELETE FROM email_account WHERE id = :id;
 SETAccountEnabled:
 UPDATE email_account SET enabled = :enabled, updated_at = :updated_at WHERE id = :id;
 
-SETLastSync:
-UPDATE email_account SET last_sync_at = :at, updated_at = :at WHERE id = :id;
-
 SELECTByEmail:
 SELECT * FROM email_account WHERE email = :email;
+
+SETHistoryId:
+-- Promoting the cursor ends the import, so its bookkeeping goes with it.
+UPDATE email_account SET last_history_id = :last_history_id, import_cursor = NULL, imported_back_to = NULL, last_sync_at = :at, updated_at = :at WHERE id = :id;
+
+SETImportProgress:
+UPDATE email_account SET import_cursor = :import_cursor, imported_back_to = :imported_back_to, last_sync_at = :at, updated_at = :at WHERE id = :id;
+
+SETSyncQuery:
+-- Clearing the cursor makes the next update re-import under the new search.
+UPDATE email_account SET sync_query = :sync_query, last_history_id = NULL, import_cursor = NULL, imported_back_to = NULL, updated_at = :updated_at WHERE id = :id;
+
+DELETEAllAccounts:
+DELETE FROM email_account;

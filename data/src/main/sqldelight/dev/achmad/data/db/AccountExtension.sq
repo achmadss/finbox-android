@@ -24,3 +24,6 @@ DELETE FROM account_extension WHERE account_id = :accountId;
 
 SETEnabled:
 UPDATE account_extension SET enabled = :enabled WHERE account_id = :accountId AND source_id = :sourceId;
+
+DELETEAllAssignments:
+DELETE FROM account_extension;

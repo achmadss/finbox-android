@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Finbox</string>
+
+    <string name="statement_update_channel">Statement updates</string>
+    <string name="statement_update_importing">Importing your statement</string>
+    <string name="statement_update_starting">Starting…</string>
+    <string name="statement_update_imported_back_to">Imported back to %1$s</string>
 </resources>

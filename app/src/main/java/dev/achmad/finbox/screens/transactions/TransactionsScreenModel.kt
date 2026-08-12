@@ -4,7 +4,9 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.repository.TransactionRepository
+import dev.achmad.finbox.core.statement.StatementUpdateJob
 import dev.achmad.finbox.core.util.inject
+import dev.achmad.finbox.core.util.injectAndroidContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +29,14 @@ class TransactionsScreenModel(
 
     fun setQuery(q: String) {
         query.value = q
+    }
+
+    /**
+     * Manual sync. The work is a job, not screen work: a first import runs for
+     * as long as the mailbox takes, well past this screen.
+     */
+    fun refresh() {
+        StatementUpdateJob.runNow(injectAndroidContext())
     }
 
     fun update(transaction: Transaction) {

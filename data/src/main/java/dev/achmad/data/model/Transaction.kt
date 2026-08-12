@@ -6,11 +6,17 @@ enum class TransactionType {
     TRANSFER,
 }
 
+/**
+ * One transaction a parser read out of an email.
+ *
+ * [emailMessageId] points back at the [Email] it came from, and [sourceId] says
+ * which parser produced it.
+ */
 data class Transaction(
     val id: String,
     val accountId: String,
     val sourceId: Long,
-    val parserId: Long,
+    /** Gmail's message id of the email this was parsed from. */
     val emailMessageId: String,
     val reference: String?,
     val date: Long?,

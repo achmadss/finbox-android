@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
@@ -54,13 +55,22 @@ object TransactionsScreen : Screen {
         var editing by remember { mutableStateOf<Transaction?>(null) }
 
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = model::setQuery,
-                label = { Text("Search") },
-                singleLine = true,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
-            )
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = model::setQuery,
+                    label = { Text("Search") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = model::refresh) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Sync")
+                }
+            }
             LazyColumn(
                 Modifier.fillMaxSize().padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),

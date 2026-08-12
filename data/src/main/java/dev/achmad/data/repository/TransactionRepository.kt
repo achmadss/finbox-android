@@ -33,35 +33,26 @@ class TransactionRepository(
         }
     }
 
+    /** Everything, deleted rows included — the export and backup view. */
+    suspend fun all(): List<Transaction> = withContext(Dispatchers.IO) {
+        db.transactionQueries.SELECTEverything().executeAsList().map { it.toModel() }
+    }
+
     suspend fun getById(id: String): Transaction? = withContext(Dispatchers.IO) {
         db.transactionQueries.SELECTById(id).executeAsOneOrNull()?.toModel()
     }
 
-    suspend fun insertIgnoringDuplicates(transaction: Transaction): Boolean =
-        withContext(Dispatchers.IO) {
-            val exists = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull() != null
-            if (!exists) {
-                db.transactionQueries.INSERTOrIgnore(
-                id = transaction.id,
-                account_id = transaction.accountId,
-                source_id = transaction.sourceId,
-                parser_id = transaction.parserId,
-                email_message_id = transaction.emailMessageId,
-                reference = transaction.reference,
-                date = transaction.date,
-                amount = transaction.amount,
-                currency = transaction.currency,
-                type = transaction.type?.name,
-                category = transaction.category,
-                description = transaction.description,
-                merchant = transaction.merchant,
-                created_at = transaction.createdAt,
-                updated_at = transaction.updatedAt,
-                deleted = if (transaction.deleted) 1L else 0L,
-                )
-            }
-            !exists
+    /**
+     * Writes parsed transactions, replacing any row with the same id.
+     *
+     * Ids are derived from the email and parser they came from, so parsing the
+     * same email twice overwrites instead of duplicating.
+     */
+    suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            transactions.forEach { insert(it) }
         }
+    }
 
     suspend fun update(transaction: Transaction) = withContext(Dispatchers.IO) {
         db.transactionQueries.UPDATEById(
@@ -83,11 +74,36 @@ class TransactionRepository(
         Unit
     }
 
+    /** Restore path: replaces everything. */
+    suspend fun replaceAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            db.transactionQueries.DELETEAllTransactions()
+            transactions.forEach { insert(it) }
+        }
+    }
+
+    private fun insert(transaction: Transaction) = db.transactionQueries.INSERTOrReplace(
+        id = transaction.id,
+        account_id = transaction.accountId,
+        source_id = transaction.sourceId,
+        email_message_id = transaction.emailMessageId,
+        reference = transaction.reference,
+        date = transaction.date,
+        amount = transaction.amount,
+        currency = transaction.currency,
+        type = transaction.type?.name,
+        category = transaction.category,
+        description = transaction.description,
+        merchant = transaction.merchant,
+        created_at = transaction.createdAt,
+        updated_at = transaction.updatedAt,
+        deleted = if (transaction.deleted) 1L else 0L,
+    )
+
     private fun Transactions.toModel() = Transaction(
         id = id,
         accountId = account_id,
         sourceId = source_id,
-        parserId = parser_id,
         emailMessageId = email_message_id,
         reference = reference,
         date = date,

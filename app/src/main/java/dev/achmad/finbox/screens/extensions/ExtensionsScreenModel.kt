@@ -4,8 +4,10 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.finbox.core.util.inject
+import dev.achmad.finbox.core.util.injectAndroidContext
 import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.statement.StatementUpdateJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,6 +25,8 @@ class ExtensionsScreenModel(
 
     init {
         screenModelScope.launch {
+            // Already loaded if an update ran in this process; cheap and idempotent
+            // if the screen is what opened first.
             manager.reload()
             manager.refreshIndex()
         }
@@ -43,6 +47,7 @@ class ExtensionsScreenModel(
         screenModelScope.launch {
             _busy.value = true
             runCatching { manager.install(extension) }
+            reparse()
             _busy.value = false
         }
     }
@@ -51,12 +56,26 @@ class ExtensionsScreenModel(
         screenModelScope.launch {
             _busy.value = true
             runCatching { manager.updateAvailable(pkg) }
+            reparse()
             _busy.value = false
         }
     }
 
     fun setEnabled(pkg: String, enabled: Boolean) {
-        screenModelScope.launch { manager.setEnabled(pkg, enabled) }
+        screenModelScope.launch {
+            manager.setEnabled(pkg, enabled)
+            reparse()
+        }
+    }
+
+    /**
+     * A parser that wasn't there before reads the mail it hasn't tried yet.
+     *
+     * Handed to a job: it downloads a body per untried email, which takes longer
+     * than this screen is guaranteed to live.
+     */
+    private fun reparse() {
+        StatementUpdateJob.reparseNow(injectAndroidContext())
     }
 
     fun remove(pkg: String) {

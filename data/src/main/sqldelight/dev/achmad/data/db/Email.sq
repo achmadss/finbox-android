@@ -1,0 +1,46 @@
+CREATE TABLE email (
+    -- Gmail's message id; unique per account.
+    message_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    -- Space separated source ids that have already looked at this email.
+    tried_source_ids TEXT NOT NULL DEFAULT '',
+    -- The source that claimed it, NULL while unparsed.
+    parsed_by_source_id INTEGER,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, message_id)
+);
+
+CREATE INDEX idx_email_unparsed ON email(parsed_by_source_id);
+
+SELECTAllEmails:
+SELECT * FROM email;
+
+SELECTForAccount:
+SELECT * FROM email WHERE account_id = :accountId;
+
+CountForAccount:
+SELECT count(*) FROM email WHERE account_id = :accountId;
+
+SELECTUnparsed:
+SELECT * FROM email WHERE parsed_by_source_id IS NULL;
+
+INSERTOrIgnore:
+INSERT OR IGNORE INTO email(message_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
+
+INSERTOrReplace:
+INSERT OR REPLACE INTO email(message_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
+
+SETParseState:
+UPDATE email SET tried_source_ids = :tried_source_ids, parsed_by_source_id = :parsed_by_source_id
+WHERE account_id = :account_id AND message_id = :message_id;
+
+DELETEForAccount:
+DELETE FROM email WHERE account_id = :accountId;
+
+DELETEAllEmails:
+DELETE FROM email;

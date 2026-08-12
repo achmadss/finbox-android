@@ -26,6 +26,11 @@ class InstalledExtensionRepository(
     }
 
     suspend fun upsert(extension: InstalledExtension) = withContext(Dispatchers.IO) {
+        upsertIn(extension)
+        Unit
+    }
+
+    private fun upsertIn(extension: InstalledExtension) =
         db.installedExtensionQueries.INSERTOrReplace(
             pkg = extension.pkg,
             provider = extension.provider,
@@ -38,7 +43,17 @@ class InstalledExtensionRepository(
             source_ids = Json.encodeToString(extension.sourceIds),
             enabled = if (extension.enabled) 1L else 0L,
         )
-        Unit
+
+    suspend fun all(): List<InstalledExtension> = withContext(Dispatchers.IO) {
+        db.installedExtensionQueries.SELECTAll().executeAsList().map { it.toModel() }
+    }
+
+    /** Restore path: replaces everything. */
+    suspend fun replaceAll(extensions: List<InstalledExtension>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            db.installedExtensionQueries.DELETEAllExtensions()
+            extensions.forEach { upsertIn(it) }
+        }
     }
 
     suspend fun delete(pkg: String) = withContext(Dispatchers.IO) {

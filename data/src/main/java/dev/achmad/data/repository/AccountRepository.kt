@@ -20,6 +20,10 @@ class AccountRepository(
             .mapToList(Dispatchers.IO)
             .map { rows -> rows.map { it.toModel() } }
 
+    suspend fun all(): List<EmailAccount> = withContext(Dispatchers.IO) {
+        db.accountQueries.SELECTAllAccounts().executeAsList().map { it.toModel() }
+    }
+
     suspend fun getById(id: String): EmailAccount? = withContext(Dispatchers.IO) {
         db.accountQueries.SELECTById(id).executeAsOneOrNull()?.toModel()
     }
@@ -34,6 +38,10 @@ class AccountRepository(
             created_at = account.createdAt,
             updated_at = account.updatedAt,
             last_sync_at = account.lastSyncAt,
+            last_history_id = account.lastHistoryId,
+            sync_query = account.syncQuery,
+            import_cursor = account.importCursor,
+            imported_back_to = account.importedBackTo,
         )
         db.accountQueries.UPDATEAccount(
             email = account.email,
@@ -42,9 +50,36 @@ class AccountRepository(
             enabled = if (account.enabled) 1L else 0L,
             updated_at = account.updatedAt,
             last_sync_at = account.lastSyncAt,
+            last_history_id = account.lastHistoryId,
+            sync_query = account.syncQuery,
+            import_cursor = account.importCursor,
+            imported_back_to = account.importedBackTo,
             id = account.id,
         )
         Unit
+    }
+
+    /** Restore path: replaces everything. */
+    suspend fun replaceAll(accounts: List<EmailAccount>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            db.accountQueries.DELETEAllAccounts()
+            for (account in accounts) {
+                db.accountQueries.INSERTAccount(
+                    id = account.id,
+                    email = account.email,
+                    display_name = account.displayName,
+                    auth_token_ref = account.authTokenRef,
+                    enabled = if (account.enabled) 1L else 0L,
+                    created_at = account.createdAt,
+                    updated_at = account.updatedAt,
+                    last_sync_at = account.lastSyncAt,
+                    last_history_id = account.lastHistoryId,
+                    sync_query = account.syncQuery,
+                    import_cursor = account.importCursor,
+                    imported_back_to = account.importedBackTo,
+                )
+            }
+        }
     }
 
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
@@ -57,8 +92,27 @@ class AccountRepository(
         Unit
     }
 
-    suspend fun updateLastSync(id: String, at: Long) = withContext(Dispatchers.IO) {
-        db.accountQueries.SETLastSync(at, id)
+    /** Advances the Gmail history cursor; only called after a successful update. */
+    suspend fun updateHistoryId(id: String, historyId: String?, at: Long) =
+        withContext(Dispatchers.IO) {
+            db.accountQueries.SETHistoryId(historyId, at, id)
+            Unit
+        }
+
+    /** Records how far back the initial import has got, so it can resume. */
+    suspend fun updateImportProgress(
+        id: String,
+        importCursor: String?,
+        importedBackTo: Long?,
+        at: Long,
+    ) = withContext(Dispatchers.IO) {
+        db.accountQueries.SETImportProgress(importCursor, importedBackTo, at, id)
+        Unit
+    }
+
+    /** Narrows what an initial import downloads; clears the cursor so it re-runs. */
+    suspend fun setSyncQuery(id: String, query: String?) = withContext(Dispatchers.IO) {
+        db.accountQueries.SETSyncQuery(query, System.currentTimeMillis(), id)
         Unit
     }
 
@@ -71,5 +125,9 @@ class AccountRepository(
         createdAt = created_at,
         updatedAt = updated_at,
         lastSyncAt = last_sync_at,
+        lastHistoryId = last_history_id,
+        syncQuery = sync_query,
+        importCursor = import_cursor,
+        importedBackTo = imported_back_to,
     )
 }
