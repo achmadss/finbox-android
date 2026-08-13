@@ -30,25 +30,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".core.gmail.AuthCallbackActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="dev.achmad.finbox"
-                    android:host="oauth2callback" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name="net.openid.appauth.RedirectUriReceiverActivity"
-            tools:node="remove" />
-
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"

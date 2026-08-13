@@ -3,19 +3,15 @@ package dev.achmad.finbox.core
 /**
  * App-wide constants.
  *
- * TODO(auth): create OAuth 2.0 credentials at
- * https://console.cloud.google.com/apis/credentials ("Mobile and desktop
- * applications" client), enable the Gmail API, then fill in [OAUTH_CLIENT_ID].
- * Keep the client in "Testing" mode for personal use (up to 100 users).
+ * The OAuth client id isn't one of them: it belongs to whoever built the APK,
+ * so it comes from `local.properties` as `oauthClientId` and reaches the app as
+ * `BuildConfig.OAUTH_CLIENT_ID`.
  */
 object FinboxConfig {
 
     /** The single extension repo index (see finbox-extension). */
     const val EXTENSION_INDEX_URL =
         "https://raw.githubusercontent.com/achmadss/finbox-extension/main/repo/index.json"
-
-    /** OAuth client id for the finbox app (set up on Google Cloud Console). */
-    const val OAUTH_CLIENT_ID = "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com"
 
     const val OAUTH_REDIRECT_SCHEME = "dev.achmad.finbox"
     const val OAUTH_REDIRECT_URI = "dev.achmad.finbox:/oauth2callback"
@@ -34,5 +30,15 @@ object FinboxConfig {
      * declares its own via `finbox.extension.lib`, or by the leading components
      * of its versionName ("1.0.3" -> 1.0).
      */
-    val SUPPORTED_LIB_VERSIONS = listOf(1.2)
+    val SUPPORTED_LIB_VERSIONS = listOf(1.3)
+
+    /**
+     * Whether a parser API version is one this app can load.
+     *
+     * Compared with a tolerance rather than for equality: an APK's version comes
+     * out of the binary manifest as a float, and 1.2f widens to
+     * 1.2000000476837158, which no Double literal here will ever match.
+     */
+    fun supportsLibVersion(version: Double): Boolean =
+        SUPPORTED_LIB_VERSIONS.any { kotlin.math.abs(it - version) < 0.001 }
 }

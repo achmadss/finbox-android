@@ -31,13 +31,18 @@ class GmailAuthManager(
 
     private val service = AuthorizationService(context)
 
-    /** Launches the browser-based authorization flow (account picker). */
-    fun startAuthFlow() {
-        val intent = service.getAuthorizationRequestIntent(GmailOAuth.authorizationRequest())
-        context.startActivity(intent)
-    }
+    /**
+     * The browser-based authorization flow (account picker), for a screen to
+     * launch for result.
+     *
+     * Returned rather than started here: AppAuth reports back through
+     * `setResult`, so it has to be started from an Activity, and this manager
+     * only holds the application context.
+     */
+    fun authorizationIntent(): Intent =
+        service.getAuthorizationRequestIntent(GmailOAuth.authorizationRequest())
 
-    /** Called by [AuthCallbackActivity] with the OAuth redirect. Returns the added account. */
+    /** Called with the result of [authorizationIntent]. Returns the added account. */
     suspend fun handleCallback(data: Intent): EmailAccount = withContext(Dispatchers.IO) {
         val response = AuthorizationResponse.fromIntent(data)
         val error = AuthorizationException.fromIntent(data)
@@ -49,7 +54,6 @@ class GmailAuthManager(
         val accessToken = exchange.accessToken.orEmpty()
         val refreshToken = exchange.refreshToken.orEmpty()
         val email = tokens.resolveEmail(accessToken)
-            ?: throw IllegalStateException("Could not resolve account email")
 
         val now = System.currentTimeMillis()
         val accountId = UUID.randomUUID().toString()

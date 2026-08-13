@@ -36,6 +36,8 @@ class ExtensionInstaller(
 
             val target = File(dir, targetName)
             target.writeBytes(bytes)
+            // Android 14 refuses to load a dex file the app can still write to.
+            target.setReadOnly()
             target.absolutePath
         }
     }

@@ -1,5 +1,7 @@
-package dev.achmad.finbox.screens.accounts
+package dev.achmad.finbox.features.accounts
 
+import android.content.Intent
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,7 +41,16 @@ class AccountsScreenModel(
 
     var parsersDialogAccount by mutableStateOf<EmailAccount?>(null)
 
-    fun addAccount() = authManager.startAuthFlow()
+    /** The browser flow to launch for result; hand the result back to [addAccount]. */
+    fun authorizationIntent(): Intent = authManager.authorizationIntent()
+
+    fun addAccount(data: Intent?) {
+        if (data == null) return
+        screenModelScope.launch {
+            runCatching { authManager.handleCallback(data) }
+                .onFailure { Log.e("Accounts", "Add account failed", it) }
+        }
+    }
 
     fun setSyncEnabled(id: String, enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }

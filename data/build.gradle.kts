@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.serialization)
 }
 
 android {

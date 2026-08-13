@@ -18,7 +18,10 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import dev.achmad.finbox.screens.home.HomeScreen
+import dev.achmad.finbox.core.util.injectLazy
+import dev.achmad.finbox.features.home.HomeScreen
+import dev.achmad.finbox.features.onboarding.OnboardingPreference
+import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -27,6 +30,8 @@ import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
 
 class MainActivity : ComponentActivity() {
+
+    private val onboardingPreference: OnboardingPreference by injectLazy()
 
     private var isReady = false
     private var initialScreen: Screen = HomeScreen
@@ -79,6 +84,9 @@ class MainActivity : ComponentActivity() {
 
     private fun handlePreDraw() {
         // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
+        // Onboarding sets its flag on the last step; anything short of that and
+        // it re-opens and works out which step is still missing.
+        initialScreen = if (onboardingPreference.onboardingComplete().get()) HomeScreen else OnboardingScreen
         isReady = true
     }
 

@@ -36,4 +36,20 @@ class GmailQueryTest {
     fun `no window means an empty query`() {
         assertTrue(buildWindowQuery().isEmpty())
     }
+
+    @Test
+    fun `parser queries are ORed together, once each`() {
+        val query = combineSourceQueries(
+            listOf("from:BankBRI@bri.co.id", "from:noreply@jago.com", "from:BankBRI@bri.co.id"),
+        )
+
+        assertEquals("(from:BankBRI@bri.co.id) OR (from:noreply@jago.com)", query)
+    }
+
+    @Test
+    fun `a source that names no sender turns narrowing off`() {
+        // It wants the whole mailbox; filtering by the others would skip its mail.
+        assertEquals(null, combineSourceQueries(listOf("from:BankBRI@bri.co.id", "  ")))
+        assertEquals(null, combineSourceQueries(emptyList()))
+    }
 }

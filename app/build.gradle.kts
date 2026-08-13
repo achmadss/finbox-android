@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.serialization)
 }
+
+// OAuth client ids live in local.properties (gitignored). Google ties a client
+// to the signing certificate registered with it, so debug and release builds
+// need one each — a missing entry builds fine and fails at sign-in instead.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun oauthClientId(key: String) = "\"${localProperties.getProperty(key, "")}\""
 
 android {
     namespace = "dev.achmad.finbox"
@@ -20,7 +33,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "OAUTH_CLIENT_ID", oauthClientId("oauthClientIdDebug"))
+        }
         release {
+            buildConfigField("String", "OAUTH_CLIENT_ID", oauthClientId("oauthClientIdRelease"))
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -58,6 +75,9 @@ dependencies {
     implementation(libs.material.icons)
     implementation(libs.material.motion.compose.core)
     implementation(libs.coil.compose)
+    // Coil 3 ships no network fetcher in coil-compose; without this every
+    // remote image silently resolves to nothing.
+    implementation(libs.coil.network.okhttp)
 
     implementation(libs.voyager.navigator)
     implementation(libs.voyager.tabNavigator)

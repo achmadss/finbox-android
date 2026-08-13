@@ -191,6 +191,14 @@ class GmailApi(
         }
 
         private fun extractBodies(payload: Payload?): Pair<String, String> {
+            val (text, html) = collectBodies(payload)
+            // A bank receipt is often html and nothing else — every part of it
+            // that a parser wants is in there, so it gets read out rather than
+            // handed over as an empty body.
+            return (text.ifEmpty { htmlToText(html) }) to html
+        }
+
+        private fun collectBodies(payload: Payload?): Pair<String, String> {
             if (payload == null) return "" to ""
             val data = payload.body.data ?: ""
             if (payload.mimeType == "text/plain" && data.isNotEmpty()) {
@@ -202,14 +210,34 @@ class GmailApi(
             var text = ""
             var html = ""
             for (part in payload.parts) {
-                val (t, h) = extractBodies(part)
+                val (t, h) = collectBodies(part)
                 if (t.isNotEmpty() && text.isEmpty()) text = t
                 if (h.isNotEmpty() && html.isEmpty()) html = h
             }
-            if (text.isEmpty() && html.isNotEmpty()) {
-                text = Jsoup.parse(html).text()
-            }
             return text to html
+        }
+
+        /**
+         * Flattens html to text while keeping the lines a receipt is made of.
+         *
+         * `Jsoup.text()` alone returns one long line, which loses what pairs a
+         * label with its value — these mails put both in one table row and
+         * nothing else marks where a field ends.
+         */
+        fun htmlToText(html: String): String {
+            if (html.isBlank()) return ""
+            val document = Jsoup.parse(html)
+            document.outputSettings().prettyPrint(false)
+            document.select("style, script, head").remove()
+            // A literal marker, not a newline: text() collapses real whitespace,
+            // so the break has to survive as characters and be put back after.
+            document.select("br, tr, p, div, li, h1, h2, h3, h4, table").before("\\n")
+            return document.text()
+                .replace("\\n", "\n")
+                .lineSequence()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .joinToString("\n")
         }
 
         private fun decodeBase64(data: String): String = try {

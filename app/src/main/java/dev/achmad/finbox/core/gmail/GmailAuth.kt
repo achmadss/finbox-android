@@ -4,19 +4,22 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dev.achmad.finbox.BuildConfig
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.core.network.get
+import dev.achmad.finbox.core.network.json
 import dev.achmad.finbox.core.network.parseAs
 import dev.achmad.finbox.core.network.post
 import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationServiceConfiguration
+import net.openid.appauth.ResponseTypeValues
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import dev.achmad.finbox.core.gmail.model.TokenResponse
-import dev.achmad.finbox.core.gmail.model.UserInfo
+import dev.achmad.finbox.core.gmail.model.ProfileResponse
 
 /**
  * Per-account OAuth tokens, stored in Keystore-backed encrypted prefs.
@@ -67,7 +70,7 @@ class GmailTokenManager(
         val refreshToken = store.refreshToken(accountId) ?: return null
         return runCatching {
             val form = FormBody.Builder()
-                .add("client_id", FinboxConfig.OAUTH_CLIENT_ID)
+                .add("client_id", BuildConfig.OAUTH_CLIENT_ID)
                 .add("grant_type", "refresh_token")
                 .add("refresh_token", refreshToken)
                 .build()
@@ -83,14 +86,28 @@ class GmailTokenManager(
         return refreshAccessToken(accountId)
     }
 
-    /** Resolves the email of the account just authorized (also the dedup key). */
-    suspend fun resolveEmail(accessToken: String): String? = runCatching {
-        client.get(
-            url = "https://openidconnect.googleapis.com/v1/userinfo",
+    /**
+     * Resolves the email of the account just authorized (also the dedup key).
+     *
+     * Read from Gmail's own profile rather than OpenID userinfo: that endpoint
+     * needs `openid email` on top, and one read-only Gmail scope is the whole
+     * point of the consent screen.
+     */
+    suspend fun resolveEmail(accessToken: String): String {
+        // Deliberately not swallowed: this is the first authorized call an
+        // account makes, so what it fails with (403 API disabled, 401 bad token)
+        // is the only diagnosis the sign-in toast can offer.
+        val response = client.get(
+            url = "${FinboxConfig.GMAIL_API_BASE}/profile",
             headers = Headers.headersOf("Authorization", "Bearer $accessToken"),
             cacheControl = null,
-        ).parseAs<UserInfo>().email
-    }.getOrNull()
+            ensureSuccess = false,
+        )
+        val body = response.body.string()
+        if (!response.isSuccessful) error("profile ${response.code}: ${body.take(300)}")
+        return json.decodeFromString<ProfileResponse>(body).emailAddress
+            .ifEmpty { error("Gmail returned a profile with no email address") }
+    }
 }
 
 object GmailOAuth {
@@ -100,8 +117,14 @@ object GmailOAuth {
                 FinboxConfig.OAUTH_AUTHORIZE_ENDPOINT.toUri(),
                 FinboxConfig.OAUTH_TOKEN_ENDPOINT.toUri(),
             ),
-            FinboxConfig.OAUTH_CLIENT_ID,
-            FinboxConfig.OAUTH_REDIRECT_URI,
-            FinboxConfig.GMAIL_SCOPE.toUri(),
-        ).build()
+            BuildConfig.OAUTH_CLIENT_ID,
+            ResponseTypeValues.CODE,
+            FinboxConfig.OAUTH_REDIRECT_URI.toUri(),
+        )
+            .setScope(FinboxConfig.GMAIL_SCOPE)
+            // The picker lets a second account be added; consent is what makes
+            // Google reissue a refresh token, without which a re-add can only
+            // sync until the access token expires.
+            .setPrompt("select_account consent")
+            .build()
 }

@@ -11,6 +11,7 @@ import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.buildWindowQuery
+import dev.achmad.finbox.core.gmail.combineSourceQueries
 import dev.achmad.finbox.core.network.HttpException
 import dev.achmad.finbox.extension.EmailMessage
 import java.util.concurrent.ConcurrentHashMap
@@ -79,7 +80,7 @@ class StatementUpdater(
         val inSlice: Int,
     )
 
-    /** Updates every enabled account, importing back as far as [IMPORT_MILLIS]. */
+    /** Updates every enabled account, importing the whole mailbox. */
     suspend fun updateAll(onProgress: suspend (Progress) -> Unit = {}): kotlin.Result<Int> =
         runCatching {
             val accounts = accountRepository.accounts().first().filter { it.enabled }
@@ -155,6 +156,20 @@ class StatementUpdater(
     }
 
     /**
+     * The Gmail search for this account: what its parsers ask for, plus any
+     * narrowing set on the account itself.
+     *
+     * A source that names no sender wants everything, and then nothing can be
+     * excluded — filtering the list would silently skip that parser's mail.
+     */
+    private suspend fun narrowFor(account: EmailAccount): String? {
+        val fromSources = combineSourceQueries(sourcesFor(account).map { it.emailQuery.value })
+            ?: return account.syncQuery
+        return listOfNotNull(account.syncQuery?.takeIf { it.isNotBlank() }, fromSources)
+            .joinToString(" ")
+    }
+
+    /**
      * Imports the window a date slice at a time, newest first, recording how far
      * back it got after each one.
      *
@@ -179,7 +194,8 @@ class StatementUpdater(
             ?: error("Gmail reported no history id for ${account.email}")
 
         val now = System.currentTimeMillis()
-        val floor = now - IMPORT_MILLIS
+        val narrow = narrowFor(account)
+        val floor = GMAIL_EPOCH
         var upper = account.importedBackTo ?: now
         var slice = SLICE_MILLIS
         var parsed = 0
@@ -190,7 +206,7 @@ class StatementUpdater(
 
             val refs = gmailApi.listAllMessages(
                 account.id,
-                buildWindowQuery(after = lower, before = upper, narrow = account.syncQuery),
+                buildWindowQuery(after = lower, before = upper, narrow = narrow),
                 maxMessages = SLICE_CAP,
             )
             // A slice at the cap may have been truncated, and Gmail returns the
@@ -247,7 +263,7 @@ class StatementUpdater(
      * as soon as it excludes a single message it has paid for itself.
      */
     private suspend fun narrow(account: EmailAccount, candidates: List<String>): List<String> {
-        val syncQuery = account.syncQuery?.takeIf { it.isNotBlank() } ?: return candidates
+        val syncQuery = narrowFor(account)?.takeIf { it.isNotBlank() } ?: return candidates
         if (candidates.isEmpty()) return candidates
 
         // Only as far back as the last update: this is a refresh, and listing
@@ -459,16 +475,17 @@ class StatementUpdater(
         /** Ids one slice may return; more than this and the slice is halved. */
         const val SLICE_CAP = 500
 
+        /**
+         * Where an import stops walking back: no mail predates Gmail.
+         *
+         * ponytail: a mailbox younger than that still pays one empty list call
+         * per 30-day slice down to here. Stop after a run of empty slices if an
+         * import ever feels slow to start.
+         */
+        const val GMAIL_EPOCH = 1_072_915_200_000L // 2004-01-01
+
         /** Ids the refresh filter will hold; past this it stops being trusted. */
         const val NARROW_CAP = 2_000
 
-        /**
-         * How far back an initial import reaches.
-         *
-         * A constant rather than an argument: nothing asks for a different
-         * window, and a per-account one belongs next to `syncQuery` when a
-         * screen exists to set it.
-         */
-        const val IMPORT_MILLIS = 730L * DAY_MILLIS
     }
 }

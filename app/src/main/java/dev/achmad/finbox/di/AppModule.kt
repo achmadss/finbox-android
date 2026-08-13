@@ -15,6 +15,7 @@ import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import dev.achmad.finbox.core.statement.StatementUpdater
+import dev.achmad.finbox.features.onboarding.OnboardingPreference
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -74,6 +75,7 @@ val appModule = module {
             repository = get()
         )
     }
+    single<OnboardingPreference> { OnboardingPreference(preferenceStore = get()) }
     single<StatementUpdater> {
         StatementUpdater(
             sources = { get<ExtensionManager>().sources },

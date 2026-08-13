@@ -5,4 +5,29 @@
     <string name="statement_update_importing">Importing your statement</string>
     <string name="statement_update_starting">Starting…</string>
     <string name="statement_update_imported_back_to">Imported back to %1$s</string>
+
+    <string name="onboarding_auth_title">From inbox to statements</string>
+    <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them into statements. Your data stays on your phone.</string>
+    <string name="onboarding_auth_sign_in">Sign in with Google</string>
+    <string name="onboarding_auth_connected">Connected %1$s</string>
+    <string name="onboarding_auth_failed">Sign-in failed: %1$s</string>
+    <string name="onboarding_auth_scope_note">Finbox only needs read-only Gmail access.\nIt never sends mail or stores message bodies.</string>
+
+    <string name="onboarding_notification_title">Stay up to date</string>
+    <string name="onboarding_notification_body">Finbox can notify you when your email import is complete and when new transactions are found in your Gmail.</string>
+    <string name="onboarding_notification_note">You can skip notifications and Finbox will continue working normally. You just won\'t receive updates outside the app.</string>
+    <string name="onboarding_notification_allow">Allow Notifications</string>
+    <string name="onboarding_notification_skip">Not now</string>
+
+    <string name="onboarding_extensions_title">Extensions</string>
+    <string name="onboarding_extensions_subtitle">Install at least one extension to start:</string>
+    <string name="onboarding_extensions_install">Install and Continue</string>
+    <string name="onboarding_extensions_installing">Installing…</string>
+    <string name="onboarding_extensions_info">An extension tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
+    <string name="onboarding_extensions_install_failed">Could not install %1$s</string>
+
+    <string name="onboarding_exit_title">Finish setup later?</string>
+    <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
+    <string name="onboarding_exit_confirm">Exit</string>
+    <string name="cancel">Cancel</string>
 </resources>

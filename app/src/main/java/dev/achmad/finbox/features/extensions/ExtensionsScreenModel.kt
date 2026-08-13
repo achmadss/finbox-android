@@ -1,5 +1,6 @@
-package dev.achmad.finbox.screens.extensions
+package dev.achmad.finbox.features.extensions
 
+import android.util.Log
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.InstalledExtension
@@ -28,7 +29,8 @@ class ExtensionsScreenModel(
             // Already loaded if an update ran in this process; cheap and idempotent
             // if the screen is what opened first.
             manager.reload()
-            manager.refreshIndex()
+            runCatching { manager.refreshIndex() }
+                .onFailure { Log.e("Extensions", "Extension index fetch failed", it) }
         }
     }
 

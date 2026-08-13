@@ -5,6 +5,7 @@ import dev.achmad.finbox.core.network.get
 import dev.achmad.finbox.core.network.parseAs
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 
 @Serializable
@@ -22,6 +23,7 @@ data class ExtensionIndexEntry(
     @SerialName("lib_version") val libVersion: String,
     @SerialName("apk") val apk: String,
     @SerialName("sha256") val sha256: String,
+    @SerialName("icon") val icon: String? = null,
 )
 
 /** Fetches the extension repo index (single hardcoded repo). */
@@ -30,13 +32,18 @@ class ExtensionIndex(
 ) {
 
     suspend fun fetch(): List<AvailableExtension> {
-        val parsed = client.get(FinboxConfig.EXTENSION_INDEX_URL)
-            .parseAs<ExtensionIndexResponse>()
+        // Always over the wire: the index is a few hundred bytes, and it is only
+        // ever read to answer "what is published right now" — a cached copy
+        // hides a release for as long as it stays fresh.
+        val parsed = client.get(
+            url = FinboxConfig.EXTENSION_INDEX_URL,
+            cacheControl = CacheControl.FORCE_NETWORK,
+        ).parseAs<ExtensionIndexResponse>()
         // Entries the app could not load are dropped here rather than offered
         // and then rejected by ExtensionLoader.
         return parsed.extensions.mapNotNull { entry ->
             val libVersion = entry.libVersion.toDoubleOrNull() ?: return@mapNotNull null
-            if (libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) return@mapNotNull null
+            if (!FinboxConfig.supportsLibVersion(libVersion)) return@mapNotNull null
             AvailableExtension(
                 name = entry.name,
                 provider = entry.provider,
@@ -46,6 +53,7 @@ class ExtensionIndex(
                 libVersion = libVersion,
                 apkUrl = entry.apk,
                 sha256 = entry.sha256,
+                iconUrl = entry.icon,
             )
         }
     }

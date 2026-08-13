@@ -1,5 +1,7 @@
-package dev.achmad.finbox.screens.accounts
+package dev.achmad.finbox.features.accounts
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +38,7 @@ import dev.achmad.finbox.core.util.formatDate
 import dev.achmad.finbox.core.extension.LoadedSource
 
 object AccountsScreen : Screen {
+    private fun readResolve(): Any = AccountsScreen
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -44,10 +47,15 @@ object AccountsScreen : Screen {
         val model = rememberScreenModel { AccountsScreenModel() }
         val accounts by model.accounts.collectAsState()
         val enabledByAccount by model.enabledByAccount.collectAsState()
+        val addAccount = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            model.addAccount(result.data)
+        }
 
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = model::addAccount) {
+                FloatingActionButton(onClick = { addAccount.launch(model.authorizationIntent()) }) {
                     Icon(Icons.Filled.Add, contentDescription = "Add account")
                 }
             },

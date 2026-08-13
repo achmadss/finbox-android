@@ -26,4 +26,6 @@ data class AvailableExtension(
     val libVersion: Double,
     val apkUrl: String,
     val sha256: String,
+    /** Null for an extension published before icons existed. */
+    val iconUrl: String?,
 )

@@ -58,7 +58,7 @@ class ExtensionLoader(
             .takeUnless { it == 0f }
             ?.toDouble()
             ?: versionName.substringBeforeLast('.').toDoubleOrNull()
-        if (libVersion == null || libVersion !in FinboxConfig.SUPPORTED_LIB_VERSIONS) {
+        if (libVersion == null || !FinboxConfig.supportsLibVersion(libVersion)) {
             return LoadResult.Error(
                 apk.name,
                 "Unsupported extension lib version '$libVersion' " +
@@ -80,6 +80,9 @@ class ExtensionLoader(
         )
 
         return try {
+            // Also here, not only at install time: an APK written by an older
+            // build of the app is still sitting there, still writable.
+            if (apk.canWrite()) apk.setReadOnly()
             val classLoader = ChildFirstPathClassLoader(
                 dexPath = apk.absolutePath,
                 parent = javaClass.classLoader ?: context.classLoader,

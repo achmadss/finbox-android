@@ -7,10 +7,9 @@ import java.util.TimeZone
  * The Gmail search for an initial import: the user's window, plus whatever the
  * account narrows by.
  *
- * Sources don't say which emails they want — the app fetches and offers each
- * message to every installed source — so narrowing is the account's job.
- * It matters: listing ids costs 5 quota units per 500, while fetching one
- * message costs 20, so anything excluded here is the cheapest saving available.
+ * Narrowing matters: listing ids costs 5 quota units per 500, while fetching
+ * one message costs 20, so anything excluded here is the cheapest saving
+ * available. What to exclude comes from the parsers (see [combineSourceQueries]).
  *
  * Gmail's date terms are whole days in the local timezone and `before:` is
  * exclusive, so the range is widened by a day at each end and the exact bounds
@@ -27,6 +26,18 @@ fun buildWindowQuery(
     after?.let { add("after:${gmailDate(it - DAY_MILLIS)}") }
     before?.let { add("before:${gmailDate(it + DAY_MILLIS)}") }
 }.joinToString(" ")
+
+/**
+ * ORs what each parser asks for into one search.
+ *
+ * Null when any source names no sender: that one wants the whole mailbox, and a
+ * filter built from the others would silently skip the mail it came for.
+ */
+fun combineSourceQueries(queries: List<String>): String? {
+    val trimmed = queries.map { it.trim() }
+    if (trimmed.isEmpty() || trimmed.any { it.isEmpty() }) return null
+    return trimmed.distinct().joinToString(" OR ") { "($it)" }
+}
 
 private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 

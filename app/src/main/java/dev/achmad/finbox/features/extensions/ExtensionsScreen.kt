@@ -1,16 +1,19 @@
-package dev.achmad.finbox.screens.extensions
+package dev.achmad.finbox.features.extensions
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,15 +30,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import coil3.compose.AsyncImage
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.finbox.core.extension.AvailableExtension
+import dev.achmad.finbox.core.extension.rememberExtensionPainter
 
 object ExtensionsScreen : Screen {
+    private fun readResolve(): Any = ExtensionsScreen
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -116,8 +123,14 @@ private fun InstalledCard(
     Card(Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Image(
+                painter = rememberExtensionPainter(extension),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp).clip(MaterialTheme.shapes.extraSmall),
+            )
             Column(Modifier.weight(1f)) {
                 Text(extension.name, style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -146,8 +159,13 @@ private fun AvailableCard(
     Card(Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            AvailableExtensionIcon(
+                modifier = Modifier.size(40.dp),
+                iconUrl = extension.iconUrl
+            )
             Column(Modifier.weight(1f)) {
                 Text(extension.name, style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -161,5 +179,19 @@ private fun AvailableCard(
                 Text("Install")
             }
         }
+    }
+}
+
+@Composable
+fun AvailableExtensionIcon(
+    iconUrl: String?,
+    modifier: Modifier = Modifier
+) {
+    val shaped = modifier
+        .clip(MaterialTheme.shapes.extraSmall)
+    if (iconUrl == null) {
+        Icon(Icons.Filled.Extension, contentDescription = null, modifier = shaped)
+    } else {
+        AsyncImage(model = iconUrl, contentDescription = null, modifier = shaped)
     }
 }
