@@ -46,10 +46,10 @@ Currently IDR only, and sync is manual pull-to-refresh.
 | `data/` | SQLDelight database, repositories, export and backup |
 | `extension-api/` | The types parsers implement |
 
-`:extension-api` is published to GitHub Packages by the **Publish
-extension-api** workflow — run by hand, after an API change and a version bump,
-never from a laptop. That is what lets finbox-extension be worked on without a
-checkout of this repo.
+`:extension-api` is what parsers compile against. JitPack builds it on demand
+from any tag or commit (see `jitpack.yml`), published as
+`com.github.achmadss:finbox-android`, so finbox-extension can be cloned and
+built by anyone — no checkout of this repo, no account, no token.
 
 ## Status
 

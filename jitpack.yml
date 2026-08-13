@@ -1,6 +1,11 @@
-# Only the parser extension API is published; the app itself is never a
-# library. Building just this module keeps JitPack off the Compose/app graph.
+# JitPack builds :extension-api on demand, so finbox-extension can compile
+# against a published API without a checkout of this repo — and without any
+# credentials, which is what makes outside contributions there possible.
+#
+# Only the API module: the app is irrelevant to consumers and would drag the
+# whole Compose and SQLDelight build onto JitPack's machine.
 jdk:
   - openjdk21
+
 install:
   - ./gradlew :extension-api:publishToMavenLocal

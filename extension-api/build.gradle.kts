@@ -13,7 +13,12 @@ plugins {
 // already-published extensions, as removing a field does.
 val apiVersion = "1.4"
 
-group = "com.github.achmadss.finbox-android"
+// JitPack's coordinates for this repo, matched exactly so a locally published
+// build and a JitPack one are interchangeable. It collapses a repo with one
+// publishable module to <owner>:<repo>, which is why this is not
+// `...finbox-android:extension-api` — splitting the API into its own repo (as
+// Tachiyomi does with extensions-lib) is what would earn a nicer name.
+group = "com.github.achmadss"
 version = apiVersion
 
 android {
@@ -47,24 +52,13 @@ android {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            artifactId = "extension-api"
+            artifactId = "finbox-android"
             afterEvaluate { from(components["release"]) }
         }
     }
-    repositories {
-        // GitHub Packages, so finbox-extension can build against a published
-        // API without a checkout of this repo beside it.
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/achmadss/finbox-android")
-            // CI only, on purpose: the Publish extension-api workflow supplies
-            // these from GITHUB_TOKEN, so a published version is always one a
-            // commit on main produced. Locally, publishToMavenLocal — it needs
-            // no credentials at all.
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
 }
+
+// No publishing repository is declared: finbox-extension resolves this from
+// JitPack, which builds it on demand from a tag or a commit hash (jitpack.yml)
+// and needs no account or token from anyone building there. Local iteration
+// goes through publishToMavenLocal, which needs no credentials either.
