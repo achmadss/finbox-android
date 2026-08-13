@@ -1,10 +1,20 @@
 package dev.achmad.finbox.theme
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+
+/** Section headings in settings and filter sheets. */
+val Typography.header: TextStyle
+    @Composable
+    get() = bodyMedium.copy(
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+    )
 
 // Set of Material typography styles to start with
 val Typography = Typography(

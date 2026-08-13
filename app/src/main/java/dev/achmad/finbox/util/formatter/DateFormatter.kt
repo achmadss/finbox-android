@@ -1,6 +1,8 @@
 package dev.achmad.finbox.util.formatter
 
 import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -10,6 +12,18 @@ private val dateFormatter: DateTimeFormatter =
 private val dateOnlyFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("dd MMM yyyy").withZone(ZoneId.systemDefault())
 
+private val dayFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd MMM").withZone(ZoneId.systemDefault())
+
+private val timeFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+
+private val monthYearFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMMM yyyy")
+
+private val monthNameFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMMM")
+
 fun formatDate(epochMillis: Long?): String {
     if (epochMillis == null) return "-"
     return if (hasTime(epochMillis)) {
@@ -18,6 +32,30 @@ fun formatDate(epochMillis: Long?): String {
         dateOnlyFormatter.format(Instant.ofEpochMilli(epochMillis))
     }
 }
+
+/** Day and month only, e.g. `10 Aug` — for day headers in a list. */
+fun formatDay(epochMillis: Long?): String {
+    if (epochMillis == null) return "-"
+    return dayFormatter.format(Instant.ofEpochMilli(epochMillis))
+}
+
+fun formatDay(date: LocalDate): String = dayFormatter.format(date)
+
+/** Time of day, e.g. `14:32`. */
+fun formatTime(epochMillis: Long?): String {
+    if (epochMillis == null) return "-"
+    return timeFormatter.format(Instant.ofEpochMilli(epochMillis))
+}
+
+/** Month and year, e.g. `August 2026`. */
+fun formatMonthYear(yearMonth: YearMonth): String = monthYearFormatter.format(yearMonth)
+
+/** Month alone, e.g. `August` — for a neighbouring month whose year is already on screen. */
+fun formatMonthName(yearMonth: YearMonth): String = monthNameFormatter.format(yearMonth)
+
+/** The calendar day [epochMillis] falls on, in the device's zone. */
+fun toLocalDate(epochMillis: Long): LocalDate =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate()
 
 private fun hasTime(epochMillis: Long): Boolean {
     val time = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault())

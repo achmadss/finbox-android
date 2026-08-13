@@ -35,7 +35,7 @@ import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.util.koin.injectLazy
 import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
-import dev.achmad.finbox.features.home.HomeScreen
+import dev.achmad.finbox.features.expenses.ExpensesScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import soup.compose.material.motion.animation.materialSharedAxisX
@@ -59,7 +59,7 @@ object OnboardingScreen: Screen {
                     screenModel.effect.collect { effect ->
                         when(effect) {
                             is OnboardingScreenModel.Effect.NavigateToHome -> {
-                                navigator.replace(HomeScreen)
+                                navigator.replace(ExpensesScreen)
                             }
                         }
                     }

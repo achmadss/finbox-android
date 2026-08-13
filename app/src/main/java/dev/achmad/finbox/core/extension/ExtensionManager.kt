@@ -8,6 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -53,8 +54,12 @@ class ExtensionManager(
     /** sourceId -> loaded LoadedSource for enabled extensions. */
     private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
 
+    /** Observable, so a screen built before the registry was loaded still sees the parsers. */
+    private val _sourcesFlow = MutableStateFlow<List<LoadedSource>>(emptyList())
+    val sourcesFlow: StateFlow<List<LoadedSource>> = _sourcesFlow.asStateFlow()
+
     val sources: List<LoadedSource>
-        get() = knownSources.values.toList()
+        get() = _sourcesFlow.value
 
     suspend fun refreshIndex() {
         available.value = index.fetch()
@@ -135,6 +140,7 @@ class ExtensionManager(
         for (ext in fresh) {
             sourcesByPkg[ext.pkg]?.let { knownSources[it.id] = it }
         }
+        _sourcesFlow.value = knownSources.values.toList()
     }
 
     fun getById(sourceId: Long): LoadedSource? = knownSources[sourceId]

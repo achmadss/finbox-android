@@ -29,4 +29,16 @@ data class Transaction(
     val createdAt: Long,
     val updatedAt: Long,
     val deleted: Boolean,
-)
+) {
+    /** When it happened — the parsed date, or when we stored it if the parser found none. */
+    val timestamp: Long get() = date ?: createdAt
+
+    /** Money leaving the account counts as negative: expenses and transfers out. */
+    val signedAmount: Long?
+        get() = amount?.let {
+            when (type) {
+                TransactionType.EXPENSE, TransactionType.TRANSFER -> -it
+                else -> it
+            }
+        }
+}
