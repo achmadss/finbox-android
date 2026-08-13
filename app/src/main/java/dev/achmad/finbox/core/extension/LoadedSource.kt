@@ -18,8 +18,14 @@ class LoadedSource(
  * The id convention: first 8 bytes of `MD5("${name.lowercase()}/$versionCode")`
  * as a positive Long.
  *
- * Deterministic and stable across releases, so transaction rows survive
- * reinstalls.
+ * Deterministic, so a reinstall of the same extension files its transactions
+ * under the same source and nothing is orphaned.
+ *
+ * Not stable across releases, deliberately: `versionCode` is in the hash, so an
+ * updated parser is a source no email has tried, and mail nothing could read
+ * before gets another chance. Already-parsed emails are never re-read, so this
+ * cannot duplicate a transaction — it does leave rows filed under the version
+ * that parsed them.
  */
 fun sourceIdOf(name: String, versionCode: Int): Long {
     val digest = MessageDigest.getInstance("MD5")
