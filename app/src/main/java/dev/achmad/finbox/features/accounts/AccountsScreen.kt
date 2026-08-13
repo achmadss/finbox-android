@@ -34,7 +34,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.finbox.core.util.formatDate
+import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.core.extension.LoadedSource
 
 object AccountsScreen : Screen {

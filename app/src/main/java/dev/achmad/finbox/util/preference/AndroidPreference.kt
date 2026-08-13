@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.preference
+package dev.achmad.finbox.util.preference
 
 import android.content.SharedPreferences
 import android.content.SharedPreferences.Editor

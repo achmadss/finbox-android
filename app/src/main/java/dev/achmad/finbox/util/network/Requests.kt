@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.network
+package dev.achmad.finbox.util.network
 
 import kotlin.time.Duration.Companion.minutes
 import okhttp3.CacheControl

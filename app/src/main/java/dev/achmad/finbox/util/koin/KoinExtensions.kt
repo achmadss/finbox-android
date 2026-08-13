@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.util
+package dev.achmad.finbox.util.koin
 
 import android.content.Context
 import org.koin.android.ext.koin.androidContext

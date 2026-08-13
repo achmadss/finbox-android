@@ -2,9 +2,9 @@ package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.core.network.HttpException
-import dev.achmad.finbox.core.network.get
-import dev.achmad.finbox.core.network.parseAs
+import dev.achmad.finbox.util.network.HttpException
+import dev.achmad.finbox.util.network.get
+import dev.achmad.finbox.util.network.parseAs
 import dev.achmad.finbox.extension.EmailMessage
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.MessageListResponse

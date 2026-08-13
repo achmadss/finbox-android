@@ -1,10 +1,10 @@
-package dev.achmad.finbox.core.network
+package dev.achmad.finbox.util.network
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import dev.achmad.finbox.core.network.interceptor.UncaughtExceptionInterceptor
+import dev.achmad.finbox.core.util.network.interceptor.UncaughtExceptionInterceptor
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

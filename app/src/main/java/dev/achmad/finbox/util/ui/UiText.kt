@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.util
+package dev.achmad.finbox.util.ui
 
 import android.content.Context
 import androidx.annotation.StringRes

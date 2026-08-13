@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.preference
+package dev.achmad.finbox.util.preference
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow

@@ -7,8 +7,6 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import dev.achmad.finbox.R
-import java.text.DateFormat
-import java.util.Date
 
 /**
  * The notification an import runs behind.
@@ -29,29 +27,42 @@ class StatementUpdateNotifier(private val context: Context) {
             NotificationManager.IMPORTANCE_LOW,
         )
         manager?.createNotificationChannel(channel)
+        manager?.cancel(DONE_NOTIFICATION_ID)
     }
 
-    /** Indeterminate progress, labeled with how far back the import has reached. */
-    fun importing(importedBackTo: Long?): Notification {
-        val text = importedBackTo
-            ?.let { context.getString(R.string.statement_update_imported_back_to, formatDate(it)) }
-            ?: context.getString(R.string.statement_update_starting)
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+    /** Indeterminate progress, labeled with the transactions imported so far. */
+    fun importing(imported: Int): Notification = notification(
+        context.getString(R.string.statement_update_importing_progress, imported),
+        ongoing = true,
+        indeterminate = true,
+    )
+
+    /** Posts a separate notification so WorkManager cannot remove it with the foreground one. */
+    fun showDone(imported: Int) {
+        manager?.notify(
+            DONE_NOTIFICATION_ID,
+            notification(
+                context.getString(R.string.statement_update_done, imported),
+                ongoing = false,
+                indeterminate = false,
+            ),
+        )
+    }
+
+    private fun notification(text: String, ongoing: Boolean, indeterminate: Boolean): Notification =
+        NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle(context.getString(R.string.statement_update_importing))
             .setContentText(text)
-            .setProgress(0, 0, true)
-            .setOngoing(true)
+            .setProgress(0, 0, indeterminate)
+            .setOngoing(ongoing)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .build()
-    }
-
-    private fun formatDate(millis: Long): String =
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(millis))
 
     companion object {
         const val CHANNEL_ID = "statement_update"
         const val NOTIFICATION_ID = 1001
+        private const val DONE_NOTIFICATION_ID = 1002
     }
 }

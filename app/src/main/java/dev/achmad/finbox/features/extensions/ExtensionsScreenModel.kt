@@ -4,8 +4,8 @@ import android.util.Log
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.InstalledExtension
-import dev.achmad.finbox.core.util.inject
-import dev.achmad.finbox.core.util.injectAndroidContext
+import dev.achmad.finbox.core.util.koin.inject
+import dev.achmad.finbox.core.util.koin.injectAndroidContext
 import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.statement.StatementUpdateJob
@@ -76,7 +76,7 @@ class ExtensionsScreenModel(
      * Handed to a job: it downloads a body per untried email, which takes longer
      * than this screen is guaranteed to live.
      */
-    private fun reparse() {
+    private suspend fun reparse() {
         StatementUpdateJob.reparseNow(injectAndroidContext())
     }
 

@@ -6,10 +6,10 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dev.achmad.finbox.BuildConfig
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.core.network.get
-import dev.achmad.finbox.core.network.json
-import dev.achmad.finbox.core.network.parseAs
-import dev.achmad.finbox.core.network.post
+import dev.achmad.finbox.util.network.get
+import dev.achmad.finbox.util.network.json
+import dev.achmad.finbox.util.network.parseAs
+import dev.achmad.finbox.util.network.post
 import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ResponseTypeValues

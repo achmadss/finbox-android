@@ -12,7 +12,7 @@ import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.buildWindowQuery
 import dev.achmad.finbox.core.gmail.combineSourceQueries
-import dev.achmad.finbox.core.network.HttpException
+import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.extension.EmailMessage
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -71,13 +71,11 @@ class StatementUpdater(
         val importing: Boolean,
     )
 
-    /** Where an import has got to, for a notification or a progress line. */
+    /** What one completed fetch-and-parse batch added, for a notification or progress line. */
     data class Progress(
         val accountId: String,
-        /** How far back the import has reached, epoch millis. */
-        val importedBackTo: Long,
-        /** Emails in the slice about to be read. */
-        val inSlice: Int,
+        /** Transactions written by the completed batch. */
+        val imported: Int,
     )
 
     /** Updates every enabled account, importing the whole mailbox. */
@@ -113,7 +111,7 @@ class StatementUpdater(
                 fullFetch(current, onProgress)
             } else {
                 try {
-                    incrementalUpdate(current, cursor)
+                    incrementalUpdate(current, cursor, onProgress)
                 } catch (e: HttpException) {
                     // Gmail drops history after about a week; the cursor is gone,
                     // not the account. Rebuild instead of failing the refresh.
@@ -217,8 +215,13 @@ class StatementUpdater(
                 continue
             }
 
-            onProgress(Progress(account.id, lower, refs.size))
-            parsed += ingest(account, refs.map { it.id }, lower, upper).parsed
+            parsed += ingest(
+                account,
+                refs.map { it.id },
+                lower,
+                upper,
+                onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
+            ).parsed
 
             upper = lower
             accountRepository.updateImportProgress(account.id, importCursor, upper, now)
@@ -231,7 +234,11 @@ class StatementUpdater(
     }
 
     /** Reads only what changed since [cursor], then advances it. */
-    private suspend fun incrementalUpdate(account: EmailAccount, cursor: String): Int {
+    private suspend fun incrementalUpdate(
+        account: EmailAccount,
+        cursor: String,
+        onProgress: suspend (Progress) -> Unit,
+    ): Int {
         val changed = LinkedHashSet<String>()
         var newestHistoryId: String? = null
         var pageToken: String? = null
@@ -250,7 +257,13 @@ class StatementUpdater(
         // Deletions are deliberately not requested: removing the email is inbox
         // cleanup, it does not un-spend the money, so the transaction stays.
 
-        val parsed = ingest(account, narrow(account, changed.toList()), null, null).parsed
+        val parsed = ingest(
+            account,
+            narrow(account, changed.toList()),
+            after = null,
+            before = null,
+            onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
+        ).parsed
         finish(account, newestHistoryId ?: cursor)
         return parsed
     }
@@ -299,6 +312,7 @@ class StatementUpdater(
         messageIds: List<String>,
         after: Long?,
         before: Long?,
+        onBatchParsed: suspend (Int) -> Unit = {},
     ): Counts {
         val sources = sourcesFor(account)
         val stored = emailRepository.forAccount(account.id).associateBy { it.messageId }
@@ -365,7 +379,9 @@ class StatementUpdater(
             val emails = results.map { it.email }
             emailRepository.insertNew(emails.filter { it.messageId !in stored })
             emailRepository.updateAll(emails.filter { it.messageId in stored })
-            parsed += transactions.size
+            val imported = transactions.size
+            parsed += imported
+            onBatchParsed(imported)
         }
         return Counts(parsed)
     }
@@ -380,7 +396,7 @@ class StatementUpdater(
      *
      * @return how many transactions were written.
      */
-    suspend fun parseUnparsed(): Int {
+    suspend fun parseUnparsed(onProgress: suspend (Progress) -> Unit = {}): Int {
         if (sources().isEmpty()) return 0
 
         var parsed = 0
@@ -390,7 +406,13 @@ class StatementUpdater(
             val pending = emails.filter { email -> sources.any { it.id !in email.triedSourceIds } }
             if (pending.isEmpty()) continue
             parsed += lockFor(accountId).withLock {
-                ingest(account, pending.map { it.messageId }, after = null, before = null).parsed
+                ingest(
+                    account,
+                    pending.map { it.messageId },
+                    after = null,
+                    before = null,
+                    onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
+                ).parsed
             }
         }
         return parsed

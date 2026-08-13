@@ -3,8 +3,9 @@
 
     <string name="statement_update_channel">Statement updates</string>
     <string name="statement_update_importing">Importing your statement</string>
-    <string name="statement_update_starting">Starting…</string>
-    <string name="statement_update_imported_back_to">Imported back to %1$s</string>
+    <string name="statement_update_importing_progress">Importing transactions... (%1$d)</string>
+    <string name="statement_update_done">Done. %1$d transactions imported.</string>
+    <string name="statement_update_ongoing">An update is already ongoing</string>
 
     <string name="onboarding_auth_title">From inbox to statements</string>
     <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them into statements. Your data stays on your phone.</string>

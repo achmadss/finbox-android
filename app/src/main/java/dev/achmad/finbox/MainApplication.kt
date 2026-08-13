@@ -1,4 +1,4 @@
-package dev.achmad.finbox.base
+package dev.achmad.finbox
 
 import android.app.Application
 import android.util.Log

@@ -12,12 +12,12 @@ import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
-import dev.achmad.finbox.core.mvi.MviScreenModel
+import dev.achmad.finbox.util.ui.MviScreenModel
 import dev.achmad.finbox.core.statement.StatementUpdateJob
-import dev.achmad.finbox.core.util.ToastHelper
-import dev.achmad.finbox.core.util.arePermissionsAllowed
-import dev.achmad.finbox.core.util.inject
-import dev.achmad.finbox.core.util.injectAndroidContext
+import dev.achmad.finbox.util.ui.ToastHelper
+import dev.achmad.finbox.util.permission.arePermissionsAllowed
+import dev.achmad.finbox.util.koin.inject
+import dev.achmad.finbox.util.koin.injectAndroidContext
 import kotlinx.coroutines.launch
 
 class OnboardingScreenModel(

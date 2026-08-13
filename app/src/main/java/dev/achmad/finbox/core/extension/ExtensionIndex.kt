@@ -1,8 +1,8 @@
 package dev.achmad.finbox.core.extension
 
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.core.network.get
-import dev.achmad.finbox.core.network.parseAs
+import dev.achmad.finbox.util.network.get
+import dev.achmad.finbox.util.network.parseAs
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import okhttp3.CacheControl

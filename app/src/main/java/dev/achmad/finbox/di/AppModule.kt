@@ -2,10 +2,10 @@ package dev.achmad.finbox.di
 
 import android.content.Context
 import dev.achmad.finbox.BuildConfig
-import dev.achmad.finbox.core.network.NetworkHelper
-import dev.achmad.finbox.core.preference.AndroidPreferenceStore
-import dev.achmad.finbox.core.preference.PreferenceStore
-import dev.achmad.finbox.core.util.ToastHelper
+import dev.achmad.finbox.core.util.network.NetworkHelper
+import dev.achmad.finbox.core.util.preference.AndroidPreferenceStore
+import dev.achmad.finbox.core.util.preference.PreferenceStore
+import dev.achmad.finbox.core.util.ui.ToastHelper
 import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
 import dev.achmad.finbox.core.extension.ExtensionLoader

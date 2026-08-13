@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.util
+package dev.achmad.finbox.util.permission
 
 import android.Manifest
 import android.content.Context

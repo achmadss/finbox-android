@@ -33,8 +33,8 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.util.injectLazy
-import dev.achmad.finbox.core.util.rememberNotificationPermissionState
+import dev.achmad.finbox.util.koin.injectLazy
+import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
 import dev.achmad.finbox.features.home.HomeScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

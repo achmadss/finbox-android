@@ -3,6 +3,7 @@ package dev.achmad.finbox.core.statement
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.widget.Toast
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -11,11 +12,16 @@ import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.util.injectLazy
+import dev.achmad.finbox.util.koin.injectLazy
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 
 /**
@@ -41,20 +47,31 @@ class StatementUpdateJob(
         extensionManager.reload()
 
         val parseOnly = inputData.getBoolean(PARSE_ONLY, false)
+        val needsForeground = parseOnly || updater.isImporting()
         // An import is minutes to hours of paced fetching; a plain worker is
         // stopped after ten. Both long paths run in the foreground so the system
         // lets them finish, and so the user can see why the phone is busy.
-        if (parseOnly || updater.isImporting()) {
+        if (needsForeground) {
             notifier.createChannel()
-            runCatching { setForeground(foregroundInfo(importedBackTo = null)) }
+            runCatching { setForeground(foregroundInfo(imported = 0)) }
         }
 
+        runCatching { setProgress(workDataOf(PROGRESS_IMPORTED to 0)) }
+        var importedSoFar = 0
+        val onProgress: suspend (StatementUpdater.Progress) -> Unit = { progress ->
+            importedSoFar += progress.imported
+            runCatching { setProgress(workDataOf(PROGRESS_IMPORTED to importedSoFar)) }
+            if (needsForeground) {
+                runCatching { setForeground(foregroundInfo(importedSoFar)) }
+            }
+        }
         val imported = if (parseOnly) {
-            updater.parseUnparsed()
+            updater.parseUnparsed(onProgress)
         } else {
-            updater.updateAll { progress ->
-                runCatching { setForeground(foregroundInfo(progress.importedBackTo)) }
-            }.getOrThrow()
+            updater.updateAll(onProgress).getOrThrow()
+        }
+        if (needsForeground) {
+            notifier.showDone(imported)
         }
         if (imported > 0) {
             Result.success(workDataOf("imported" to imported))
@@ -66,10 +83,10 @@ class StatementUpdateJob(
     }
 
     /** Stopping counts as unfinished work, so WorkManager re-runs it and the import resumes. */
-    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(importedBackTo = null)
+    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(imported = 0)
 
-    private fun foregroundInfo(importedBackTo: Long?): ForegroundInfo {
-        val notification = notifier.importing(importedBackTo)
+    private fun foregroundInfo(imported: Int): ForegroundInfo {
+        val notification = notifier.importing(imported)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(
                 StatementUpdateNotifier.NOTIFICATION_ID,
@@ -83,7 +100,10 @@ class StatementUpdateJob(
 
     companion object {
         const val WORK_NAME = "finbox_statement_update"
+        /** Shared by manual and parse-only requests so they cannot overlap. */
+        const val MANUAL_WORK_NAME = "${WORK_NAME}_manual"
         const val REPARSE_WORK_NAME = "finbox_statement_reparse"
+        const val PROGRESS_IMPORTED = "progress_imported"
 
         /** Skip the Gmail sync and only re-read stored mail. */
         private const val PARSE_ONLY = "parse_only"
@@ -104,34 +124,69 @@ class StatementUpdateJob(
             )
         }
 
-        /** Manual refresh. A second tap joins the running update rather than racing it. */
-        fun runNow(context: Context) {
-            val request = OneTimeWorkRequestBuilder<StatementUpdateJob>()
-                .setConstraints(constraints)
-                .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "${WORK_NAME}_manual",
-                ExistingWorkPolicy.KEEP,
-                request,
-            )
-        }
+        /** Manual refresh. A second trigger is rejected while an update is active. */
+        suspend fun runNow(context: Context) = enqueueOneTime(context, parseOnly = false)
 
         /**
          * Re-reads stored mail after a parser is installed, updated or enabled.
          *
-         * Appended rather than dropped: each change deserves its own pass, and a
-         * parser installed while one is running would otherwise be skipped.
+         * A parser change while an update is running waits for the user to try
+         * again rather than adding another pass to the queue.
          */
-        fun reparseNow(context: Context) {
-            val request = OneTimeWorkRequestBuilder<StatementUpdateJob>()
-                .setConstraints(constraints)
-                .setInputData(workDataOf(PARSE_ONLY to true))
-                .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                REPARSE_WORK_NAME,
-                ExistingWorkPolicy.APPEND_OR_REPLACE,
-                request,
-            )
+        suspend fun reparseNow(context: Context) = enqueueOneTime(context, parseOnly = true)
+
+        private suspend fun enqueueOneTime(context: Context, parseOnly: Boolean) {
+            requestMutex.withLock {
+                val workManager = WorkManager.getInstance(context)
+                if (hasOngoingWork(workManager)) {
+                    Toast.makeText(
+                        context.applicationContext,
+                        context.getString(R.string.statement_update_ongoing),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    return
+                }
+
+                val request = OneTimeWorkRequestBuilder<StatementUpdateJob>()
+                    .setConstraints(constraints)
+                    .apply {
+                        if (parseOnly) {
+                            setInputData(workDataOf(PARSE_ONLY to true))
+                        }
+                    }
+                    .build()
+                workManager.enqueueUniqueWork(
+                    MANUAL_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    request,
+                )
+            }
         }
+
+        private suspend fun hasOngoingWork(workManager: WorkManager): Boolean {
+            val periodic = workManager
+                .getWorkInfosForUniqueWorkFlow(WORK_NAME)
+                .first()
+            val oneTime = workManager
+                .getWorkInfosForUniqueWorkFlow(MANUAL_WORK_NAME)
+                .first()
+            val legacyReparse = workManager
+                .getWorkInfosForUniqueWorkFlow(REPARSE_WORK_NAME)
+                .first()
+
+            return periodic.any { it.state == WorkInfo.State.RUNNING } ||
+                (oneTime + legacyReparse).any { it.state.isActive() }
+        }
+
+        private fun WorkInfo.State.isActive(): Boolean = when (this) {
+            WorkInfo.State.ENQUEUED,
+            WorkInfo.State.RUNNING,
+            WorkInfo.State.BLOCKED -> true
+            WorkInfo.State.SUCCEEDED,
+            WorkInfo.State.FAILED,
+            WorkInfo.State.CANCELLED -> false
+        }
+
+        private val requestMutex = Mutex()
     }
 }

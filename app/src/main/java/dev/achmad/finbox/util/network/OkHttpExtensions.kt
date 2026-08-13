@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.network
+package dev.achmad.finbox.util.network
 
 import java.io.IOException
 import kotlin.coroutines.resumeWithException

@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.preference
+package dev.achmad.finbox.util.preference
 
 interface PreferenceStore {
     fun getString(key: String, defaultValue: String = ""): Preference<String>

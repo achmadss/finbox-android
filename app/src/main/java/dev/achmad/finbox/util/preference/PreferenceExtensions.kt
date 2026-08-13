@@ -1,10 +1,9 @@
-package dev.achmad.finbox.core.util
+package dev.achmad.finbox.util.preference
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import dev.achmad.finbox.core.preference.Preference
 
 @Composable
 fun <T> Preference<T>.collectAsState(): State<T> {

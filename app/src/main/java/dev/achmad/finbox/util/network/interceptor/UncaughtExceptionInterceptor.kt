@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.network.interceptor
+package dev.achmad.finbox.util.network.interceptor
 
 import okhttp3.Interceptor
 import okhttp3.Response

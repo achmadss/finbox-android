@@ -1,13 +1,13 @@
-package dev.achmad.finbox.core.preference
+package dev.achmad.finbox.util.preference
 
 import android.content.SharedPreferences
-import dev.achmad.finbox.core.preference.AndroidPreference.BooleanPrimitive
-import dev.achmad.finbox.core.preference.AndroidPreference.FloatPrimitive
-import dev.achmad.finbox.core.preference.AndroidPreference.IntPrimitive
-import dev.achmad.finbox.core.preference.AndroidPreference.LongPrimitive
-import dev.achmad.finbox.core.preference.AndroidPreference.ObjectAsString
-import dev.achmad.finbox.core.preference.AndroidPreference.StringPrimitive
-import dev.achmad.finbox.core.preference.AndroidPreference.StringSetPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.BooleanPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.FloatPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.IntPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.LongPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.ObjectAsString
+import dev.achmad.finbox.core.util.preference.AndroidPreference.StringPrimitive
+import dev.achmad.finbox.core.util.preference.AndroidPreference.StringSetPrimitive
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 

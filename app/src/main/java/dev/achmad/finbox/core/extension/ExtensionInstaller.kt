@@ -1,6 +1,6 @@
 package dev.achmad.finbox.core.extension
 
-import dev.achmad.finbox.core.network.get
+import dev.achmad.finbox.util.network.get
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest

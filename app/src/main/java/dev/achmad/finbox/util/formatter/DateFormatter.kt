@@ -1,22 +1,8 @@
-package dev.achmad.finbox.core.util
+package dev.achmad.finbox.util.formatter
 
-import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-fun formatAmount(amount: Long?, currency: String?): String {
-    if (amount == null) return "-"
-    val symbol = when (currency) {
-        "IDR" -> "Rp"
-        "USD" -> "$"
-        "EUR" -> "€"
-        else -> "$currency "
-    }
-    val formatted = NumberFormat.getNumberInstance(Locale.US).format(amount)
-    return "$symbol$formatted"
-}
 
 private val dateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm").withZone(ZoneId.systemDefault())

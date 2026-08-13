@@ -1,10 +1,10 @@
 package dev.achmad.finbox.features.onboarding
 
-import dev.achmad.finbox.core.preference.PreferenceStore
+import dev.achmad.finbox.util.preference.PreferenceStore
 
 /**
  * What onboarding decided, for the parts of the app that run after it —
- * [MainActivity][dev.achmad.finbox.base.MainActivity] picking a start screen.
+ * [MainActivity][dev.achmad.finbox.MainActivity] picking a start screen.
  */
 class OnboardingPreference(
     private val preferenceStore: PreferenceStore,

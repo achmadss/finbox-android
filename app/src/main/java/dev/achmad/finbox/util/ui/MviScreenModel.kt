@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.mvi
+package dev.achmad.finbox.util.ui
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import kotlinx.coroutines.flow.MutableSharedFlow
