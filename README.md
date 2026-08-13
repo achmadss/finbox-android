@@ -44,7 +44,12 @@ Currently IDR only, and sync is manual pull-to-refresh.
 |---|---|
 | `app/` | UI, Gmail client, extension loading, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
-| `extension-api/` | The types parsers implement, published for finbox-extension |
+| `extension-api/` | The types parsers implement |
+
+`:extension-api` is published to GitHub Packages by the **Publish
+extension-api** workflow — run by hand, after an API change and a version bump,
+never from a laptop. That is what lets finbox-extension be worked on without a
+checkout of this repo.
 
 ## Status
 

@@ -51,4 +51,20 @@ publishing {
             afterEvaluate { from(components["release"]) }
         }
     }
+    repositories {
+        // GitHub Packages, so finbox-extension can build against a published
+        // API without a checkout of this repo beside it.
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/achmadss/finbox-android")
+            // CI only, on purpose: the Publish extension-api workflow supplies
+            // these from GITHUB_TOKEN, so a published version is always one a
+            // commit on main produced. Locally, publishToMavenLocal — it needs
+            // no credentials at all.
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
