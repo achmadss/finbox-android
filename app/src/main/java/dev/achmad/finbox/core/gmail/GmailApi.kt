@@ -4,6 +4,7 @@ import android.util.Base64
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.util.network.get
+import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
 import dev.achmad.finbox.extension.EmailMessage
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
@@ -138,7 +139,15 @@ class GmailApi(
                 quota.spend(accountId, units)
                 response = get(url, fresh)
             }
-            if (response.isSuccessful) return response.parseAs()
+            if (response.isSuccessful) {
+                // Gmail answers 204 with no body when the fields mask leaves nothing to send
+                // back — a window with no matching mail. That is an empty result, not an error.
+                if (response.code == 204) {
+                    response.close()
+                    return json.decodeFromString("{}")
+                }
+                return response.parseAs()
+            }
 
             val code = response.code
             response.close()

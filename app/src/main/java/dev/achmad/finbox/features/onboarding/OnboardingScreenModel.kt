@@ -118,7 +118,6 @@ class OnboardingScreenModel(
         // Nothing left to ask: remember that, and start the first import on the
         // way out so the ledger is filling before Home is drawn.
         preferences.onboardingComplete().set(true)
-        StatementUpdateJob.schedule(context)
         StatementUpdateJob.runNow(context)
         emit(Effect.NavigateToHome)
     }

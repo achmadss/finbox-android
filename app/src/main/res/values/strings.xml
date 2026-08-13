@@ -4,7 +4,8 @@
     <string name="statement_update_channel">Statement updates</string>
     <string name="statement_update_importing">Importing your statement</string>
     <string name="statement_update_importing_progress">Importing transactions... (%1$d)</string>
-    <string name="statement_update_done">Done. %1$d transactions imported.</string>
+    <string name="statement_update_done_title">Statement updated</string>
+    <string name="statement_update_done">%1$d transactions imported</string>
     <string name="statement_update_ongoing">An update is already ongoing</string>
 
     <string name="onboarding_auth_title">From inbox to statements</string>

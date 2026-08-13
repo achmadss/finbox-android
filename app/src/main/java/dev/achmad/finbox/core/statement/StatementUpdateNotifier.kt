@@ -32,7 +32,8 @@ class StatementUpdateNotifier(private val context: Context) {
 
     /** Indeterminate progress, labeled with the transactions imported so far. */
     fun importing(imported: Int): Notification = notification(
-        context.getString(R.string.statement_update_importing_progress, imported),
+        title = context.getString(R.string.statement_update_importing),
+        text = context.getString(R.string.statement_update_importing_progress, imported),
         ongoing = true,
         indeterminate = true,
     )
@@ -42,17 +43,23 @@ class StatementUpdateNotifier(private val context: Context) {
         manager?.notify(
             DONE_NOTIFICATION_ID,
             notification(
-                context.getString(R.string.statement_update_done, imported),
+                title = context.getString(R.string.statement_update_done_title),
+                text = context.getString(R.string.statement_update_done, imported),
                 ongoing = false,
                 indeterminate = false,
             ),
         )
     }
 
-    private fun notification(text: String, ongoing: Boolean, indeterminate: Boolean): Notification =
+    private fun notification(
+        title: String,
+        text: String,
+        ongoing: Boolean,
+        indeterminate: Boolean,
+    ): Notification =
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle(context.getString(R.string.statement_update_importing))
+            .setContentTitle(title)
             .setContentText(text)
             .setProgress(0, 0, indeterminate)
             .setOngoing(ongoing)

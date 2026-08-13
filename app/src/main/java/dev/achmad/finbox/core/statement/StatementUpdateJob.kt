@@ -3,6 +3,7 @@ package dev.achmad.finbox.core.statement
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -19,6 +20,7 @@ import androidx.work.workDataOf
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.util.koin.injectLazy
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -78,8 +80,14 @@ class StatementUpdateJob(
         } else {
             Result.success()
         }
+    } catch (e: CancellationException) {
+        // Being stopped is not a failure, and must not spend a retry.
+        throw e
     } catch (e: Exception) {
-        Result.retry()
+        Log.e("StatementUpdate", "Update failed on attempt ${runAttemptCount + 1}", e)
+        // Something that fails every time would otherwise retry until the app is uninstalled,
+        // and a pending retry is what the manual refresh trips over.
+        if (runAttemptCount >= MAX_ATTEMPTS - 1) Result.failure() else Result.retry()
     }
 
     /** Stopping counts as unfinished work, so WorkManager re-runs it and the import resumes. */
@@ -104,6 +112,9 @@ class StatementUpdateJob(
         const val MANUAL_WORK_NAME = "${WORK_NAME}_manual"
         const val REPARSE_WORK_NAME = "finbox_statement_reparse"
         const val PROGRESS_IMPORTED = "progress_imported"
+
+        /** Attempts before an update gives up until the next schedule or pull. */
+        private const val MAX_ATTEMPTS = 3
 
         /** Skip the Gmail sync and only re-read stored mail. */
         private const val PARSE_ONLY = "parse_only"
@@ -155,14 +166,22 @@ class StatementUpdateJob(
                         }
                     }
                     .build()
+                // Nothing is running, so anything under this name is a pending retry from a
+                // failed run. Replace it: the user asking now beats a queued backoff.
                 workManager.enqueueUniqueWork(
                     MANUAL_WORK_NAME,
-                    ExistingWorkPolicy.KEEP,
+                    ExistingWorkPolicy.REPLACE,
                     request,
                 )
             }
         }
 
+        /**
+         * Only work that is actually running blocks a new request. ENQUEUED covers a periodic
+         * job waiting for its window and a one-time job waiting out a retry backoff — neither
+         * is an update in progress, and treating them as one made the refresh permanently
+         * refuse after a single failed run.
+         */
         private suspend fun hasOngoingWork(workManager: WorkManager): Boolean {
             val periodic = workManager
                 .getWorkInfosForUniqueWorkFlow(WORK_NAME)
@@ -174,17 +193,8 @@ class StatementUpdateJob(
                 .getWorkInfosForUniqueWorkFlow(REPARSE_WORK_NAME)
                 .first()
 
-            return periodic.any { it.state == WorkInfo.State.RUNNING } ||
-                (oneTime + legacyReparse).any { it.state.isActive() }
-        }
-
-        private fun WorkInfo.State.isActive(): Boolean = when (this) {
-            WorkInfo.State.ENQUEUED,
-            WorkInfo.State.RUNNING,
-            WorkInfo.State.BLOCKED -> true
-            WorkInfo.State.SUCCEEDED,
-            WorkInfo.State.FAILED,
-            WorkInfo.State.CANCELLED -> false
+            return (periodic + oneTime + legacyReparse)
+                .any { it.state == WorkInfo.State.RUNNING }
         }
 
         private val requestMutex = Mutex()
