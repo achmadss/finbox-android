@@ -14,18 +14,22 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,10 +47,11 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
 import dev.achmad.finbox.core.statement.StatementUpdateStatus
-import dev.achmad.finbox.features.home.HomeScreen
+import dev.achmad.finbox.features.expenses.ExpensesScreen
 import dev.achmad.finbox.features.onboarding.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -55,11 +60,11 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 
 class MainActivity : ComponentActivity() {
 
-    private val onboardingPreference: OnboardingPreference by _root_ide_package_.dev.achmad.finbox.util.koin.injectLazy()
+    private val onboardingPreference: OnboardingPreference by injectLazy()
     private val statementUpdateStatus by lazy { StatementUpdateStatus(applicationContext) }
 
     private var isReady = false
-    private var initialScreen: Screen = HomeScreen
+    private var initialScreen: Screen = ExpensesScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,14 +95,24 @@ class MainActivity : ComponentActivity() {
                     stringResource(R.string.statement_update_importing_progress, count)
                 }
 
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    AppStateBanner(text = importingText)
+                val horizontalInsets = WindowInsets.navigationBars
+                    .only(WindowInsetsSides.Horizontal)
+                Scaffold(
+                    topBar = {
+                        AppStateBanner(
+                            text = importingText,
+                            modifier = Modifier.windowInsetsPadding(horizontalInsets),
+                        )
+                    },
+                    contentWindowInsets = horizontalInsets,
+                ) { contentPadding ->
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                            .fillMaxSize()
+                            .padding(contentPadding)
+                            // The banner already took the status bar inset. Without consuming it,
+                            // the screen's own app bar would pad for it a second time.
+                            .consumeWindowInsets(contentPadding),
                     ) {
                         Navigator(
                             screen = initialScreen,
@@ -128,7 +143,7 @@ class MainActivity : ComponentActivity() {
         // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
         // Onboarding sets its flag on the last step; anything short of that and
         // it re-opens and works out which step is still missing.
-        initialScreen = if (onboardingPreference.onboardingComplete().get()) HomeScreen else OnboardingScreen
+        initialScreen = if (onboardingPreference.onboardingComplete().get()) ExpensesScreen else OnboardingScreen
         isReady = true
     }
 
@@ -160,10 +175,12 @@ class MainActivity : ComponentActivity() {
             modifier = modifier,
         ) {
             Row(
+                // Background first, so the colour reaches under the status bar and only the
+                // content is pushed below it.
                 modifier = Modifier
+                    .background(MaterialTheme.colorScheme.secondary)
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .background(MaterialTheme.colorScheme.secondary)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
