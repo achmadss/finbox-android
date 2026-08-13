@@ -87,6 +87,9 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
 
+    // No app code uses jsoup — extensions do, and they resolve it from here
+    // through ChildFirstPathClassLoader's parent rather than bundling their own.
+    // Dropping it as "unused" breaks every parser at runtime.
     implementation(libs.jsoup)
     implementation(libs.security.crypto)
     implementation(libs.appauth)

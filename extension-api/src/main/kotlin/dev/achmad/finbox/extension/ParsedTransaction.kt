@@ -17,5 +17,4 @@ data class ParsedTransaction(
     val merchant: String?,
     val description: String?,
     val reference: String?,
-    val confidence: Float = 1f,
 )

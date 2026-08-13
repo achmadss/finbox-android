@@ -9,8 +9,10 @@ class FinboxConfigTest {
     @Test
     fun `the version this app ships is loadable, however the manifest widened it`() {
         assertTrue(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION))
-        // What getFloat() actually hands back for 1.3, which no literal equals.
-        assertTrue(FinboxConfig.supportsLibVersion(1.3f.toDouble()))
+        // What getFloat() actually hands back out of the binary manifest: 1.3f
+        // widens to 1.2000000476837158, which no Double literal here equals.
+        assertTrue(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION.toFloat().toDouble()))
+        assertTrue(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION.toFloat().toDouble()))
         assertTrue(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION))
     }
 

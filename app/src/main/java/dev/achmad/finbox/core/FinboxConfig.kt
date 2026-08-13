@@ -30,7 +30,7 @@ object FinboxConfig {
      * against via `finbox.extension.lib`, or by the leading components of its
      * versionName ("1.3.5" -> 1.3).
      */
-    const val LIB_VERSION = 1.3
+    const val LIB_VERSION = 1.4
 
     /**
      * The oldest parser API still loadable.
@@ -41,10 +41,10 @@ object FinboxConfig {
      * raises this, and that is meant to hurt: it orphans every APK below it
      * until each is rebuilt.
      *
-     * It starts at 1.3 rather than 1.0 because `TransactionSource.emailQuery`
-     * is abstract, so a 1.2 extension throws AbstractMethodError on first use.
+     * At 1.4 because `ParsedTransaction` lost a field there: an extension built
+     * against 1.3 calls a constructor that no longer exists.
      */
-    const val MIN_LIB_VERSION = 1.3
+    const val MIN_LIB_VERSION = 1.4
 
     /**
      * Whether a parser API version is one this app can load.

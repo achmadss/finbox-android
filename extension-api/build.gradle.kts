@@ -8,9 +8,10 @@ plugins {
 //
 // Extensions depend on it with `compileOnly`: the real classes come from the
 // app at runtime, resolved through ChildFirstPathClassLoader's parent. Bump
-// `apiVersion` whenever a change breaks already-published extensions, and keep
-// it in step with FinboxConfig.SUPPORTED_LIB_VERSIONS in the app.
-val apiVersion = "1.3"
+// `apiVersion` on every change, and keep it in step with the app's
+// FinboxConfig.LIB_VERSION — plus MIN_LIB_VERSION when the change breaks
+// already-published extensions, as removing a field does.
+val apiVersion = "1.4"
 
 group = "com.github.achmadss.finbox-android"
 version = apiVersion

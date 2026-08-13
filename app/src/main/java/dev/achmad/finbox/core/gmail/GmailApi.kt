@@ -19,7 +19,6 @@ import java.net.URLEncoder
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Response
-import org.jsoup.Jsoup
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Thin Gmail REST client on top of OkHttp. */
@@ -176,7 +175,7 @@ class GmailApi(
             val headers = response.payload?.headers.orEmpty()
             fun header(name: String): String? = headers.firstOrNull { it.name.equals(name, true) }?.value
 
-            val (text, html) = extractBodies(response.payload)
+            val (text, html) = collectBodies(response.payload)
             return EmailMessage(
                 id = response.id.hashCode().toLong(),
                 messageId = header("Message-ID") ?: response.id,
@@ -190,14 +189,14 @@ class GmailApi(
             )
         }
 
-        private fun extractBodies(payload: Payload?): Pair<String, String> {
-            val (text, html) = collectBodies(payload)
-            // A bank receipt is often html and nothing else — every part of it
-            // that a parser wants is in there, so it gets read out rather than
-            // handed over as an empty body.
-            return (text.ifEmpty { htmlToText(html) }) to html
-        }
-
+        /**
+         * The text and html parts as the message carried them.
+         *
+         * A bank receipt is often html and nothing else, and it is left that
+         * way: turning markup into the lines a parser reads is a parser's
+         * decision, and it belongs to whoever knows the bank. Extensions do it
+         * with the receipt library in finbox-extension.
+         */
         private fun collectBodies(payload: Payload?): Pair<String, String> {
             if (payload == null) return "" to ""
             val data = payload.body.data ?: ""
@@ -215,29 +214,6 @@ class GmailApi(
                 if (h.isNotEmpty() && html.isEmpty()) html = h
             }
             return text to html
-        }
-
-        /**
-         * Flattens html to text while keeping the lines a receipt is made of.
-         *
-         * `Jsoup.text()` alone returns one long line, which loses what pairs a
-         * label with its value — these mails put both in one table row and
-         * nothing else marks where a field ends.
-         */
-        fun htmlToText(html: String): String {
-            if (html.isBlank()) return ""
-            val document = Jsoup.parse(html)
-            document.outputSettings().prettyPrint(false)
-            document.select("style, script, head").remove()
-            // A literal marker, not a newline: text() collapses real whitespace,
-            // so the break has to survive as characters and be put back after.
-            document.select("br, tr, p, div, li, h1, h2, h3, h4, table").before("\\n")
-            return document.text()
-                .replace("\\n", "\n")
-                .lineSequence()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .joinToString("\n")
         }
 
         private fun decodeBase64(data: String): String = try {
