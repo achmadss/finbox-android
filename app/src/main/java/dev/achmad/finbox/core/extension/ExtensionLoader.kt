@@ -13,7 +13,7 @@ import java.io.File
  * For each APK:
  * 1. Parses its manifest via [PackageManager.getPackageArchiveInfo]
  * 2. Validates the `finbox.extension` feature and `finbox.extension.lib`
- *    against [FinboxConfig.SUPPORTED_LIB_VERSIONS]
+ *    against [FinboxConfig.supportsLibVersion]
  * 3. Instantiates the [TransactionSource] named by `finbox.extension.class`
  *    via a [ChildFirstPathClassLoader] and pairs it with the identity from
  *    the manifest
@@ -61,8 +61,8 @@ class ExtensionLoader(
         if (libVersion == null || !FinboxConfig.supportsLibVersion(libVersion)) {
             return LoadResult.Error(
                 apk.name,
-                "Unsupported extension lib version '$libVersion' " +
-                    "(supported: ${FinboxConfig.SUPPORTED_LIB_VERSIONS.joinToString()})",
+                "Unsupported extension lib version '$libVersion' (supported: " +
+                    "${FinboxConfig.MIN_LIB_VERSION} to ${FinboxConfig.LIB_VERSION})",
             )
         }
 
