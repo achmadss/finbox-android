@@ -98,6 +98,7 @@ class ExtensionLoader(
                 info,
                 LoadedSource(
                     id = sourceIdOf(info.name, info.versionCode),
+                    pkg = info.pkg,
                     provider = info.provider,
                     name = info.name,
                     source = source,

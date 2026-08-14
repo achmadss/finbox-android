@@ -84,6 +84,16 @@ class TransactionRepository(
         Unit
     }
 
+    /**
+     * Drops everything a source parsed under one kind — what switching that kind
+     * off means, since a re-parse will not write them back.
+     */
+    suspend fun deleteByKind(sourceIds: Collection<Long>, kind: String) = withContext(Dispatchers.IO) {
+        db.transaction {
+            sourceIds.forEach { db.transactionQueries.DELETEByKind(it, kind) }
+        }
+    }
+
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.transactionQueries.DELETEById(System.currentTimeMillis(), id)
         Unit
@@ -108,6 +118,7 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         type = transaction.type?.name,
+        kind = transaction.kind,
         category = transaction.category,
         description = transaction.description,
         merchant = transaction.merchant,
@@ -125,6 +136,7 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         type = transaction.type?.name,
+        kind = transaction.kind,
         description = transaction.description,
         merchant = transaction.merchant,
         updated_at = transaction.updatedAt,
@@ -142,6 +154,7 @@ class TransactionRepository(
         amount = amount,
         currency = currency,
         type = type?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() },
+        kind = kind,
         category = category,
         description = description,
         merchant = merchant,

@@ -32,6 +32,7 @@ class ExtensionManager(
     private val installer: ExtensionInstaller,
     private val index: ExtensionIndex,
     private val repository: InstalledExtensionRepository,
+    private val kindPreference: ExtensionKindPreference,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -97,6 +98,9 @@ class ExtensionManager(
     suspend fun remove(pkg: String) {
         installer.remove(pkg)
         repository.delete(pkg)
+        // The switches are keyed by package and would otherwise outlive it,
+        // quietly suppressing kinds if the same extension is installed again.
+        kindPreference.clear(pkg)
         reload()
     }
 

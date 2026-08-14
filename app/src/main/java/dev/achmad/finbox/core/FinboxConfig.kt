@@ -30,7 +30,7 @@ object FinboxConfig {
      * against via `finbox.extension.lib`, or by the leading components of its
      * versionName ("1.3.5" -> 1.3).
      */
-    const val LIB_VERSION = 1.4
+    const val LIB_VERSION = 1.5
 
     /**
      * The oldest parser API still loadable.
@@ -41,10 +41,12 @@ object FinboxConfig {
      * raises this, and that is meant to hurt: it orphans every APK below it
      * until each is rebuilt.
      *
-     * At 1.4 because `ParsedTransaction` lost a field there: an extension built
-     * against 1.3 calls a constructor that no longer exists.
+     * At 1.5 because a source now declares its `kinds` and tags each parsed
+     * transaction with one: an extension built against 1.4 doesn't implement
+     * that member, and its `ParsedTransaction` calls a constructor that no
+     * longer exists.
      */
-    const val MIN_LIB_VERSION = 1.4
+    const val MIN_LIB_VERSION = 1.5
 
     /**
      * Whether a parser API version is one this app can load.

@@ -729,6 +729,7 @@ private fun ExpensesScreenPreview() {
             amount = amount,
             currency = "IDR",
             type = type,
+            kind = null,
             category = null,
             description = description,
             merchant = description,
@@ -740,7 +741,7 @@ private fun ExpensesScreenPreview() {
         sample("1", "Kopi Kenangan", 24_000, TransactionType.EXPENSE, now),
         sample("2", "Tokopedia", 315_000, TransactionType.EXPENSE, now),
         sample("3", "Payroll", 12_500_000, TransactionType.INCOME, now - 86_400_000L),
-        sample("4", "Transfer to savings", 1_000_000, TransactionType.TRANSFER, now - 86_400_000L),
+        sample("4", "Transfer to savings", 1_000_000, TransactionType.EXPENSE, now - 86_400_000L),
     )
     val month = YearMonth.now()
     AppTheme {

@@ -15,6 +15,19 @@ package dev.achmad.finbox.extension
 interface TransactionSource {
 
     /**
+     * Every kind of transaction this source can produce, in the order the user
+     * should see them.
+     *
+     * The app lists these on the extension's page with a switch each, and skips
+     * a transaction whose kind is switched off — so a kind missing from here is
+     * a kind the user can never turn off, and one whose [TransactionKind.key]
+     * never appears in [parseEmail] is a dead switch. Declare a catch-all for
+     * the receipts this source can't classify; a bank adds types without
+     * warning, and the alternative is dropping them silently.
+     */
+    val kinds: List<TransactionKind>
+
+    /**
      * Which mail is worth fetching, e.g. `EmailQuery.from("BankBRI@bri.co.id")`.
      *
      * Deliberately wide: this only decides what gets downloaded, and

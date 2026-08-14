@@ -1,9 +1,15 @@
 package dev.achmad.data.model
 
+/**
+ * Which way the money went — all the app itself knows.
+ *
+ * What the provider calls it (QRIS, a top up, a BI-Fast transfer) is the
+ * extension's vocabulary and lives in [Transaction.kind]; every one of those is
+ * one of these two underneath.
+ */
 enum class TransactionType {
     INCOME,
     EXPENSE,
-    TRANSFER,
 }
 
 /**
@@ -25,6 +31,8 @@ data class Transaction(
     val amount: Long?,
     val currency: String?,
     val type: TransactionType?,
+    /** The source's own name for it, e.g. `QRIS`. Null for mail parsed before kinds. */
+    val kind: String?,
     val category: String?,
     val description: String?,
     val merchant: String?,
@@ -35,12 +43,7 @@ data class Transaction(
     /** When it happened — the parsed date, or when we stored it if the parser found none. */
     val timestamp: Long get() = date ?: createdAt
 
-    /** Money leaving the account counts as negative: expenses and transfers out. */
+    /** Money leaving the account counts as negative. */
     val signedAmount: Long?
-        get() = amount?.let {
-            when (type) {
-                TransactionType.EXPENSE, TransactionType.TRANSFER -> -it
-                else -> it
-            }
-        }
+        get() = amount?.let { if (type == TransactionType.EXPENSE) -it else it }
 }

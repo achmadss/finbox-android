@@ -11,6 +11,10 @@ CREATE TABLE transactions (
     amount INTEGER,
     currency TEXT,
     type TEXT,
+    -- The source's own name for what this is, e.g. QRIS or TRANSFER_BI_FAST.
+    -- The user switches these on and off per extension, so a row has to say
+    -- which one it was parsed under.
+    kind TEXT,
     category TEXT,
     description TEXT,
     merchant TEXT,
@@ -44,8 +48,8 @@ ORDER BY COALESCE(date, created_at) DESC;
 -- Ids derive from a provider reference, thread, or email fallback, so the same
 -- logical transaction overwrites instead of duplicating.
 INSERTOrReplace:
-INSERT OR REPLACE INTO transactions(id, account_id, source_id, email_message_id, thread_id, reference, date, amount, currency, type, category, description, merchant, created_at, updated_at, deleted)
-VALUES (:id, :account_id, :source_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :type, :category, :description, :merchant, :created_at, :updated_at, :deleted);
+INSERT OR REPLACE INTO transactions(id, account_id, source_id, email_message_id, thread_id, reference, date, amount, currency, type, kind, category, description, merchant, created_at, updated_at, deleted)
+VALUES (:id, :account_id, :source_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :type, :kind, :category, :description, :merchant, :created_at, :updated_at, :deleted);
 
 UPDATEParsedById:
 UPDATE transactions SET
@@ -57,6 +61,7 @@ UPDATE transactions SET
     amount = :amount,
     currency = :currency,
     type = :type,
+    kind = :kind,
     description = :description,
     merchant = :merchant,
     updated_at = :updated_at
@@ -73,6 +78,11 @@ UPDATE transactions SET
     merchant = :merchant,
     updated_at = :updated_at
 WHERE id = :id;
+
+-- Hard delete: the kind is off, so a re-parse would not write these back and a
+-- soft-deleted row would sit there forever. Switching the kind on re-parses.
+DELETEByKind:
+DELETE FROM transactions WHERE source_id = :source_id AND kind = :kind;
 
 DELETEById:
 UPDATE transactions SET deleted = 1, updated_at = :updated_at WHERE id = :id;

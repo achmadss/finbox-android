@@ -1,5 +1,6 @@
 package dev.achmad.finbox.features.extensions
 
+import android.text.format.Formatter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -44,6 +46,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.core.extension.InstallStep
+import dev.achmad.finbox.extension.TransactionType
 
 data class ExtensionDetailsScreen(private val pkg: String) : Screen {
 
@@ -87,6 +90,8 @@ data class ExtensionDetailsScreen(private val pkg: String) : Screen {
             ) {
                 DetailsHeader(
                     extension = extension,
+                    summary = state.summary,
+                    sizeBytes = state.sizeBytes,
                     installStep = state.installStep,
                     onClickUpdate = model::update,
                     onClickUninstall = { confirmUninstall = true },
@@ -98,6 +103,26 @@ data class ExtensionDetailsScreen(private val pkg: String) : Screen {
                     onCheckedChange = model::setEnabled,
                 )
                 HorizontalDivider()
+                if (state.kinds.isNotEmpty()) {
+                    Text(
+                        text = "Transaction types",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
+                    )
+                    state.kinds.forEach { kind ->
+                        SwitchRow(
+                            title = kind.name,
+                            subtitle = when (kind.type) {
+                                TransactionType.EXPENSE -> "Expense"
+                                TransactionType.INCOME -> "Income"
+                            },
+                            checked = kind.enabled,
+                            onCheckedChange = { model.toggleKind(kind.key) },
+                        )
+                    }
+                    HorizontalDivider()
+                }
             }
         }
 
@@ -114,6 +139,8 @@ data class ExtensionDetailsScreen(private val pkg: String) : Screen {
 @Composable
 private fun DetailsHeader(
     extension: ExtensionUiModel.Installed,
+    summary: String,
+    sizeBytes: Long?,
     installStep: InstallStep,
     onClickUpdate: () -> Unit,
     onClickUninstall: () -> Unit,
@@ -149,7 +176,18 @@ private fun DetailsHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         InfoText(Modifier.weight(1f), extension.versionName, "Version")
-        // TODO add vertical divider and more infotext
+        InfoDivider()
+        InfoText(Modifier.weight(1f), summary, "Transactions")
+        InfoDivider()
+        InfoText(
+            modifier = Modifier.weight(1f),
+            // The platform's own formatter, so the units read the way every
+            // other size on the phone does.
+            primary = sizeBytes
+                ?.let { Formatter.formatShortFileSize(LocalContext.current, it) }
+                ?: "—",
+            secondary = "Size",
+        )
     }
 
     Row(
@@ -178,6 +216,11 @@ private fun DetailsHeader(
             }
         }
     }
+}
+
+@Composable
+private fun InfoDivider() {
+    VerticalDivider(modifier = Modifier.height(32.dp))
 }
 
 @Composable

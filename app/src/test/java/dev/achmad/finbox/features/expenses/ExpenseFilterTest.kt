@@ -29,6 +29,7 @@ class ExpenseFilterTest {
         amount = amount,
         currency = "IDR",
         type = type,
+        kind = null,
         category = null,
         description = description,
         merchant = null,

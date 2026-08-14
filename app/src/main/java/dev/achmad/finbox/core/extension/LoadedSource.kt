@@ -1,5 +1,6 @@
 package dev.achmad.finbox.core.extension
 
+import dev.achmad.finbox.extension.TransactionKind
 import dev.achmad.finbox.extension.TransactionSource
 import java.security.MessageDigest
 
@@ -10,10 +11,19 @@ import java.security.MessageDigest
  */
 class LoadedSource(
     val id: Long,
+    /**
+     * The APK's package. Unlike [id] this survives an update, which is what the
+     * user's per-kind switches are filed under.
+     */
+    val pkg: String,
     val provider: String,
     val name: String,
     source: TransactionSource,
-) : TransactionSource by source
+) : TransactionSource by source {
+
+    /** The kind with this key, or null — an extension may drop one in an update. */
+    fun kindOf(key: String?): TransactionKind? = kinds.firstOrNull { it.key == key }
+}
 
 /**
  * The id convention: first 8 bytes of `MD5("${name.lowercase()}/$versionCode")`

@@ -8,6 +8,7 @@ import dev.achmad.finbox.util.preference.PreferenceStore
 import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
+import dev.achmad.finbox.core.extension.ExtensionKindPreference
 import dev.achmad.finbox.core.extension.ExtensionLoader
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
@@ -70,12 +71,14 @@ val appModule = module {
             loader = get()
         )
     }
+    single<ExtensionKindPreference> { ExtensionKindPreference(preferenceStore = get()) }
     single<ExtensionManager> {
         ExtensionManager(
             loader = get(),
             installer = get(),
             index = get(),
-            repository = get()
+            repository = get(),
+            kindPreference = get()
         )
     }
     single<ExtensionUpdateChecker> {
@@ -93,7 +96,8 @@ val appModule = module {
             accountExtensionRepository = get(),
             emailRepository = get(),
             transactionRepository = get(),
-            gmailApi = get()
+            gmailApi = get(),
+            kindPreference = get()
         )
     }
 }

@@ -23,6 +23,12 @@ class EmailRepository(
         db.emailQueries.SELECTUnparsed().executeAsList().map { it.toModel() }
     }
 
+    /** Emails one of [sourceIds] claimed — what a change to that source re-reads. */
+    suspend fun parsedBy(sourceIds: Collection<Long>): List<Email> = withContext(Dispatchers.IO) {
+        if (sourceIds.isEmpty()) return@withContext emptyList()
+        db.emailQueries.SELECTBySource(sourceIds).executeAsList().map { it.toModel() }
+    }
+
     /**
      * Stores the emails that aren't here yet.
      *
@@ -44,6 +50,7 @@ class EmailRepository(
                     sender = email.from,
                     subject = email.subject,
                     date = email.date,
+                    body_html = email.bodyHtml,
                     tried_source_ids = email.triedSourceIds.joinToString(" "),
                     parsed_by_source_id = email.parsedBySourceId,
                     fetched_at = email.fetchedAt,
@@ -61,6 +68,7 @@ class EmailRepository(
             for (email in emails) {
                 db.emailQueries.SETParseState(
                     thread_id = email.threadId,
+                    body_html = email.bodyHtml,
                     tried_source_ids = email.triedSourceIds.joinToString(" "),
                     parsed_by_source_id = email.parsedBySourceId,
                     account_id = email.accountId,
@@ -82,6 +90,7 @@ class EmailRepository(
                     sender = email.from,
                     subject = email.subject,
                     date = email.date,
+                    body_html = email.bodyHtml,
                     tried_source_ids = email.triedSourceIds.joinToString(" "),
                     parsed_by_source_id = email.parsedBySourceId,
                     fetched_at = email.fetchedAt,
@@ -102,6 +111,7 @@ class EmailRepository(
         from = sender,
         subject = subject,
         date = date,
+        bodyHtml = body_html,
         triedSourceIds = tried_source_ids.split(" ").mapNotNull(String::toLongOrNull),
         parsedBySourceId = parsed_by_source_id,
         fetchedAt = fetched_at,

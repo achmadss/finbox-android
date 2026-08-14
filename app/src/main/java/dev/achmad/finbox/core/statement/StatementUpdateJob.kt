@@ -49,6 +49,7 @@ class StatementUpdateJob(
         extensionManager.reload()
 
         val parseOnly = inputData.getBoolean(PARSE_ONLY, false)
+        val reparseSourceIds = inputData.getLongArray(REPARSE_SOURCES)?.toSet().orEmpty()
         val needsForeground = parseOnly || updater.isImporting()
         // An import is minutes to hours of paced fetching; a plain worker is
         // stopped after ten. Both long paths run in the foreground so the system
@@ -67,10 +68,18 @@ class StatementUpdateJob(
                 runCatching { setForeground(foregroundInfo(importedSoFar)) }
             }
         }
-        val imported = if (parseOnly) {
-            updater.parseUnparsed(onProgress)
+        // Stored mail comes first, always. An extension installed or updated
+        // since the last run can read emails already sitting here, and reading
+        // them again costs nothing now that their bodies are stored — so there
+        // is no reason for a refresh to ask Gmail for new mail while old mail
+        // nothing could parse is still lying unparsed.
+        var imported = if (reparseSourceIds.isNotEmpty()) {
+            updater.reparseSource(reparseSourceIds, onProgress)
         } else {
-            updater.updateAll(onProgress).getOrThrow()
+            updater.parseUnparsed(onProgress)
+        }
+        if (!parseOnly) {
+            imported += updater.updateAll(onProgress).getOrThrow()
         }
         if (needsForeground) {
             notifier.showDone(imported)
@@ -119,6 +128,9 @@ class StatementUpdateJob(
         /** Skip the Gmail sync and only re-read stored mail. */
         private const val PARSE_ONLY = "parse_only"
 
+        /** Source ids whose already-claimed mail is to be read again. */
+        private const val REPARSE_SOURCES = "reparse_sources"
+
         /** Every path here talks to Gmail. */
         private val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -146,7 +158,21 @@ class StatementUpdateJob(
          */
         suspend fun reparseNow(context: Context) = enqueueOneTime(context, parseOnly = true)
 
-        private suspend fun enqueueOneTime(context: Context, parseOnly: Boolean) {
+        /**
+         * Re-reads the mail these sources already claimed, after one of their
+         * transaction kinds was switched back on. Those emails are parsed, so
+         * [reparseNow] would not look at them.
+         */
+        suspend fun reparseSourcesNow(context: Context, sourceIds: Set<Long>) {
+            if (sourceIds.isEmpty()) return
+            enqueueOneTime(context, parseOnly = true, sourceIds = sourceIds)
+        }
+
+        private suspend fun enqueueOneTime(
+            context: Context,
+            parseOnly: Boolean,
+            sourceIds: Set<Long> = emptySet(),
+        ) {
             requestMutex.withLock {
                 val workManager = WorkManager.getInstance(context)
                 if (hasOngoingWork(workManager)) {
@@ -161,8 +187,13 @@ class StatementUpdateJob(
                 val request = OneTimeWorkRequestBuilder<StatementUpdateJob>()
                     .setConstraints(constraints)
                     .apply {
-                        if (parseOnly) {
-                            setInputData(workDataOf(PARSE_ONLY to true))
+                        if (parseOnly || sourceIds.isNotEmpty()) {
+                            setInputData(
+                                workDataOf(
+                                    PARSE_ONLY to parseOnly,
+                                    REPARSE_SOURCES to sourceIds.toLongArray(),
+                                ),
+                            )
                         }
                     }
                     .build()

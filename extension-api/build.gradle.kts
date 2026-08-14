@@ -11,7 +11,7 @@ plugins {
 // `apiVersion` on every change, and keep it in step with the app's
 // FinboxConfig.LIB_VERSION — plus MIN_LIB_VERSION when the change breaks
 // already-published extensions, as removing a field does.
-val apiVersion = "1.4"
+val apiVersion = "1.5"
 
 // JitPack's coordinates for this repo, matched exactly so a locally published
 // build and a JitPack one are interchangeable. It collapses a repo with one
