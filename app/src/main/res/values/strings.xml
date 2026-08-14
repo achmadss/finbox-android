@@ -8,6 +8,12 @@
     <string name="statement_update_done">%1$d transactions imported</string>
     <string name="statement_update_ongoing">An update is already ongoing</string>
 
+    <string name="extension_update_channel">Extension updates</string>
+    <plurals name="extension_update_available">
+        <item quantity="one">%1$d extension update available</item>
+        <item quantity="other">%1$d extension updates available</item>
+    </plurals>
+
     <string name="onboarding_auth_title">From inbox to statements</string>
     <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them into statements. Your data stays on your phone.</string>
     <string name="onboarding_auth_sign_in">Sign in with Google</string>

@@ -56,6 +56,9 @@ class ExtensionLoader(
         // prefix carries it ("1.0.3" -> 1.0).
         val libVersion = meta.getFloat("finbox.extension.lib")
             .takeUnless { it == 0f }
+            // Via the string: widening the float straight to double reads 1.4 as
+            // 1.3999999761581421, which is what the extension info screen then shows.
+            ?.toString()
             ?.toDouble()
             ?: versionName.substringBeforeLast('.').toDoubleOrNull()
         if (libVersion == null || !FinboxConfig.supportsLibVersion(libVersion)) {

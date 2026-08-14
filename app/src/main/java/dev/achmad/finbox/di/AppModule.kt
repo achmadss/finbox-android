@@ -10,6 +10,7 @@ import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
 import dev.achmad.finbox.core.extension.ExtensionLoader
 import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
@@ -75,6 +76,13 @@ val appModule = module {
             installer = get(),
             index = get(),
             repository = get()
+        )
+    }
+    single<ExtensionUpdateChecker> {
+        ExtensionUpdateChecker(
+            context = androidContext(),
+            manager = get(),
+            preferenceStore = get()
         )
     }
     single<OnboardingPreference> { OnboardingPreference(preferenceStore = get()) }

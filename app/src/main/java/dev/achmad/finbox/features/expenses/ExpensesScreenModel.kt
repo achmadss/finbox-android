@@ -81,6 +81,9 @@ class ExpensesScreenModel(
     /** Parsers currently loaded — what a transaction's `sourceId` points at. */
     val sources: StateFlow<List<LoadedSource>> = extensionManager.sourcesFlow
 
+    /** Badge on the Extensions menu item. */
+    val extensionUpdates: StateFlow<Int> = extensionManager.updatesCount
+
     init {
         // The registry only fills on reload, and opening straight onto this screen means nothing
         // has done that yet — the filter sheet would offer no parsers. Idempotent and cheap.

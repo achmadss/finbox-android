@@ -5,16 +5,21 @@ import dev.achmad.data.repository.InstalledExtensionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /**
  * Orchestrates installed extensions:
@@ -45,11 +50,10 @@ class ExtensionManager(
     val installed: StateFlow<List<InstalledExtension>> = repository.extensions()
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val hasUpdates: StateFlow<Boolean> = combine(installed, available) { installed, available ->
-        installed.any { inst ->
-            available.any { it.pkg == inst.pkg && it.versionCode > inst.versionCode }
-        }
-    }.stateIn(scope, SharingStarted.Eagerly, false)
+    /** Drives the badge, and the notification's dismissal once it reaches zero. */
+    val updatesCount: StateFlow<Int> = combine(installed, available) { installed, available ->
+        installed.count { inst -> available.hasUpdateFor(inst) }
+    }.stateIn(scope, SharingStarted.Eagerly, 0)
 
     /** sourceId -> loaded LoadedSource for enabled extensions. */
     private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
@@ -65,15 +69,30 @@ class ExtensionManager(
         available.value = index.fetch()
     }
 
-    suspend fun install(extension: AvailableExtension) {
-        installer.install(extension).getOrThrow()
-        reload()
+    /**
+     * The install as a flow of steps, ending in [InstallStep.Installed] once the
+     * new APK is loaded and the registry has caught up.
+     *
+     * Dropping the collector cancels the install.
+     */
+    fun installExtension(extension: AvailableExtension): Flow<InstallStep> =
+        installer.downloadAndInstall(extension)
+            .onEach { if (it == InstallStep.Installed) reload() }
+
+    fun updateExtension(pkg: String): Flow<InstallStep> {
+        val extension = available.value.firstOrNull { it.pkg == pkg } ?: return emptyFlow()
+        return installExtension(extension)
     }
 
-    suspend fun updateAvailable(pkg: String) {
-        val extension = available.value.firstOrNull { it.pkg == pkg } ?: return
-        install(extension)
+    /** Pass or fail only, for callers with no row to report steps on. */
+    suspend fun install(extension: AvailableExtension) {
+        val last = installExtension(extension).last()
+        if (last != InstallStep.Installed) throw IOException("Install failed for ${extension.pkg}")
     }
+
+    /** Installed extensions the index has a newer build of. */
+    fun pendingUpdates(): List<InstalledExtension> =
+        installed.value.filter { available.value.hasUpdateFor(it) }
 
     suspend fun remove(pkg: String) {
         installer.remove(pkg)
@@ -107,28 +126,24 @@ class ExtensionManager(
         withContext(Dispatchers.IO) {
             for ((info, source) in infos) {
                 val existing = dbByPkg[info.pkg]
-                if (existing == null) {
-                    repository.upsert(
-                        InstalledExtension(
-                            pkg = info.pkg,
-                            provider = info.provider,
-                            name = info.name,
-                            file = loader.extsDir()
-                                .listFiles()
-                                ?.firstOrNull { it.extension == "apk" && it.name.startsWith("${info.pkg}-") }
-                                ?.absolutePath
-                                ?: "",
-                            versionCode = info.versionCode,
-                            versionName = info.versionName,
-                            libVersion = info.libVersion.toString(),
-                            sha256 = "",
-                            sourceIds = listOf(source.id),
-                            enabled = true,
-                        ),
-                    )
-                } else if (existing.sourceIds != listOf(source.id)) {
-                    repository.upsert(existing.copy(sourceIds = listOf(source.id)))
-                }
+                val row = InstalledExtension(
+                    pkg = info.pkg,
+                    provider = info.provider,
+                    name = info.name,
+                    file = loader.extsDir()
+                        .listFiles()
+                        ?.firstOrNull { it.extension == "apk" && it.name.startsWith("${info.pkg}-") }
+                        ?.absolutePath
+                        ?: "",
+                    versionCode = info.versionCode,
+                    versionName = info.versionName,
+                    libVersion = info.libVersion.toString(),
+                    sha256 = "",
+                    sourceIds = listOf(source.id),
+                    // The APK is the truth about everything except this.
+                    enabled = existing?.enabled != false,
+                )
+                if (row != existing) repository.upsert(row)
             }
             val loadedPkgs = infos.keys.map { it.pkg }.toSet()
             dbExtensions.filter { it.pkg !in loadedPkgs }.forEach { repository.delete(it.pkg) }
@@ -145,3 +160,7 @@ class ExtensionManager(
 
     fun getById(sourceId: Long): LoadedSource? = knownSources[sourceId]
 }
+
+/** The one rule for "there is an update": the index has a higher version code. */
+fun List<AvailableExtension>.hasUpdateFor(extension: InstalledExtension): Boolean =
+    any { it.pkg == extension.pkg && it.versionCode > extension.versionCode }

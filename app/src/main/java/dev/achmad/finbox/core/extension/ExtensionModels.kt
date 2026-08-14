@@ -1,5 +1,18 @@
 package dev.achmad.finbox.core.extension
 
+/** Where an install or update has got to, for the row it is running on. */
+enum class InstallStep {
+    Idle,
+    Pending,
+    Downloading,
+    Installing,
+    Installed,
+    Error,
+    ;
+
+    fun isCompleted(): Boolean = this == Installed || this == Error || this == Idle
+}
+
 sealed class LoadResult {
     data class Success(val extension: InstalledExtensionInfo, val source: LoadedSource) : LoadResult()
     data class Error(val file: String, val reason: String) : LoadResult()

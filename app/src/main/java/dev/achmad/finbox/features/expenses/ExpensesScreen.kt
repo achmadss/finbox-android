@@ -125,6 +125,7 @@ object ExpensesScreen : Screen {
         val filter by model.filter.collectAsState()
         val accounts by model.accounts.collectAsState()
         val sources by model.sources.collectAsState()
+        val extensionUpdates by model.extensionUpdates.collectAsState()
 
         ExpensesScreenContent(
             monthly = monthly,
@@ -135,6 +136,7 @@ object ExpensesScreen : Screen {
             filter = filter,
             accounts = accounts,
             sources = sources,
+            extensionUpdates = extensionUpdates,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
@@ -156,6 +158,8 @@ private fun ExpensesScreenContent(
     filter: ExpenseFilter,
     accounts: List<EmailAccount>,
     sources: List<LoadedSource>,
+    /** Extensions with a newer build in the repo index. */
+    extensionUpdates: Int = 0,
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,
     onFilterChange: (ExpenseFilter) -> Unit,
@@ -200,7 +204,7 @@ private fun ExpensesScreenContent(
                         iconTint = Color.Yellow.takeIf { filter.isActive },
                         onClick = { showFilterBottomSheet = true },
                     ),
-                    // TODO feed the badges real counts (unread accounts, extension updates)
+                    // TODO feed the accounts badge a real count (unread accounts)
                     AppBar.OverflowAction(
                         title = "Accounts",
                         icon = Icons.Outlined.AccountCircle,
@@ -209,6 +213,7 @@ private fun ExpensesScreenContent(
                     AppBar.OverflowAction(
                         title = "Extensions",
                         icon = Icons.Outlined.Extension,
+                        badge = extensionUpdates,
                         onClick = onOpenExtensions,
                     ),
                     AppBar.OverflowAction(

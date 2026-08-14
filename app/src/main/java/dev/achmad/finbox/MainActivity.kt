@@ -3,6 +3,7 @@ package dev.achmad.finbox
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
@@ -46,8 +47,11 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
+import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.statement.StatementUpdateStatus
 import dev.achmad.finbox.features.expenses.ExpensesScreen
+import dev.achmad.finbox.features.extensions.ExtensionsScreen
 import dev.achmad.finbox.features.onboarding.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
@@ -61,6 +65,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 class MainActivity : ComponentActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
+    private val extensionUpdateChecker: ExtensionUpdateChecker by injectLazy()
     private val statementUpdateStatus by lazy { StatementUpdateStatus(applicationContext) }
 
     private var isReady = false
@@ -132,6 +137,7 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                             HandleNewIntent(this@MainActivity, navigator)
+                            CheckExtensionUpdates()
                         }
                     }
                 }
@@ -147,9 +153,22 @@ class MainActivity : ComponentActivity() {
         isReady = true
     }
 
+    /** Throttled to a day inside the checker, so this costs nothing on most starts. */
+    @Composable
+    private fun CheckExtensionUpdates() {
+        LaunchedEffect(Unit) {
+            runCatching { extensionUpdateChecker.checkForUpdates() }
+                .onFailure { Log.e("Extensions", "Extension update check failed", it) }
+        }
+    }
+
     @Composable
     private fun HandleNewIntent(context: Context, navigator: Navigator) {
         LaunchedEffect(Unit) {
+            // MainActivity is launched standard, so a notification tap recreates it and
+            // the intent arrives here rather than through addOnNewIntentListener.
+            handleIntentAction(intent, navigator)
+
             callbackFlow {
                 val componentActivity = context as ComponentActivity
                 val consumer = Consumer<Intent> { trySend(it) }
@@ -160,7 +179,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntentAction(intent: Intent, navigator: Navigator) {
-        // Handle intent here
+        when (intent.action) {
+            // Onboarding has to finish before there is anywhere sensible to land.
+            ExtensionUpdateNotifier.ACTION_OPEN_EXTENSIONS -> {
+                if (navigator.lastItem is ExpensesScreen) navigator.push(ExtensionsScreen)
+            }
+        }
     }
 
     @Composable
