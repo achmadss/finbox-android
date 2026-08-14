@@ -264,10 +264,23 @@ private fun ExpensesScreenContent(
             Column(modifier = Modifier.fillMaxSize()) {
                 val page = months.indexOf(month).coerceAtLeast(0)
                 val pagerState = rememberPagerState(initialPage = page, pageCount = { months.size })
+                val latestMonths by rememberUpdatedState(months)
+                val latestMonth by rememberUpdatedState(month)
                 // Label from the pager, not from the selected month. currentPage flips halfway
                 // through a drag — under the fade — while the selection only catches up once the
                 // swipe settles, which would leave the old name showing as it lights back up.
-                val shownPage = pagerState.currentPage
+                //
+                // Kept as a month and only rewritten when the pager moves. An import inserting an
+                // older month shifts every index at once and the pager re-anchors to its key a
+                // pass later, so indexing the new list with the old index names the neighbouring
+                // month for a frame — the flicker in the steps.
+                var shown by remember { mutableStateOf(month) }
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.currentPage }.collect { current ->
+                        latestMonths.getOrNull(current)?.let { shown = it }
+                    }
+                }
+                val shownPage = months.indexOf(shown).takeIf { it >= 0 } ?: page
                 MonthSelector(
                     month = months.getOrNull(shownPage) ?: month,
                     latest = latest,
@@ -279,8 +292,6 @@ private fun ExpensesScreenContent(
                     onSelect = onMonthChange,
                     onPick = { showMonthPicker = true },
                 )
-                val latestMonths by rememberUpdatedState(months)
-                val latestMonth by rememberUpdatedState(month)
                 // Keyed on the pager alone. Re-collecting would replay the settled index as a month
                 // change, and while data loads that index keeps meaning a different month — which is
                 // what made the screen skip through months on startup.
@@ -707,6 +718,7 @@ private fun ExpensesScreenPreview() {
             accountId = "a",
             sourceId = 1L,
             emailMessageId = "m$id",
+            threadId = null,
             reference = null,
             date = at,
             amount = amount,
