@@ -13,7 +13,6 @@ import net.openid.appauth.AuthorizationResponse
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
-import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -39,6 +38,16 @@ interface GmailAuthManager {
     /** Called with the result of [authorizationIntent]. Returns the added account. */
     suspend fun handleCallback(data: Intent): EmailAccount
 }
+
+/**
+ * The id a mailbox always gets: its own address, lowercased.
+ *
+ * The address is the one thing about an account that survives it being removed and added back,
+ * and it is the prefix of every transaction id the account writes — so adding the same mailbox
+ * again lands on the mail and the transactions already stored under it. An id that could not be
+ * worked out a second time would import the whole mailbox again, beside what is already there.
+ */
+internal fun accountIdOf(email: String): String = email.trim().lowercase()
 
 /**
  * Coordinates the OAuth "add account" flow. Each launch shows Google's
@@ -68,25 +77,37 @@ class GmailAuthManagerImpl(
         val accessToken = exchange.accessToken.orEmpty()
         val refreshToken = exchange.refreshToken.orEmpty()
         val email = tokens.resolveEmail(accessToken)
+        val info = tokens.resolveUserInfo(accessToken)
 
         val now = System.currentTimeMillis()
-        val accountId = UUID.randomUUID().toString()
+        val accountId = accountIdOf(email)
+        // Keyed on the account id, which is what every read asks for. Saving under anything
+        // else leaves the account authorized with a token nothing looks up.
         store.save(accountId, accessToken, refreshToken)
 
-        val existing = accountRepository.accounts().first().firstOrNull { it.email == email }
+        val existing = accountRepository.accounts().first().firstOrNull { it.id == accountId }
         if (existing != null) {
-            accountRepository.upsert(existing.copy(authTokenRef = accountId, updatedAt = now))
-            existing.copy(authTokenRef = accountId, updatedAt = now)
+            // Authorizing again is how a renamed account or a changed picture catches up,
+            // so what came back wins over what is held.
+            val updated = existing.copy(
+                authTokenRef = accountId,
+                displayName = info.name ?: existing.displayName,
+                photoUrl = info.picture ?: existing.photoUrl,
+                updatedAt = now,
+            )
+            accountRepository.upsert(updated)
+            updated
         } else {
             val account = EmailAccount(
                 id = accountId,
                 email = email,
-                displayName = email,
+                displayName = info.name ?: email,
                 authTokenRef = accountId,
                 enabled = true,
                 createdAt = now,
                 updatedAt = now,
                 lastSyncAt = null,
+                photoUrl = info.picture,
             )
             accountRepository.upsert(account)
             account
