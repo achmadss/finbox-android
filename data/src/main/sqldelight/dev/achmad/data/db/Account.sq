@@ -14,7 +14,10 @@ CREATE TABLE email_account (
     -- historyId captured when the initial import began, promoted when it ends.
     import_cursor TEXT,
     -- How far back the initial import has got, epoch millis.
-    imported_back_to INTEGER
+    imported_back_to INTEGER,
+    -- Google profile picture, as the userinfo endpoint gave it at sign-in.
+    -- NULL for an owner who has none.
+    photo_url TEXT
 );
 
 SELECTAllAccounts:
@@ -24,8 +27,8 @@ SELECTById:
 SELECT * FROM email_account WHERE id = :id;
 
 INSERTAccount:
-INSERT OR IGNORE INTO email_account(id, email, display_name, auth_token_ref, enabled, created_at, updated_at, last_sync_at, last_history_id, sync_query, import_cursor, imported_back_to)
-VALUES (:id, :email, :display_name, :auth_token_ref, :enabled, :created_at, :updated_at, :last_sync_at, :last_history_id, :sync_query, :import_cursor, :imported_back_to);
+INSERT OR IGNORE INTO email_account(id, email, display_name, auth_token_ref, enabled, created_at, updated_at, last_sync_at, last_history_id, sync_query, import_cursor, imported_back_to, photo_url)
+VALUES (:id, :email, :display_name, :auth_token_ref, :enabled, :created_at, :updated_at, :last_sync_at, :last_history_id, :sync_query, :import_cursor, :imported_back_to, :photo_url);
 
 UPDATEAccount:
 UPDATE email_account SET
@@ -38,7 +41,8 @@ UPDATE email_account SET
     last_history_id = :last_history_id,
     sync_query = :sync_query,
     import_cursor = :import_cursor,
-    imported_back_to = :imported_back_to
+    imported_back_to = :imported_back_to,
+    photo_url = :photo_url
 WHERE id = :id;
 
 DELETEAccount:

@@ -19,11 +19,19 @@ object FinboxConfig {
     const val OAUTH_AUTHORIZE_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
     const val OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 
-    /** Gmail API access scopes. */
-    const val GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+    /**
+     * What the consent screen asks for: the mail itself, and the name and
+     * picture shown against the account. `profile` is non-sensitive — it adds a
+     * line to the consent screen, not a verification review, which the
+     * restricted Gmail scope already requires.
+     */
+    const val GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly openid profile"
 
     /** Gmail API base. */
     const val GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
+
+    /** Name and picture of whoever just signed in. Needs `profile` above. */
+    const val USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     /**
      * The parser API this app ships. An extension declares the one it was built

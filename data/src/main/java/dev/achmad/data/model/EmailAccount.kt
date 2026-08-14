@@ -28,4 +28,10 @@ data class EmailAccount(
      * the window newest first, so this only moves down.
      */
     val importedBackTo: Long? = null,
+    /**
+     * Google profile picture, as the userinfo endpoint gave it at sign-in. Null
+     * for an account added before the app asked for the `profile` scope, and for
+     * one whose owner has no picture.
+     */
+    val photoUrl: String? = null,
 )

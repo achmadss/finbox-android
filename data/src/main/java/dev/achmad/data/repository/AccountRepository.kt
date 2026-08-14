@@ -42,6 +42,7 @@ class AccountRepository(
             sync_query = account.syncQuery,
             import_cursor = account.importCursor,
             imported_back_to = account.importedBackTo,
+            photo_url = account.photoUrl,
         )
         db.accountQueries.UPDATEAccount(
             email = account.email,
@@ -54,6 +55,7 @@ class AccountRepository(
             sync_query = account.syncQuery,
             import_cursor = account.importCursor,
             imported_back_to = account.importedBackTo,
+            photo_url = account.photoUrl,
             id = account.id,
         )
         Unit
@@ -77,6 +79,7 @@ class AccountRepository(
                     sync_query = account.syncQuery,
                     import_cursor = account.importCursor,
                     imported_back_to = account.importedBackTo,
+                    photo_url = account.photoUrl,
                 )
             }
         }
@@ -129,5 +132,6 @@ class AccountRepository(
         syncQuery = sync_query,
         importCursor = import_cursor,
         importedBackTo = imported_back_to,
+        photoUrl = photo_url,
     )
 }

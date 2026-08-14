@@ -9,6 +9,13 @@ data class ProfileResponse(
     @SerialName("historyId") val historyId: String = "",
 )
 
+/** OpenID userinfo. Both fields are absent for an account that set neither. */
+@Serializable
+data class UserInfoResponse(
+    @SerialName("name") val name: String? = null,
+    @SerialName("picture") val picture: String? = null,
+)
+
 @Serializable
 data class HistoryResponse(
     @SerialName("history") val history: List<HistoryRecord> = emptyList(),

@@ -20,6 +20,7 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import dev.achmad.finbox.core.gmail.model.TokenResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
+import dev.achmad.finbox.core.gmail.model.UserInfoResponse
 
 /**
  * Per-account OAuth tokens, stored in Keystore-backed encrypted prefs.
@@ -89,9 +90,9 @@ class GmailTokenManager(
     /**
      * Resolves the email of the account just authorized (also the dedup key).
      *
-     * Read from Gmail's own profile rather than OpenID userinfo: that endpoint
-     * needs `openid email` on top, and one read-only Gmail scope is the whole
-     * point of the consent screen.
+     * Read from Gmail's own profile rather than OpenID userinfo: it names the
+     * mailbox this account will actually read, which is the thing being
+     * identified, and it fails loudly when the Gmail scope is the one missing.
      */
     suspend fun resolveEmail(accessToken: String): String {
         // Deliberately not swallowed: this is the first authorized call an
@@ -108,6 +109,21 @@ class GmailTokenManager(
         return json.decodeFromString<ProfileResponse>(body).emailAddress
             .ifEmpty { error("Gmail returned a profile with no email address") }
     }
+
+    /**
+     * Name and picture of the account just authorized, or nulls.
+     *
+     * Swallowed, unlike [resolveEmail]: sign-in works without either, and an
+     * account that cannot be named is still an account that can be read.
+     */
+    suspend fun resolveUserInfo(accessToken: String): UserInfoResponse =
+        runCatching {
+            client.get(
+                url = FinboxConfig.USERINFO_ENDPOINT,
+                headers = Headers.headersOf("Authorization", "Bearer $accessToken"),
+                cacheControl = null,
+            ).parseAs<UserInfoResponse>()
+        }.getOrElse { UserInfoResponse() }
 }
 
 object GmailOAuth {
