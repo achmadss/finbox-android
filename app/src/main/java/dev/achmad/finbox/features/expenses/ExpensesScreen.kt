@@ -169,6 +169,18 @@ private fun ExpensesScreenContent(
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
 
+    // Keyed on the kind alone, not on the source it was parsed by: a source id carries the
+    // extension's version, so rows written by an older build would otherwise lose their name.
+    // ponytail: two extensions declaring the same key show one name — per-source if that lands.
+    // Empty until the registry loads, and empty for a kind an extension dropped, so the rows
+    // fall through to the description as before.
+    val kindNames = remember(sources) {
+        sources.flatMap { it.kinds }.associate { it.key to it.name }
+    }
+    // By id here, because that is all a transaction stores. A row parsed by an earlier build of
+    // an extension is filed under that build's source id and so goes unnamed, same as the filter.
+    val sourceNames = remember(sources) { sources.associate { it.id to it.name } }
+
     if (showMonthPicker) {
         MonthYearPickerDialog(
             selected = month,
@@ -339,6 +351,8 @@ private fun ExpensesScreenContent(
                         filtered = filter.isActive,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == ExpenseSort.DATE,
+                        kindNames = kindNames,
+                        sourceNames = sourceNames,
                     )
                 }
             }
@@ -347,7 +361,13 @@ private fun ExpensesScreenContent(
 }
 
 @Composable
-private fun MonthPage(transactions: List<Transaction>, filtered: Boolean, grouped: Boolean) {
+private fun MonthPage(
+    transactions: List<Transaction>,
+    filtered: Boolean,
+    grouped: Boolean,
+    kindNames: Map<String, String>,
+    sourceNames: Map<Long, String>,
+) {
     val spent = remember(transactions) {
         transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount ?: 0L }
     }
@@ -365,8 +385,8 @@ private fun MonthPage(transactions: List<Transaction>, filtered: Boolean, groupe
         HorizontalDivider()
         when {
             transactions.isEmpty() -> EmptyExpenses(filtered = filtered)
-            grouped -> TransactionList(transactions)
-            else -> FlatTransactionList(transactions)
+            grouped -> TransactionList(transactions, kindNames, sourceNames)
+            else -> FlatTransactionList(transactions, kindNames, sourceNames)
         }
     }
 }
@@ -559,7 +579,11 @@ private fun MonthYearPickerDialog(
 }
 
 @Composable
-private fun TransactionList(transactions: List<Transaction>) {
+private fun TransactionList(
+    transactions: List<Transaction>,
+    kindNames: Map<String, String>,
+    sourceNames: Map<Long, String>,
+) {
     // groupBy keeps encounter order, so the model's sort survives the grouping.
     val days = remember(transactions) { transactions.groupBy { toLocalDate(it.timestamp) } }
     val listState = rememberLazyListState()
@@ -592,7 +616,9 @@ private fun TransactionList(transactions: List<Transaction>) {
                             .background(MaterialTheme.colorScheme.inverseOnSurface),
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
-                            TransactionRow(transaction)
+                            val kind = kindNames[transaction.kind]
+                            val source = sourceNames[transaction.sourceId] ?: "Unknown"
+                            TransactionRow(transaction, kind, source)
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
                             }
@@ -606,7 +632,11 @@ private fun TransactionList(transactions: List<Transaction>) {
 
 /** Sorted by something other than date, so the day goes on each row instead of a header. */
 @Composable
-private fun FlatTransactionList(transactions: List<Transaction>) {
+private fun FlatTransactionList(
+    transactions: List<Transaction>,
+    kindNames: Map<String, String>,
+    sourceNames: Map<Long, String>,
+) {
     val listState = rememberLazyListState()
     VerticalFastScroller(
         listState = listState,
@@ -621,7 +651,9 @@ private fun FlatTransactionList(transactions: List<Transaction>) {
         ) {
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
-                    TransactionRow(transaction, showDay = true)
+                    val kind = kindNames[transaction.kind]
+                    val source = sourceNames[transaction.sourceId] ?: "Unknown"
+                    TransactionRow(transaction, kind, source, showDay = true)
                     if (index != transactions.lastIndex) {
                         HorizontalDivider()
                     }
@@ -632,7 +664,12 @@ private fun FlatTransactionList(transactions: List<Transaction>) {
 }
 
 @Composable
-private fun TransactionRow(transaction: Transaction, showDay: Boolean = false) {
+private fun TransactionRow(
+    transaction: Transaction,
+    kind: String?,
+    source: String,
+    showDay: Boolean = false,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -641,22 +678,24 @@ private fun TransactionRow(transaction: Transaction, showDay: Boolean = false) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = transaction.description
+                // The extension's own word for it — "QRIS Payment", not the `QRIS` key stored
+                // with the row.
+                text = kind
+                    ?: transaction.description
                     ?: transaction.merchant
                     ?: transaction.reference
                     ?: "Unknown",
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = transaction.type?.label ?: "Unknown",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            val subtitle = buildList {
+                add(source)
             }
+            Text(
+                text = subtitle.joinToString(" • "),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(horizontalAlignment = Alignment.End) {
