@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The artwork carries its own colour, so the layer under it stays out of the way. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>
