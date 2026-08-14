@@ -10,7 +10,6 @@ import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
-import dev.achmad.finbox.core.gmail.buildWindowQuery
 import dev.achmad.finbox.core.gmail.combineSourceQueries
 import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.extension.EmailMessage
@@ -202,9 +201,11 @@ class StatementUpdater(
             currentCoroutineContext().ensureActive()
             val lower = maxOf(floor, upper - slice)
 
-            val refs = gmailApi.listAllMessages(
+            val refs = gmailApi.listMessages(
                 account.id,
-                buildWindowQuery(after = lower, before = upper, narrow = narrow),
+                after = lower,
+                before = upper,
+                narrow = narrow,
                 maxMessages = SLICE_CAP,
             )
             // A slice at the cap may have been truncated, and Gmail returns the
@@ -283,9 +284,10 @@ class StatementUpdater(
         // pages of old mail costs 5 units each.
         val since = account.lastSyncAt?.minus(DAY_MILLIS)
         val allowed = try {
-            gmailApi.listAllMessages(
+            gmailApi.listMessages(
                 account.id,
-                buildWindowQuery(after = since, narrow = syncQuery),
+                after = since,
+                narrow = syncQuery,
                 maxMessages = NARROW_CAP,
             )
         } catch (e: Exception) {

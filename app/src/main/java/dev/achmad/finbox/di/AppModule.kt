@@ -11,7 +11,9 @@ import dev.achmad.finbox.core.extension.ExtensionInstaller
 import dev.achmad.finbox.core.extension.ExtensionLoader
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.gmail.GmailApi
+import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
+import dev.achmad.finbox.core.gmail.GmailAuthManagerImpl
 import dev.achmad.finbox.core.gmail.GmailTokenManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import dev.achmad.finbox.core.statement.StatementUpdater
@@ -46,13 +48,13 @@ val appModule = module {
         )
     }
     single<GmailApi> {
-        GmailApi(
+        GmailApiImpl(
             client = get(),
             tokens = get()
         )
     }
     single<GmailAuthManager> {
-        GmailAuthManager(
+        GmailAuthManagerImpl(
             context = androidContext(),
             store = get(),
             tokens = get(),

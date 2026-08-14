@@ -18,32 +18,46 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * Coordinates the OAuth "add account" flow. Each launch shows Google's
- * account picker, so multiple accounts can be added with a single OAuth
- * client id; each account gets its own token pair.
+ * Adding an account: an intent a screen launches for result, and the account
+ * that comes back out of the result.
+ *
+ * An interface for the same reason [GmailApi] is one — a debug build stands in
+ * a fake so testing needs no Google account. See `di/GmailModule.kt`.
  */
-class GmailAuthManager(
-    private val context: Context,
-    private val store: GmailTokenStore,
-    private val tokens: GmailTokenManager,
-    private val accountRepository: AccountRepository,
-) {
-
-    private val service = AuthorizationService(context)
+interface GmailAuthManager {
 
     /**
-     * The browser-based authorization flow (account picker), for a screen to
-     * launch for result.
+     * The authorization flow (account picker), for a screen to launch for
+     * result.
      *
      * Returned rather than started here: AppAuth reports back through
      * `setResult`, so it has to be started from an Activity, and this manager
      * only holds the application context.
      */
-    fun authorizationIntent(): Intent =
-        service.getAuthorizationRequestIntent(GmailOAuth.authorizationRequest())
+    fun authorizationIntent(): Intent
 
     /** Called with the result of [authorizationIntent]. Returns the added account. */
-    suspend fun handleCallback(data: Intent): EmailAccount = withContext(Dispatchers.IO) {
+    suspend fun handleCallback(data: Intent): EmailAccount
+}
+
+/**
+ * Coordinates the OAuth "add account" flow. Each launch shows Google's
+ * account picker, so multiple accounts can be added with a single OAuth
+ * client id; each account gets its own token pair.
+ */
+class GmailAuthManagerImpl(
+    private val context: Context,
+    private val store: GmailTokenStore,
+    private val tokens: GmailTokenManager,
+    private val accountRepository: AccountRepository,
+) : GmailAuthManager {
+
+    private val service = AuthorizationService(context)
+
+    override fun authorizationIntent(): Intent =
+        service.getAuthorizationRequestIntent(GmailOAuth.authorizationRequest())
+
+    override suspend fun handleCallback(data: Intent): EmailAccount = withContext(Dispatchers.IO) {
         val response = AuthorizationResponse.fromIntent(data)
         val error = AuthorizationException.fromIntent(data)
         if (response == null) throw error ?: IllegalStateException("No auth response")
