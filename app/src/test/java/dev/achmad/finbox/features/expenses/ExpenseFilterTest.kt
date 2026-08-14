@@ -23,6 +23,7 @@ class ExpenseFilterTest {
         accountId = accountId,
         sourceId = sourceId,
         emailMessageId = "m$id",
+        threadId = null,
         reference = null,
         date = date,
         amount = amount,

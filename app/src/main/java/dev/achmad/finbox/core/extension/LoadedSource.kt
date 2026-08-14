@@ -10,6 +10,7 @@ import java.security.MessageDigest
  */
 class LoadedSource(
     val id: Long,
+    val provider: String,
     val name: String,
     source: TransactionSource,
 ) : TransactionSource by source

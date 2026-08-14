@@ -42,15 +42,30 @@ class TransactionRepository(
         db.transactionQueries.SELECTById(id).executeAsOneOrNull()?.toModel()
     }
 
+    suspend fun threadIds(accountId: String): Set<String> = withContext(Dispatchers.IO) {
+        db.transactionQueries.SELECTThreadIds(accountId)
+            .executeAsList()
+            .filterNotNull()
+            .toSet()
+    }
+
     /**
-     * Writes parsed transactions, replacing any row with the same id.
+     * Writes parsed transactions, updating parser-owned fields for an existing id.
      *
-     * Ids are derived from the email and parser they came from, so parsing the
-     * same email twice overwrites instead of duplicating.
+     * Ids are derived from a provider reference, thread, or email fallback, so
+     * duplicate messages keep the first row without resetting user-owned fields;
+     * a reparse of the same message may refresh parser-owned fields.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
-            transactions.forEach { insert(it) }
+            transactions.forEach { transaction ->
+                val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
+                if (existing == null) {
+                    insert(transaction)
+                } else if (existing.email_message_id == transaction.emailMessageId) {
+                    updateParsed(transaction)
+                }
+            }
         }
     }
 
@@ -87,6 +102,7 @@ class TransactionRepository(
         account_id = transaction.accountId,
         source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
+        thread_id = transaction.threadId,
         reference = transaction.reference,
         date = transaction.date,
         amount = transaction.amount,
@@ -100,11 +116,27 @@ class TransactionRepository(
         deleted = if (transaction.deleted) 1L else 0L,
     )
 
+    private fun updateParsed(transaction: Transaction) = db.transactionQueries.UPDATEParsedById(
+        source_id = transaction.sourceId,
+        email_message_id = transaction.emailMessageId,
+        thread_id = transaction.threadId,
+        reference = transaction.reference,
+        date = transaction.date,
+        amount = transaction.amount,
+        currency = transaction.currency,
+        type = transaction.type?.name,
+        description = transaction.description,
+        merchant = transaction.merchant,
+        updated_at = transaction.updatedAt,
+        id = transaction.id,
+    )
+
     private fun Transactions.toModel() = Transaction(
         id = id,
         accountId = account_id,
         sourceId = source_id,
         emailMessageId = email_message_id,
+        threadId = thread_id,
         reference = reference,
         date = date,
         amount = amount,

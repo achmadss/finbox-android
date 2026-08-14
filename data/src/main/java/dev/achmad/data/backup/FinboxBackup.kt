@@ -74,6 +74,7 @@ data class BackupExtension(
 data class BackupEmail(
     val messageId: String,
     val accountId: String,
+    val threadId: String? = null,
     val from: String = "",
     val subject: String = "",
     val date: Long = 0L,
@@ -88,6 +89,7 @@ data class BackupTransaction(
     val accountId: String,
     val sourceId: Long,
     val emailMessageId: String,
+    val threadId: String? = null,
     val reference: String? = null,
     val date: Long? = null,
     val amount: Long? = null,
@@ -188,16 +190,46 @@ private fun BackupExtension.toModel() = InstalledExtension(
 )
 
 private fun Email.toBackup() = BackupEmail(
-    messageId, accountId, from, subject, date, triedSourceIds, parsedBySourceId, fetchedAt,
+    messageId = messageId,
+    threadId = threadId,
+    accountId = accountId,
+    from = from,
+    subject = subject,
+    date = date,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
+    fetchedAt = fetchedAt,
 )
 
 private fun BackupEmail.toModel() = Email(
-    messageId, accountId, from, subject, date, triedSourceIds, parsedBySourceId, fetchedAt,
+    messageId = messageId,
+    threadId = threadId,
+    accountId = accountId,
+    from = from,
+    subject = subject,
+    date = date,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
+    fetchedAt = fetchedAt,
 )
 
 private fun Transaction.toBackup() = BackupTransaction(
-    id, accountId, sourceId, emailMessageId, reference, date, amount, currency,
-    type?.name, category, description, merchant, createdAt, updatedAt, deleted,
+    id = id,
+    accountId = accountId,
+    sourceId = sourceId,
+    emailMessageId = emailMessageId,
+    threadId = threadId,
+    reference = reference,
+    date = date,
+    amount = amount,
+    currency = currency,
+    type = type?.name,
+    category = category,
+    description = description,
+    merchant = merchant,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deleted = deleted,
 )
 
 private fun BackupTransaction.toModel() = Transaction(
@@ -205,6 +237,7 @@ private fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
     sourceId = sourceId,
     emailMessageId = emailMessageId,
+    threadId = threadId,
     reference = reference,
     date = date,
     amount = amount,

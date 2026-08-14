@@ -75,8 +75,6 @@ dependencies {
     implementation(libs.material.icons)
     implementation(libs.material.motion.compose.core)
     implementation(libs.coil.compose)
-    // Coil 3 ships no network fetcher in coil-compose; without this every
-    // remote image silently resolves to nothing.
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.voyager.navigator)

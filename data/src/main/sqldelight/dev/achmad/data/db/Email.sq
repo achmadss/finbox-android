@@ -1,6 +1,8 @@
 CREATE TABLE email (
     -- Gmail's message id; unique per account.
     message_id TEXT NOT NULL,
+    -- Gmail's conversation id; NULL when Gmail did not return one.
+    thread_id TEXT,
     account_id TEXT NOT NULL,
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
@@ -28,15 +30,15 @@ SELECTUnparsed:
 SELECT * FROM email WHERE parsed_by_source_id IS NULL;
 
 INSERTOrIgnore:
-INSERT OR IGNORE INTO email(message_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
-VALUES (:message_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
+INSERT OR IGNORE INTO email(message_id, thread_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
 
 INSERTOrReplace:
-INSERT OR REPLACE INTO email(message_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
-VALUES (:message_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
+INSERT OR REPLACE INTO email(message_id, thread_id, account_id, sender, subject, date, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :tried_source_ids, :parsed_by_source_id, :fetched_at);
 
 SETParseState:
-UPDATE email SET tried_source_ids = :tried_source_ids, parsed_by_source_id = :parsed_by_source_id
+UPDATE email SET thread_id = :thread_id, tried_source_ids = :tried_source_ids, parsed_by_source_id = :parsed_by_source_id
 WHERE account_id = :account_id AND message_id = :message_id;
 
 DELETEForAccount:

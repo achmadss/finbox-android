@@ -39,6 +39,7 @@ class EmailRepository(
             for (email in emails) {
                 db.emailQueries.INSERTOrIgnore(
                     message_id = email.messageId,
+                    thread_id = email.threadId,
                     account_id = email.accountId,
                     sender = email.from,
                     subject = email.subject,
@@ -59,6 +60,7 @@ class EmailRepository(
         db.transaction {
             for (email in emails) {
                 db.emailQueries.SETParseState(
+                    thread_id = email.threadId,
                     tried_source_ids = email.triedSourceIds.joinToString(" "),
                     parsed_by_source_id = email.parsedBySourceId,
                     account_id = email.accountId,
@@ -75,6 +77,7 @@ class EmailRepository(
             for (email in emails) {
                 db.emailQueries.INSERTOrReplace(
                     message_id = email.messageId,
+                    thread_id = email.threadId,
                     account_id = email.accountId,
                     sender = email.from,
                     subject = email.subject,
@@ -94,6 +97,7 @@ class EmailRepository(
 
     private fun EmailRow.toModel() = Email(
         messageId = message_id,
+        threadId = thread_id,
         accountId = account_id,
         from = sender,
         subject = subject,

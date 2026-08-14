@@ -39,14 +39,14 @@ class CsvExport(private val transactions: TransactionRepository) {
     }
 
     private fun Transaction.fields() = listOf(
-        id, accountId, sourceId.toString(), emailMessageId, reference,
+        id, accountId, sourceId.toString(), emailMessageId, threadId, reference,
         date?.toString(), amount?.toString(), currency, type?.name, category,
         description, merchant, createdAt.toString(), updatedAt.toString(),
     )
 
     private companion object {
         val HEADER = listOf(
-            "id", "account_id", "source_id", "email_message_id", "reference",
+            "id", "account_id", "source_id", "email_message_id", "thread_id", "reference",
             "date", "amount", "currency", "type", "category", "description",
             "merchant", "created_at", "updated_at",
         )

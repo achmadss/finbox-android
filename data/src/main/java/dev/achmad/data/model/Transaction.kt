@@ -18,6 +18,8 @@ data class Transaction(
     val sourceId: Long,
     /** Gmail's message id of the email this was parsed from. */
     val emailMessageId: String,
+    /** Gmail's conversation id, used to collapse duplicate messages in a thread. */
+    val threadId: String?,
     val reference: String?,
     val date: Long?,
     val amount: Long?,

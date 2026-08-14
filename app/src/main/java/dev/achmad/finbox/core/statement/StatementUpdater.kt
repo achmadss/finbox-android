@@ -11,6 +11,7 @@ import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineSourceQueries
+import dev.achmad.finbox.core.gmail.model.MessageRef
 import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.extension.EmailMessage
 import java.util.concurrent.ConcurrentHashMap
@@ -30,9 +31,9 @@ import kotlinx.coroutines.withContext
 /**
  * Keeps the statement — the ledger of transactions — up to date from Gmail.
  *
- * An update runs in two halves. Fetching stores what identifies each email;
- * parsing hands the ones no parser has claimed to the installed sources, and
- * the first that claims an email turns it into transactions. The two are
+ * An update runs in two halves. Fetching stores what identifies each selected
+ * email; parsing hands the ones no parser has claimed to the installed sources,
+ * and the first that claims an email turns it into transactions. The two are
  * separate because parsers come and go: an email remembers which sources have
  * already seen it, so installing a parser re-reads the mail it hasn't tried
  * and nothing else.
@@ -218,7 +219,7 @@ class StatementUpdater(
 
             parsed += ingest(
                 account,
-                refs.map { it.id },
+                refs,
                 lower,
                 upper,
                 onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
@@ -240,7 +241,7 @@ class StatementUpdater(
         cursor: String,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
-        val changed = LinkedHashSet<String>()
+        val changed = linkedMapOf<String, MessageRef>()
         var newestHistoryId: String? = null
         var pageToken: String? = null
         do {
@@ -248,8 +249,8 @@ class StatementUpdater(
             for (record in page.history) {
                 // A message can appear in several records — added, then labelled.
                 // The set keeps it at one fetch.
-                record.messagesAdded.forEach { changed.add(it.message.id) }
-                record.messages.forEach { changed.add(it.id) }
+                record.messagesAdded.forEach { changed.putIfAbsent(it.message.id, it.message) }
+                record.messages.forEach { changed.putIfAbsent(it.id, it) }
             }
             newestHistoryId = page.historyId ?: newestHistoryId
             pageToken = page.nextPageToken
@@ -258,9 +259,11 @@ class StatementUpdater(
         // Deletions are deliberately not requested: removing the email is inbox
         // cleanup, it does not un-spend the money, so the transaction stays.
 
+        // History records are chronological; reverse them so the same
+        // newest-first representative rule applies to refreshes as imports.
         val parsed = ingest(
             account,
-            narrow(account, changed.toList()),
+            narrow(account, changed.values.toList()).asReversed(),
             after = null,
             before = null,
             onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
@@ -276,7 +279,7 @@ class StatementUpdater(
      * costs a 20-unit fetch. One `messages.list` covers up to 500 ids for 5, so
      * as soon as it excludes a single message it has paid for itself.
      */
-    private suspend fun narrow(account: EmailAccount, candidates: List<String>): List<String> {
+    private suspend fun narrow(account: EmailAccount, candidates: List<MessageRef>): List<MessageRef> {
         val syncQuery = narrowFor(account)?.takeIf { it.isNotBlank() } ?: return candidates
         if (candidates.isEmpty()) return candidates
 
@@ -299,19 +302,20 @@ class StatementUpdater(
         if (allowed.size >= NARROW_CAP) return candidates
 
         val ids = allowed.mapTo(HashSet()) { it.id }
-        return candidates.filter { it in ids }
+        return candidates.filter { it.id in ids }
     }
 
     /**
-     * Downloads, parses and writes [messageIds] a batch at a time, keeping only
-     * one batch of bodies in memory.
+     * Downloads, parses and writes one newest message per Gmail thread at a time.
      *
      * A message already stored and already seen by every installed source costs
-     * nothing — it is skipped before it is downloaded.
+     * nothing — it is skipped before it is downloaded. A new message in a thread
+     * that already has a transaction is skipped even when its own message id is
+     * new, so duplicate notifications do not pay for another body fetch.
      */
     private suspend fun ingest(
         account: EmailAccount,
-        messageIds: List<String>,
+        messageRefs: List<MessageRef>,
         after: Long?,
         before: Long?,
         onBatchParsed: suspend (Int) -> Unit = {},
@@ -319,26 +323,30 @@ class StatementUpdater(
         val sources = sourcesFor(account)
         val stored = emailRepository.forAccount(account.id).associateBy { it.messageId }
 
-        val todo = messageIds.filter { id ->
-            val email = stored[id] ?: return@filter true
+        val todo = messageRefs.filter { ref ->
+            val email = stored[ref.id] ?: return@filter true
             !email.parsed && sources.any { it.id !in email.triedSourceIds }
         }
-        if (todo.isEmpty()) return Counts(0)
+        val representatives = selectNewestPerThread(
+            refs = todo,
+            existingThreadIds = transactionRepository.threadIds(account.id),
+        )
+        if (representatives.isEmpty()) return Counts(0)
 
         var parsed = 0
         // Gmail is rate limited, so a batch downloads a few at a time.
         val gate = Semaphore(MAX_PARALLEL_FETCHES)
-        for (batch in todo.chunked(BATCH_SIZE)) {
+        for (batch in representatives.chunked(BATCH_SIZE)) {
             currentCoroutineContext().ensureActive()
 
             val downloaded = withContext(Dispatchers.IO) {
                 coroutineScope {
-                    batch.map { messageId ->
+                    batch.map { ref ->
                         async {
                             gate.withPermit {
-                                runCatching { gmailApi.getEmail(account.id, messageId) }
+                                runCatching { gmailApi.getEmail(account.id, ref.id) }
                                     .getOrNull()
-                                    ?.let { messageId to it }
+                                    ?.let { ref to it }
                             }
                         }
                     }.awaitAll().filterNotNull()
@@ -353,21 +361,27 @@ class StatementUpdater(
 
             val results = withContext(Dispatchers.Default) {
                 coroutineScope {
-                    inWindow.map { (messageId, message) ->
+                    inWindow.map { (ref, message) ->
                         async {
-                            val email = stored[messageId] ?: Email(
-                                // Gmail's own id, not the RFC Message-ID header:
-                                // this is what history.list reports, so it is
-                                // what dedup has to key on.
-                                messageId = messageId,
-                                accountId = account.id,
-                                from = message.from,
-                                subject = message.subject,
-                                date = message.date,
-                                triedSourceIds = emptyList(),
-                                parsedBySourceId = null,
-                                fetchedAt = System.currentTimeMillis(),
-                            )
+                            val storedEmail = stored[ref.id]
+                            val threadId = message.threadId.normalizedThreadId()
+                                ?: ref.threadId.normalizedThreadId()
+                                ?: storedEmail?.threadId.normalizedThreadId()
+                            val email = storedEmail?.copy(threadId = threadId)
+                                ?: Email(
+                                    // Gmail's own id, not the RFC Message-ID header:
+                                    // this is what history.list reports, so it is
+                                    // what dedup has to key on.
+                                    messageId = ref.id,
+                                    threadId = threadId,
+                                    accountId = account.id,
+                                    from = message.from,
+                                    subject = message.subject,
+                                    date = message.date,
+                                    triedSourceIds = emptyList(),
+                                    parsedBySourceId = null,
+                                    fetchedAt = System.currentTimeMillis(),
+                                )
                             parse(email, message, sources)
                         }
                     }.awaitAll()
@@ -375,8 +389,9 @@ class StatementUpdater(
             }
 
             val transactions = results.flatMap { it.transactions }
-            // Transactions first: an id derives from its email and parser, so a
-            // re-run after a crash here overwrites rather than duplicates.
+                .distinctBy { it.id }
+            // Transactions first: an id derives from a provider reference, thread,
+            // or email fallback, so a re-run overwrites rather than duplicates.
             transactionRepository.upsertAll(transactions)
             val emails = results.map { it.email }
             emailRepository.insertNew(emails.filter { it.messageId !in stored })
@@ -405,12 +420,18 @@ class StatementUpdater(
         for ((accountId, emails) in emailRepository.unparsed().groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
             val sources = sourcesFor(account)
-            val pending = emails.filter { email -> sources.any { it.id !in email.triedSourceIds } }
+            val existingThreads = transactionRepository.threadIds(accountId)
+            val pending = emails.filter { email ->
+                val threadId = email.threadId.normalizedThreadId()
+                (threadId == null || threadId !in existingThreads) &&
+                    sources.any { it.id !in email.triedSourceIds }
+            }
             if (pending.isEmpty()) continue
             parsed += lockFor(accountId).withLock {
                 ingest(
                     account,
-                    pending.map { it.messageId },
+                    pending.sortedByDescending { it.date }
+                        .map { MessageRef(it.messageId, it.threadId) },
                     after = null,
                     before = null,
                     onBatchParsed = { imported -> onProgress(Progress(account.id, imported)) },
@@ -441,10 +462,19 @@ class StatementUpdater(
 
             val transactions = parsed.mapIndexed { index, transaction ->
                 Transaction(
-                    id = "${email.accountId}:${email.messageId}:${source.id}:$index",
+                    id = transactionId(
+                        accountId = email.accountId,
+                        provider = source.provider,
+                        reference = transaction.reference,
+                        threadId = email.threadId,
+                        messageId = email.messageId,
+                        sourceId = source.id,
+                        index = index,
+                    ),
                     accountId = email.accountId,
                     sourceId = source.id,
                     emailMessageId = email.messageId,
+                    threadId = email.threadId,
                     reference = transaction.reference,
                     date = transaction.date,
                     amount = transaction.amount,

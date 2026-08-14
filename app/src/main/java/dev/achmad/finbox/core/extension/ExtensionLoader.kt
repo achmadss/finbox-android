@@ -95,6 +95,7 @@ class ExtensionLoader(
                 info,
                 LoadedSource(
                     id = sourceIdOf(info.name, info.versionCode),
+                    provider = info.provider,
                     name = info.name,
                     source = source,
                 ),

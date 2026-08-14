@@ -9,9 +9,9 @@ enum class TransactionType { INCOME, EXPENSE, TRANSFER }
  * [currency] (e.g. rupiah for IDR).
  *
  * `reference` is the provider's own transaction reference, shown and exported
- * when there is one. It is not what identifies a transaction: the app keys
- * that on the email it was parsed from, so a provider that sends no reference
- * (Jago sends none at all) still imports and re-imports cleanly.
+ * when there is one. The app uses it for identity when present, then falls back
+ * to the Gmail thread or message it was parsed from, so a provider that sends
+ * no reference (Jago sends none at all) still imports cleanly.
  */
 data class ParsedTransaction(
     val date: Long?,
