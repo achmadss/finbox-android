@@ -82,6 +82,7 @@ import dev.achmad.data.model.TransactionType
 import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.features.accounts.AccountsScreen
 import dev.achmad.finbox.features.extensions.ExtensionsScreen
+import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.theme.components.VerticalFastScroller
@@ -91,6 +92,7 @@ import dev.achmad.finbox.util.formatter.formatDay
 import dev.achmad.finbox.util.formatter.formatMonthName
 import dev.achmad.finbox.util.formatter.formatMonthYear
 import dev.achmad.finbox.util.formatter.formatTime
+import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import dev.achmad.finbox.util.formatter.toLocalDate
 import java.time.Month
 import java.time.YearMonth
@@ -142,6 +144,7 @@ object ExpensesScreen : Screen {
             onFilterChange = model::setFilter,
             onOpenAccounts = { navigator.push(AccountsScreen) },
             onOpenExtensions = { navigator.push(ExtensionsScreen) },
+            onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
 }
@@ -165,6 +168,7 @@ private fun ExpensesScreenContent(
     onFilterChange: (ExpenseFilter) -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenExtensions: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
@@ -231,7 +235,7 @@ private fun ExpensesScreenContent(
                     AppBar.OverflowAction(
                         title = "Settings",
                         icon = Icons.Outlined.Settings,
-                        onClick = { /* TODO settings screen */ },
+                        onClick = onOpenSettings,
                     ),
                 ),
             )
@@ -698,6 +702,7 @@ private fun TransactionRow(
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
+        val use24Hour = rememberUse24HourClock()
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = formatAmount(transaction.signedAmount, transaction.currency),
@@ -705,9 +710,9 @@ private fun TransactionRow(
             )
             Text(
                 text = if (showDay) {
-                    "${formatDay(transaction.timestamp)} ${formatTime(transaction.date)}"
+                    "${formatDay(transaction.timestamp)} ${formatTime(transaction.date, use24Hour)}"
                 } else {
-                    formatTime(transaction.date)
+                    formatTime(transaction.date, use24Hour)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -798,6 +803,7 @@ private fun ExpensesScreenPreview() {
             onFilterChange = {},
             onOpenAccounts = {},
             onOpenExtensions = {},
+            onOpenSettings = {},
         )
     }
 }

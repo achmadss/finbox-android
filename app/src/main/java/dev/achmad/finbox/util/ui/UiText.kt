@@ -13,6 +13,7 @@ sealed class UiText {
 
     data class StringResource(
         @param:StringRes val res: Int,
+        val args: List<Any> = emptyList(),
     ) : UiText()
 
     @Composable
@@ -26,7 +27,7 @@ sealed class UiText {
     fun asString(context: Context): String {
         return when (this) {
             is DynamicText -> text
-            is StringResource -> context.getString(res)
+            is StringResource -> context.getString(res, *args.toTypedArray())
         }
     }
 

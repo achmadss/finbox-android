@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.ExtensionKindPreference
+import dev.achmad.finbox.core.preference.ExtensionKindPreference
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.InstallStep
 import dev.achmad.finbox.core.statement.StatementUpdateJob
@@ -12,9 +12,7 @@ import dev.achmad.finbox.extension.TransactionType
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
 import java.io.File
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -32,19 +30,23 @@ class ExtensionDetailsScreenModel(
                 manager.available,
                 manager.sourcesFlow,
                 kindPreference.disabled(pkg).changes(),
-            ) { installed, available, _, disabled ->
+                manager.installSteps,
+            ) { installed, available, _, disabled, steps ->
                 installed.firstOrNull { it.pkg == pkg }?.let { extension ->
                     ExtensionUiModel.Installed(
                         extension = extension,
                         update = available.firstOrNull {
                             it.pkg == pkg && it.versionCode > extension.versionCode
                         },
+                        // The manager runs the install, so its progress is the
+                        // truth here — including one started from the other screen.
+                        installStep = steps[pkg] ?: InstallStep.Idle,
                     ) to kinds(extension.sourceIds, disabled)
                 }
             }.collect { item ->
                 mutableState.update {
                     it.copy(
-                        extension = item?.first?.copy(installStep = it.installStep),
+                        extension = item?.first,
                         kinds = item?.second.orEmpty(),
                         sizeBytes = item?.first?.extension?.file
                             ?.let { path -> File(path).length().takeIf { size -> size > 0 } },
@@ -71,7 +73,7 @@ class ExtensionDetailsScreenModel(
     fun setEnabled(enabled: Boolean) {
         screenModelScope.launch {
             manager.setEnabled(pkg, enabled)
-            reparse()
+            StatementUpdateJob.reparseNow(injectAndroidContext())
         }
     }
 
@@ -91,18 +93,8 @@ class ExtensionDetailsScreenModel(
         }
     }
 
-    fun update() {
-        screenModelScope.launch {
-            var last = InstallStep.Idle
-            manager.updateExtension(pkg)
-                .onEach { step ->
-                    last = step
-                    mutableState.update { it.copy(installStep = step) }
-                }
-                .collect()
-            if (last == InstallStep.Installed) reparse()
-        }
-    }
+    /** Runs in the manager, so leaving this screen does not cancel the download. */
+    fun update() = manager.update(pkg)
 
     /**
      * Leaving is the screen's job, not this one's: popping first would cancel
@@ -113,10 +105,6 @@ class ExtensionDetailsScreenModel(
             manager.remove(pkg)
             mutableState.update { it.copy(uninstalled = true) }
         }
-    }
-
-    private suspend fun reparse() {
-        StatementUpdateJob.reparseNow(injectAndroidContext())
     }
 
     @Immutable
@@ -133,7 +121,6 @@ class ExtensionDetailsScreenModel(
         val kinds: List<KindUiModel> = emptyList(),
         /** The APK on disk. Null while the row has no file recorded yet. */
         val sizeBytes: Long? = null,
-        val installStep: InstallStep = InstallStep.Idle,
         val uninstalled: Boolean = false,
     ) {
         /**

@@ -8,6 +8,10 @@
     <string name="statement_update_done">%1$d transactions imported</string>
     <string name="statement_update_ongoing">An update is already ongoing</string>
 
+    <string name="app_update_channel">App updates</string>
+    <string name="app_update_available">Finbox %1$s is available</string>
+    <string name="app_update_open">Tap to open the release page</string>
+
     <string name="extension_update_channel">Extension updates</string>
     <plurals name="extension_update_available">
         <item quantity="one">%1$d extension update available</item>

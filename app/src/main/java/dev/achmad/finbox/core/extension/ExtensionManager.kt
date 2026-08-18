@@ -1,33 +1,43 @@
 package dev.achmad.finbox.core.extension
 
+import android.content.Context
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.repository.InstalledExtensionRepository
+import dev.achmad.finbox.core.statement.StatementUpdateJob
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import dev.achmad.finbox.core.preference.ExtensionKindPreference
 
 /**
  * Orchestrates installed extensions:
  * - loads APKs from disk ([reload])
  * - keeps the `installed_extension` DB table in sync
  * - fetches the repo index for the available/update lists
+ * - runs installs and updates ([install], [update])
  */
 class ExtensionManager(
+    private val context: Context,
     private val loader: ExtensionLoader,
     private val installer: ExtensionInstaller,
     private val index: ExtensionIndex,
@@ -56,6 +66,13 @@ class ExtensionManager(
         installed.count { inst -> available.hasUpdateFor(inst) }
     }.stateIn(scope, SharingStarted.Eagerly, 0)
 
+    /** pkg -> how far its install or update has got, for whichever screen is showing it. */
+    private val _installSteps = MutableStateFlow<Map<String, InstallStep>>(emptyMap())
+    val installSteps: StateFlow<Map<String, InstallStep>> = _installSteps.asStateFlow()
+
+    /** Kept so a cancel button has something to stop. */
+    private val installJobs = ConcurrentHashMap<String, Job>()
+
     /** sourceId -> loaded LoadedSource for enabled extensions. */
     private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
 
@@ -74,19 +91,70 @@ class ExtensionManager(
      * The install as a flow of steps, ending in [InstallStep.Installed] once the
      * new APK is loaded and the registry has caught up.
      *
-     * Dropping the collector cancels the install.
+     * Dropping the collector cancels the install, which is exactly why [install]
+     * collects it somewhere longer-lived than a screen.
      */
-    fun installExtension(extension: AvailableExtension): Flow<InstallStep> =
+    private fun installExtension(extension: AvailableExtension): Flow<InstallStep> =
         installer.downloadAndInstall(extension)
             .onEach { if (it == InstallStep.Installed) reload() }
 
-    fun updateExtension(pkg: String): Flow<InstallStep> {
-        val extension = available.value.firstOrNull { it.pkg == pkg } ?: return emptyFlow()
-        return installExtension(extension)
+    /**
+     * Downloads and installs [extension], reporting progress through [installSteps].
+     *
+     * Run here rather than from the screen that asked: an install outlives the row
+     * it started from, and leaving that screen must not cancel a download halfway.
+     * Only [cancelInstall] stops one.
+     */
+    fun install(extension: AvailableExtension) {
+        val pkg = extension.pkg
+        installJobs.remove(pkg)?.cancel()
+        installJobs[pkg] = scope.launch {
+            var last = InstallStep.Idle
+            installExtension(extension)
+                .onEach { step ->
+                    last = step
+                    _installSteps.update { it + (pkg to step) }
+                }
+                .onCompletion {
+                    installJobs.remove(pkg)
+                    // A finished install redraws from the installed list, but a
+                    // failure has to stay on the row or it goes back to looking
+                    // untouched.
+                    if (last != InstallStep.Error) _installSteps.update { it - pkg }
+                }
+                .collect()
+            if (last == InstallStep.Installed) reparse()
+        }
     }
 
-    /** Pass or fail only, for callers with no row to report steps on. */
-    suspend fun install(extension: AvailableExtension) {
+    /** Installs the newer build the index has of [pkg]. */
+    fun update(pkg: String) {
+        val extension = available.value.firstOrNull { it.pkg == pkg } ?: return
+        install(extension)
+    }
+
+    /** Ends a download; nothing is written until it finishes, so there is nothing to undo. */
+    fun cancelInstall(pkg: String) {
+        installJobs.remove(pkg)?.cancel()
+        _installSteps.update { it - pkg }
+    }
+
+    /**
+     * A parser that wasn't there before reads the mail it hasn't tried yet.
+     *
+     * Handed to a job: it downloads a body per untried email, which takes longer
+     * than any screen is guaranteed to live. On the main thread because enqueuing
+     * one may raise a toast.
+     */
+    private suspend fun reparse() = withContext(Dispatchers.Main) {
+        StatementUpdateJob.reparseNow(context)
+    }
+
+    /**
+     * Pass or fail only, for callers with no row to report steps on and a reason
+     * to wait — onboarding, which cannot move on until the parser is there.
+     */
+    suspend fun installAndWait(extension: AvailableExtension) {
         val last = installExtension(extension).last()
         if (last != InstallStep.Installed) throw IOException("Install failed for ${extension.pkg}")
     }

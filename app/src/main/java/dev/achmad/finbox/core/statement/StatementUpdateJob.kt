@@ -19,6 +19,8 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.preference.SyncPreferences
+import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -136,13 +138,41 @@ class StatementUpdateJob(
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
+        /**
+         * Applies the fetch schedule the settings ask for, and cancels it when the
+         * interval is off.
+         *
+         * Safe to call again whenever a fetch setting changes: the work is replaced
+         * in place, so a new interval or constraint takes effect without waiting out
+         * the old period.
+         */
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<StatementUpdateJob>(6, TimeUnit.HOURS)
-                .setConstraints(constraints)
+            val preferences = inject<SyncPreferences>()
+            val workManager = WorkManager.getInstance(context)
+            val hours = preferences.autoFetchIntervalHours().get()
+            if (hours <= 0) {
+                workManager.cancelUniqueWork(WORK_NAME)
+                return
+            }
+
+            val scheduleConstraints = Constraints.Builder()
+                .setRequiredNetworkType(
+                    if (preferences.fetchOnUnmeteredOnly().get()) {
+                        NetworkType.UNMETERED
+                    } else {
+                        NetworkType.CONNECTED
+                    },
+                )
+                .setRequiresCharging(preferences.fetchWhenChargingOnly().get())
+                .setRequiresBatteryNotLow(preferences.fetchWhenBatteryNotLow().get())
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+
+            val request = PeriodicWorkRequestBuilder<StatementUpdateJob>(hours.toLong(), TimeUnit.HOURS)
+                .setConstraints(scheduleConstraints)
+                .build()
+            workManager.enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 request,
             )
         }

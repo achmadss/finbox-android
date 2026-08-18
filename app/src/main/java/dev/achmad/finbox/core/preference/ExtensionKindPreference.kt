@@ -1,4 +1,4 @@
-package dev.achmad.finbox.core.extension
+package dev.achmad.finbox.core.preference
 
 import dev.achmad.finbox.util.preference.Preference
 import dev.achmad.finbox.util.preference.PreferenceStore

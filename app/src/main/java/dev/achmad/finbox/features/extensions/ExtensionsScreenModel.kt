@@ -12,13 +12,8 @@ import dev.achmad.finbox.core.extension.InstallStep
 import dev.achmad.finbox.core.statement.StatementUpdateJob
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -26,19 +21,13 @@ class ExtensionsScreenModel(
     private val manager: ExtensionManager = inject(),
 ) : StateScreenModel<ExtensionsScreenModel.State>(State()) {
 
-    /** pkg -> where its install or update has got to. */
-    private val currentDownloads = MutableStateFlow<Map<String, InstallStep>>(emptyMap())
-
-    /** Kept so the row's cancel button has something to stop. */
-    private val jobs = mutableMapOf<String, Job>()
-
     init {
         screenModelScope.launch {
             combine(
                 manager.installed,
                 manager.available,
                 manager.loadErrors,
-                currentDownloads,
+                manager.installSteps,
             ) { installed, available, errors, downloads ->
                 groupExtensions(installed, available, errors, downloads)
             }.collect { fresh ->
@@ -73,59 +62,27 @@ class ExtensionsScreenModel(
         }
     }
 
-    fun install(extension: AvailableExtension) = track(extension.pkg) {
-        manager.installExtension(extension)
-    }
+    // Installs run in the manager, not here: this screen model dies when the user
+    // navigates away, and a download must not die with it.
+    fun install(extension: AvailableExtension) = manager.install(extension)
 
-    fun update(pkg: String) = track(pkg) { manager.updateExtension(pkg) }
+    fun update(pkg: String) = manager.update(pkg)
 
     fun updateAll() = state.value.updates.forEach { update(it.pkg) }
 
-    /** Ends the download; nothing was written yet, so there is nothing to undo. */
-    fun cancelInstall(pkg: String) {
-        jobs.remove(pkg)?.cancel()
-        currentDownloads.update { it - pkg }
-    }
+    fun cancelInstall(pkg: String) = manager.cancelInstall(pkg)
 
     fun setEnabled(pkg: String, enabled: Boolean) {
         screenModelScope.launch {
             manager.setEnabled(pkg, enabled)
-            reparse()
+            // A parser switched on reads the mail it has not tried yet. Handed to a
+            // job, which outlives this screen.
+            StatementUpdateJob.reparseNow(injectAndroidContext())
         }
     }
 
     fun uninstall(pkg: String) {
         screenModelScope.launch { manager.remove(pkg) }
-    }
-
-    private fun track(pkg: String, steps: () -> Flow<InstallStep>) {
-        jobs[pkg]?.cancel()
-        jobs[pkg] = screenModelScope.launch {
-            var last = InstallStep.Idle
-            steps()
-                .onEach { step ->
-                    last = step
-                    currentDownloads.update { it + (pkg to step) }
-                }
-                .onCompletion {
-                    jobs.remove(pkg)
-                    // A finished install redraws from the installed list, but a failure
-                    // has to stay on the row or it goes back to looking untouched.
-                    if (last != InstallStep.Error) currentDownloads.update { it - pkg }
-                }
-                .collect()
-            if (last == InstallStep.Installed) reparse()
-        }
-    }
-
-    /**
-     * A parser that wasn't there before reads the mail it hasn't tried yet.
-     *
-     * Handed to a job: it downloads a body per untried email, which takes longer
-     * than this screen is guaranteed to live.
-     */
-    private suspend fun reparse() {
-        StatementUpdateJob.reparseNow(injectAndroidContext())
     }
 
     @Immutable

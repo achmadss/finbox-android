@@ -92,7 +92,7 @@ data class ExtensionDetailsScreen(private val pkg: String) : Screen {
                     extension = extension,
                     summary = state.summary,
                     sizeBytes = state.sizeBytes,
-                    installStep = state.installStep,
+                    installStep = extension.installStep,
                     onClickUpdate = model::update,
                     onClickUninstall = { confirmUninstall = true },
                 )

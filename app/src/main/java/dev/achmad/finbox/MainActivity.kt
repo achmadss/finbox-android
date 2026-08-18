@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -48,11 +49,12 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
 import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.update.AppUpdateChecker
 import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.statement.StatementUpdateStatus
 import dev.achmad.finbox.features.expenses.ExpensesScreen
 import dev.achmad.finbox.features.extensions.ExtensionsScreen
-import dev.achmad.finbox.features.onboarding.OnboardingPreference
+import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.util.koin.injectLazy
@@ -62,10 +64,15 @@ import kotlinx.coroutines.flow.collectLatest
 import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
 
-class MainActivity : ComponentActivity() {
+/**
+ * AppCompat rather than plain ComponentActivity: below Android 13 that is what
+ * applies a per-app language to the activity's resources.
+ */
+class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
     private val extensionUpdateChecker: ExtensionUpdateChecker by injectLazy()
+    private val appUpdateChecker: AppUpdateChecker by injectLazy()
     private val statementUpdateStatus by lazy { StatementUpdateStatus(applicationContext) }
 
     private var isReady = false
@@ -137,7 +144,7 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                             HandleNewIntent(this@MainActivity, navigator)
-                            CheckExtensionUpdates()
+                            CheckForUpdates()
                         }
                     }
                 }
@@ -153,12 +160,13 @@ class MainActivity : ComponentActivity() {
         isReady = true
     }
 
-    /** Throttled to a day inside the checker, so this costs nothing on most starts. */
+    /** Throttled to a day inside each checker, so this costs nothing on most starts. */
     @Composable
-    private fun CheckExtensionUpdates() {
+    private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
             runCatching { extensionUpdateChecker.checkForUpdates() }
                 .onFailure { Log.e("Extensions", "Extension update check failed", it) }
+            appUpdateChecker.checkAndNotify()
         }
     }
 

@@ -3,6 +3,7 @@ package dev.achmad.finbox
 import android.app.Application
 import android.util.Log
 import dev.achmad.data.di.dataModule
+import dev.achmad.finbox.core.statement.StatementUpdateJob
 import dev.achmad.finbox.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -30,5 +31,9 @@ class MainApplication: Application() {
             androidContext(this@MainApplication)
             modules(dataModule, appModule)
         }
+
+        // The fetch schedule is the app's, not a screen's: it has to exist even if
+        // nobody opens settings.
+        StatementUpdateJob.schedule(this)
     }
 }

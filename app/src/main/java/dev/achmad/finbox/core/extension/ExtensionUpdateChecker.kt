@@ -1,6 +1,7 @@
 package dev.achmad.finbox.core.extension
 
 import android.content.Context
+import dev.achmad.finbox.core.preference.UpdatePreferences
 import dev.achmad.finbox.util.preference.PreferenceStore
 import java.util.concurrent.TimeUnit
 
@@ -14,13 +15,15 @@ import java.util.concurrent.TimeUnit
 class ExtensionUpdateChecker(
     private val context: Context,
     private val manager: ExtensionManager,
+    private val updatePreferences: UpdatePreferences,
     preferenceStore: PreferenceStore,
 ) {
 
     private val lastCheck = preferenceStore.getLong("last_extension_check", 0)
 
-    /** [force] skips the throttle, for a pull-to-refresh the user asked for. */
+    /** [force] skips the setting and the throttle, for a check the user asked for. */
     suspend fun checkForUpdates(force: Boolean = false) {
+        if (!force && !updatePreferences.checkExtensionUpdates().get()) return
         val now = System.currentTimeMillis()
         if (!force && now - lastCheck.get() < CHECK_INTERVAL_MILLIS) return
 

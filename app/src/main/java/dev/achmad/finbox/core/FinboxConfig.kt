@@ -13,6 +13,10 @@ object FinboxConfig {
     const val EXTENSION_INDEX_URL =
         "https://raw.githubusercontent.com/achmadss/finbox-extension/main/repo/index.json"
 
+    /** Where a newer build of the app itself is published. */
+    const val APP_RELEASES_URL =
+        "https://api.github.com/repos/achmadss/finbox-android/releases/latest"
+
     const val OAUTH_REDIRECT_SCHEME = "dev.achmad.finbox"
     const val OAUTH_REDIRECT_URI = "dev.achmad.finbox:/oauth2callback"
 

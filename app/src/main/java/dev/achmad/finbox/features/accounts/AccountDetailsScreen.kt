@@ -44,6 +44,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.finbox.util.formatter.formatDate
+import dev.achmad.finbox.util.ui.rememberUse24HourClock
 
 data class AccountDetailsScreen(private val id: String) : Screen {
 
@@ -124,7 +125,6 @@ data class AccountDetailsScreen(private val id: String) : Screen {
                 sources.forEach { source ->
                     SwitchRow(
                         title = source.name,
-                        subtitle = source.provider,
                         checked = source.id !in disabled,
                         onCheckedChange = { model.setParserEnabled(account.id, source.id, it) },
                     )
@@ -166,7 +166,8 @@ private fun DetailsHeader(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = account.lastSyncAt?.let { "Synced ${formatDate(it)}" } ?: "Never synced",
+            text = account.lastSyncAt?.let { "Synced ${formatDate(it, rememberUse24HourClock())}" }
+                ?: "Never synced",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

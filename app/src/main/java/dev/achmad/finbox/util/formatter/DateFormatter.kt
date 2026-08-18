@@ -9,6 +9,9 @@ import java.time.format.DateTimeFormatter
 private val dateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm").withZone(ZoneId.systemDefault())
 
+private val dateFormatter12: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd MMM yyyy h:mm a").withZone(ZoneId.systemDefault())
+
 private val dateOnlyFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("dd MMM yyyy").withZone(ZoneId.systemDefault())
 
@@ -18,16 +21,21 @@ private val dayFormatter: DateTimeFormatter =
 private val timeFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
+private val timeFormatter12: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
+
 private val monthYearFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("MMMM yyyy")
 
 private val monthNameFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("MMMM")
 
-fun formatDate(epochMillis: Long?): String {
+/** [use24Hour] comes from the clock setting — see `rememberUse24HourClock`. */
+fun formatDate(epochMillis: Long?, use24Hour: Boolean): String {
     if (epochMillis == null) return "-"
     return if (hasTime(epochMillis)) {
-        dateFormatter.format(Instant.ofEpochMilli(epochMillis))
+        val formatter = if (use24Hour) dateFormatter else dateFormatter12
+        formatter.format(Instant.ofEpochMilli(epochMillis))
     } else {
         dateOnlyFormatter.format(Instant.ofEpochMilli(epochMillis))
     }
@@ -42,9 +50,10 @@ fun formatDay(epochMillis: Long?): String {
 fun formatDay(date: LocalDate): String = dayFormatter.format(date)
 
 /** Time of day, e.g. `14:32`. */
-fun formatTime(epochMillis: Long?): String {
+fun formatTime(epochMillis: Long?, use24Hour: Boolean): String {
     if (epochMillis == null) return "-"
-    return timeFormatter.format(Instant.ofEpochMilli(epochMillis))
+    val formatter = if (use24Hour) timeFormatter else timeFormatter12
+    return formatter.format(Instant.ofEpochMilli(epochMillis))
 }
 
 /** Month and year, e.g. `August 2026`. */

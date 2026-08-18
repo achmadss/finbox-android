@@ -52,6 +52,7 @@ import coil3.compose.SubcomposeAsyncImage
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDate
+import dev.achmad.finbox.util.ui.rememberUse24HourClock
 
 object AccountsScreen : Screen {
     private fun readResolve(): Any = AccountsScreen
@@ -200,8 +201,9 @@ private fun AvatarPlaceholder() {
 
 @Composable
 private fun AccountSubtitle(account: EmailAccount, parsers: Int) {
+    val use24Hour = rememberUse24HourClock()
     val details = buildList {
-        add(account.lastSyncAt?.let { "Synced ${formatDate(it)}" } ?: "Never synced")
+        add(account.lastSyncAt?.let { "Synced ${formatDate(it, use24Hour)}" } ?: "Never synced")
         add(if (parsers == 1) "1 parser" else "$parsers parsers")
     }
     Row(verticalAlignment = Alignment.CenterVertically) {

@@ -8,7 +8,7 @@ import dev.achmad.finbox.util.preference.PreferenceStore
 import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
-import dev.achmad.finbox.core.extension.ExtensionKindPreference
+import dev.achmad.finbox.core.preference.ExtensionKindPreference
 import dev.achmad.finbox.core.extension.ExtensionLoader
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
@@ -19,7 +19,11 @@ import dev.achmad.finbox.core.gmail.GmailAuthManagerImpl
 import dev.achmad.finbox.core.gmail.GmailTokenManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import dev.achmad.finbox.core.statement.StatementUpdater
-import dev.achmad.finbox.features.onboarding.OnboardingPreference
+import dev.achmad.finbox.core.preference.OnboardingPreference
+import dev.achmad.finbox.core.preference.SyncPreferences
+import dev.achmad.finbox.core.preference.UpdatePreferences
+import dev.achmad.finbox.core.update.AppUpdateChecker
+import dev.achmad.finbox.core.preference.UiPreferences
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -74,6 +78,7 @@ val appModule = module {
     single<ExtensionKindPreference> { ExtensionKindPreference(preferenceStore = get()) }
     single<ExtensionManager> {
         ExtensionManager(
+            context = androidContext(),
             loader = get(),
             installer = get(),
             index = get(),
@@ -85,10 +90,21 @@ val appModule = module {
         ExtensionUpdateChecker(
             context = androidContext(),
             manager = get(),
+            updatePreferences = get(),
             preferenceStore = get()
         )
     }
+    single<AppUpdateChecker> {
+        AppUpdateChecker(
+            context = androidContext(),
+            client = get(),
+            preferences = get()
+        )
+    }
     single<OnboardingPreference> { OnboardingPreference(preferenceStore = get()) }
+    single<UiPreferences> { UiPreferences(preferenceStore = get()) }
+    single<SyncPreferences> { SyncPreferences(preferenceStore = get()) }
+    single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
     single<StatementUpdater> {
         StatementUpdater(
             sources = { get<ExtensionManager>().sources },

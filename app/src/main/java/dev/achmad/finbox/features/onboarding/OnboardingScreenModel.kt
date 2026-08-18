@@ -19,6 +19,7 @@ import dev.achmad.finbox.util.permission.arePermissionsAllowed
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
 import kotlinx.coroutines.launch
+import dev.achmad.finbox.core.preference.OnboardingPreference
 
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
@@ -78,7 +79,7 @@ class OnboardingScreenModel(
                 mutableState.value = State.InstallExtensions(isInstalling = true)
                 Log.i("Onboarding", "Installing ${event.availableExtensions.map { it.pkg }}")
                 for (extension in event.availableExtensions) {
-                    runCatching { extensionManager.install(extension) }
+                    runCatching { extensionManager.installAndWait(extension) }
                         .onSuccess { Log.i("Onboarding", "Installed ${extension.pkg}") }
                         .onFailure {
                             toastHelper.show(

@@ -1,4 +1,4 @@
-package dev.achmad.finbox.features.onboarding
+package dev.achmad.finbox.core.preference
 
 import dev.achmad.finbox.util.preference.PreferenceStore
 

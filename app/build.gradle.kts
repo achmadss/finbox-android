@@ -53,11 +53,20 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        // The locale list comes from the res folders: adding values-in/strings.xml
+        // is all it takes for Indonesian to appear in the system language picker
+        // and in the app's own language screen. res/resources.properties names the
+        // language values/ itself is written in.
+        generateLocaleConfig = true
+    }
 }
 
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    // Per-app languages: AppCompatDelegate carries them back to Android 8.
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

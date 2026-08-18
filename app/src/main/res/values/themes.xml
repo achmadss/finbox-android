@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Finbox" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- An AppCompat parent, so AppCompatDelegate can apply a per-app language on
+         Android 12 and below. Compose paints everything above it. -->
+    <style name="Theme.Finbox" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>
