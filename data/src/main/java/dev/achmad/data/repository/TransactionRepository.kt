@@ -42,28 +42,33 @@ class TransactionRepository(
         db.transactionQueries.SELECTById(id).executeAsOneOrNull()?.toModel()
     }
 
-    suspend fun threadIds(accountId: String): Set<String> = withContext(Dispatchers.IO) {
-        db.transactionQueries.SELECTThreadIds(accountId)
-            .executeAsList()
-            .filterNotNull()
-            .toSet()
-    }
-
     /**
      * Writes parsed transactions, updating parser-owned fields for an existing id.
      *
-     * Ids are derived from a provider reference, thread, or email fallback, so
-     * duplicate messages keep the first row without resetting user-owned fields;
-     * a reparse of the same message may refresh parser-owned fields.
+     * An id is derived from the email, so re-parsing a message refreshes the rows
+     * it already wrote instead of adding more. Two different messages reporting
+     * one transaction — a notification and a statement, say — are caught by the
+     * provider reference: the same reference from the same source is the same
+     * transaction, and the row already stored wins, so user-owned fields such as
+     * the category survive.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
             transactions.forEach { transaction ->
                 val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
-                if (existing == null) {
-                    insert(transaction)
-                } else if (existing.email_message_id == transaction.emailMessageId) {
-                    updateParsed(transaction)
+                    ?: transaction.reference?.let { reference ->
+                        db.transactionQueries
+                            .SELECTByReference(transaction.accountId, transaction.sourceId, reference)
+                            .executeAsOneOrNull()
+                    }
+                when {
+                    existing == null -> insert(transaction)
+                    // Same email again: refresh the row it wrote, under whatever
+                    // id it already has.
+                    existing.email_message_id == transaction.emailMessageId ->
+                        updateParsed(transaction, existing.id)
+                    // A duplicate from another message: leave the stored row alone.
+                    else -> Unit
                 }
             }
         }
@@ -127,7 +132,7 @@ class TransactionRepository(
         deleted = if (transaction.deleted) 1L else 0L,
     )
 
-    private fun updateParsed(transaction: Transaction) = db.transactionQueries.UPDATEParsedById(
+    private fun updateParsed(transaction: Transaction, id: String) = db.transactionQueries.UPDATEParsedById(
         source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
@@ -140,7 +145,7 @@ class TransactionRepository(
         description = transaction.description,
         merchant = transaction.merchant,
         updated_at = transaction.updatedAt,
-        id = transaction.id,
+        id = id,
     )
 
     private fun Transactions.toModel() = Transaction(

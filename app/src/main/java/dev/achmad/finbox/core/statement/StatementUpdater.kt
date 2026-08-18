@@ -8,7 +8,7 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.ExtensionKindPreference
+import dev.achmad.finbox.core.preference.ExtensionKindPreference
 import dev.achmad.finbox.core.extension.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineSourceQueries
@@ -313,12 +313,13 @@ class StatementUpdater(
     }
 
     /**
-     * Downloads, parses and writes one newest message per Gmail thread at a time.
+     * Downloads, parses and writes a batch of messages at a time.
      *
      * A message already stored and already seen by every installed source costs
-     * nothing — it is skipped before it is downloaded. A new message in a thread
-     * that already has a transaction is skipped even when its own message id is
-     * new, so duplicate notifications do not pay for another body fetch.
+     * nothing — it is skipped before it is downloaded. Everything else is read:
+     * a thread can hold unrelated mail, so a second message in a known thread
+     * may well be a second transaction. Duplicates are settled after parsing,
+     * on the provider reference.
      */
     private suspend fun ingest(
         account: EmailAccount,
@@ -330,20 +331,16 @@ class StatementUpdater(
         val sources = sourcesFor(account)
         val stored = emailRepository.forAccount(account.id).associateBy { it.messageId }
 
-        val todo = messageRefs.filter { ref ->
+        val todo = messageRefs.distinctBy { it.id }.filter { ref ->
             val email = stored[ref.id] ?: return@filter true
             !email.parsed && sources.any { it.id !in email.triedSourceIds }
         }
-        val representatives = selectNewestPerThread(
-            refs = todo,
-            existingThreadIds = transactionRepository.threadIds(account.id),
-        )
-        if (representatives.isEmpty()) return Counts(0)
+        if (todo.isEmpty()) return Counts(0)
 
         var parsed = 0
         // Gmail is rate limited, so a batch downloads a few at a time.
         val gate = Semaphore(MAX_PARALLEL_FETCHES)
-        for (batch in representatives.chunked(BATCH_SIZE)) {
+        for (batch in todo.chunked(BATCH_SIZE)) {
             currentCoroutineContext().ensureActive()
 
             val downloaded = withContext(Dispatchers.IO) {
@@ -401,8 +398,9 @@ class StatementUpdater(
 
             val transactions = results.flatMap { it.transactions }
                 .distinctBy { it.id }
-            // Transactions first: an id derives from a provider reference, thread,
-            // or email fallback, so a re-run overwrites rather than duplicates.
+            // Transactions first: an id derives from the email, and the write
+            // drops what another message already reported under the same
+            // reference, so a re-run overwrites rather than duplicates.
             transactionRepository.upsertAll(transactions)
             val emails = results.map { it.email }
             emailRepository.insertNew(emails.filter { it.messageId !in stored })
@@ -432,11 +430,8 @@ class StatementUpdater(
         for ((accountId, emails) in emailRepository.unparsed().groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
             val sources = sourcesFor(account)
-            val existingThreads = transactionRepository.threadIds(accountId)
             val pending = emails.filter { email ->
-                val threadId = email.threadId.normalizedThreadId()
-                (threadId == null || threadId !in existingThreads) &&
-                    sources.any { it.id !in email.triedSourceIds }
+                sources.any { it.id !in email.triedSourceIds }
             }
             if (pending.isEmpty()) continue
             parsed += lockFor(accountId).withLock {
@@ -615,9 +610,6 @@ class StatementUpdater(
                 Transaction(
                     id = transactionId(
                         accountId = email.accountId,
-                        provider = source.provider,
-                        reference = transaction.reference,
-                        threadId = email.threadId,
                         messageId = email.messageId,
                         sourceId = source.id,
                         index = index,
@@ -626,7 +618,7 @@ class StatementUpdater(
                     sourceId = source.id,
                     emailMessageId = email.messageId,
                     threadId = email.threadId,
-                    reference = transaction.reference,
+                    reference = transaction.reference?.trim()?.takeIf { it.isNotEmpty() },
                     date = transaction.date,
                     amount = transaction.amount,
                     currency = transaction.currency,

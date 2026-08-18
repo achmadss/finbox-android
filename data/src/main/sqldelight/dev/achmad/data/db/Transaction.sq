@@ -4,7 +4,9 @@ CREATE TABLE transactions (
     source_id INTEGER NOT NULL,
     -- Gmail's message id of the email this was parsed from.
     email_message_id TEXT NOT NULL,
-    -- Gmail's conversation id, used to collapse duplicate messages in a thread.
+    -- Gmail's conversation id, carried for export and debugging only: a thread
+    -- can hold unrelated mail, so it says nothing about whether two rows are
+    -- the same, and nothing queries it.
     thread_id TEXT,
     reference TEXT,
     date INTEGER,
@@ -24,7 +26,7 @@ CREATE TABLE transactions (
 );
 
 CREATE INDEX idx_transaction_email ON transactions(account_id, email_message_id);
-CREATE INDEX idx_transaction_thread ON transactions(account_id, thread_id);
+CREATE INDEX idx_transaction_reference ON transactions(account_id, source_id, reference);
 
 SELECTAll:
 SELECT * FROM transactions WHERE deleted = 0 ORDER BY COALESCE(date, created_at) DESC;
@@ -35,9 +37,12 @@ SELECT * FROM transactions;
 SELECTById:
 SELECT * FROM transactions WHERE id = :id;
 
-SELECTThreadIds:
-SELECT DISTINCT thread_id FROM transactions
-WHERE account_id = :accountId AND thread_id IS NOT NULL;
+-- The duplicate check: the same provider reference from the same parser is
+-- the same transaction, whichever message reported it.
+SELECTByReference:
+SELECT * FROM transactions
+WHERE account_id = :accountId AND source_id = :sourceId AND reference = :reference
+LIMIT 1;
 
 SELECTSearch:
 SELECT * FROM transactions
@@ -45,8 +50,8 @@ WHERE deleted = 0
   AND (description LIKE '%' || :query || '%' OR merchant LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%')
 ORDER BY COALESCE(date, created_at) DESC;
 
--- Ids derive from a provider reference, thread, or email fallback, so the same
--- logical transaction overwrites instead of duplicating.
+-- Ids derive from the Gmail message, so re-reading one overwrites instead of
+-- duplicating.
 INSERTOrReplace:
 INSERT OR REPLACE INTO transactions(id, account_id, source_id, email_message_id, thread_id, reference, date, amount, currency, type, kind, category, description, merchant, created_at, updated_at, deleted)
 VALUES (:id, :account_id, :source_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :type, :kind, :category, :description, :merchant, :created_at, :updated_at, :deleted);
