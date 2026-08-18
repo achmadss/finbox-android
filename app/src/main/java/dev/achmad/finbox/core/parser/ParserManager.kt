@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -26,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.IOException
 import dev.achmad.finbox.core.preference.ParserKindPreference
 
 /**
@@ -108,6 +106,9 @@ class ParserManager(
     fun install(parser: AvailableParser) {
         val pkg = parser.pkg
         installJobs.remove(pkg)?.cancel()
+        // Before the job runs, so a retry stops reading as the failure it is
+        // replacing — [installSteps] keeps an error until something supersedes it.
+        _installSteps.update { it + (pkg to InstallStep.Pending) }
         installJobs[pkg] = scope.launch {
             var last = InstallStep.Idle
             installParser(parser)
@@ -148,15 +149,6 @@ class ParserManager(
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
         StatementUpdateJob.reparseNow(context)
-    }
-
-    /**
-     * Pass or fail only, for callers with no row to report steps on and a reason
-     * to wait — onboarding, which cannot move on until the parser is there.
-     */
-    suspend fun installAndWait(parser: AvailableParser) {
-        val last = installParser(parser).last()
-        if (last != InstallStep.Installed) throw IOException("Install failed for ${parser.pkg}")
     }
 
     /** Installed parsers the index has a newer build of. */

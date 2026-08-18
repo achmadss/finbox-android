@@ -113,6 +113,7 @@ fun OnboardingInstallParsersContent(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp),
             ) {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = stringResource(R.string.onboarding_parsers_subtitle),
                     style = MaterialTheme.typography.bodyMedium

@@ -10,6 +10,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.parser.AvailableParser
+import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.util.ui.MviScreenModel
@@ -18,6 +19,8 @@ import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.util.permission.arePermissionsAllowed
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dev.achmad.finbox.core.preference.OnboardingPreference
 
@@ -77,18 +80,27 @@ class OnboardingScreenModel(
             is Event.OnRefreshParsers -> refreshIndex()
             is Event.OnRequestInstallParsers -> screenModelScope.launch {
                 mutableState.value = State.InstallParsers(isInstalling = true)
-                Log.i("Onboarding", "Installing ${event.availableParsers.map { it.pkg }}")
-                for (parser in event.availableParsers) {
-                    runCatching { parserManager.installAndWait(parser) }
-                        .onSuccess { Log.i("Onboarding", "Installed ${parser.pkg}") }
-                        .onFailure {
-                            toastHelper.show(
-                                context.getString(
-                                    R.string.onboarding_parsers_install_failed,
-                                    parser.name,
-                                )
-                            )
-                        }
+                val requested = event.availableParsers
+                Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
+                // The manager runs them, the same as the parsers screen does, so
+                // leaving mid-download does not cancel one. This step only waits
+                // for each to land: loaded, or failed with a reason on the row.
+                requested.forEach { parserManager.install(it) }
+                combine(
+                    parserManager.installedInfo,
+                    parserManager.installSteps,
+                ) { installed, steps ->
+                    requested.filter { it.pkg !in installed && steps[it.pkg] != InstallStep.Error }
+                }.first { it.isEmpty() }
+
+                val steps = parserManager.installSteps.value
+                requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
+                    toastHelper.show(
+                        context.getString(
+                            R.string.onboarding_parsers_install_failed,
+                            parser.name,
+                        )
+                    )
                 }
                 // An APK can install and still not load — an unsupported lib
                 // version, a missing parser class. Without this the step just
