@@ -18,7 +18,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectLazy
@@ -41,14 +41,14 @@ class StatementUpdateJob(
 ) : CoroutineWorker(context, params) {
 
     private val updater: StatementUpdater by injectLazy()
-    private val extensionManager: ExtensionManager by injectLazy()
+    private val parserManager: ParserManager by injectLazy()
     private val notifier by lazy { StatementUpdateNotifier(applicationContext) }
 
     override suspend fun doWork(): Result = try {
         // The registry only fills on reload, and a worker often runs in a process
         // where no screen has done that. Without it the update would download
         // mail no parser is there to read, and pay for it again next time.
-        extensionManager.reload()
+        parserManager.reload()
 
         val parseOnly = inputData.getBoolean(PARSE_ONLY, false)
         val reparseSourceIds = inputData.getLongArray(REPARSE_SOURCES)?.toSet().orEmpty()
@@ -70,7 +70,7 @@ class StatementUpdateJob(
                 runCatching { setForeground(foregroundInfo(importedSoFar)) }
             }
         }
-        // Stored mail comes first, always. An extension installed or updated
+        // Stored mail comes first, always. A parser installed or updated
         // since the last run can read emails already sitting here, and reading
         // them again costs nothing now that their bodies are stored — so there
         // is no reason for a refresh to ask Gmail for new mail while old mail

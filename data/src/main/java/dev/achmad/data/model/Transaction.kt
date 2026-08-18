@@ -4,7 +4,7 @@ package dev.achmad.data.model
  * Which way the money went — all the app itself knows.
  *
  * What the provider calls it (QRIS, a top up, a BI-Fast transfer) is the
- * extension's vocabulary and lives in [Transaction.kind]; every one of those is
+ * parser's vocabulary and lives in [Transaction.kind]; every one of those is
  * one of these two underneath.
  */
 enum class TransactionType {

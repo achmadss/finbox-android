@@ -15,7 +15,7 @@ quietly; there is no review queue to work through.
 
 1. **Connect a mailbox.** Google OAuth, `gmail.readonly`, no password stored.
 2. **Install parsers.** Each provider — BRI, Jago — is a small separate APK
-   from [finbox-extension](https://github.com/achmadss/finbox-extension),
+   from [finbox-parser](https://github.com/achmadss/finbox-parser),
    verified by hash and loaded in-process. Installing one is what teaches the
    app to read that bank.
 3. **Import.** The first sync walks the mailbox for mail the installed parsers
@@ -24,7 +24,7 @@ quietly; there is no review queue to work through.
 4. **Read the ledger.** One month at a time, out / in / net at the top,
    transactions grouped by day. Multiple mailboxes merge into one ledger.
 
-Parsing lives entirely in the extensions. The app fetches mail and keeps the
+Parsing lives entirely in the parsers. The app fetches mail and keeps the
 ledger; it holds no knowledge of any bank's email format, and gains support for
 a new one without an app release.
 
@@ -42,13 +42,13 @@ Currently IDR only, and sync is manual pull-to-refresh.
 
 | Path | Purpose |
 |---|---|
-| `app/` | UI, Gmail client, extension loading, sync |
+| `app/` | UI, Gmail client, parser loading, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
-| `extension-api/` | The types parsers implement |
+| `parser-api/` | The types parsers implement |
 
-`:extension-api` is what parsers compile against. JitPack builds it on demand
+`:parser-api` is what parsers compile against. JitPack builds it on demand
 from any tag or commit (see `jitpack.yml`), published as
-`com.github.achmadss:finbox-android`, so finbox-extension can be cloned and
+`com.github.achmadss:finbox-android`, so finbox-parser can be cloned and
 built by anyone — no checkout of this repo, no account, no token.
 
 ## Status

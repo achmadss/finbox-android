@@ -213,8 +213,8 @@ object SettingsScreen : Screen {
                     },
                 ),
                 Preference.PreferenceItem.SwitchPreference(
-                    preference = preferences.checkExtensionUpdates(),
-                    title = "Extension updates",
+                    preference = preferences.checkParserUpdates(),
+                    title = "Parser updates",
                     subtitle = "Check once a day when the app opens",
                 ),
                 Preference.PreferenceItem.SwitchPreference(

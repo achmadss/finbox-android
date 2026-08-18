@@ -6,12 +6,12 @@ import dev.achmad.finbox.util.network.NetworkHelper
 import dev.achmad.finbox.util.preference.AndroidPreferenceStore
 import dev.achmad.finbox.util.preference.PreferenceStore
 import dev.achmad.finbox.util.ui.ToastHelper
-import dev.achmad.finbox.core.extension.ExtensionIndex
-import dev.achmad.finbox.core.extension.ExtensionInstaller
-import dev.achmad.finbox.core.preference.ExtensionKindPreference
-import dev.achmad.finbox.core.extension.ExtensionLoader
-import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.parser.ParserIndex
+import dev.achmad.finbox.core.parser.ParserInstaller
+import dev.achmad.finbox.core.preference.ParserKindPreference
+import dev.achmad.finbox.core.parser.ParserLoader
+import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.core.parser.ParserUpdateChecker
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
@@ -67,17 +67,17 @@ val appModule = module {
             accountRepository = get()
         )
     }
-    single<ExtensionLoader> { ExtensionLoader(androidContext()) }
-    single<ExtensionIndex> { ExtensionIndex(client = get()) }
-    single<ExtensionInstaller> {
-        ExtensionInstaller(
+    single<ParserLoader> { ParserLoader(androidContext()) }
+    single<ParserIndex> { ParserIndex(client = get()) }
+    single<ParserInstaller> {
+        ParserInstaller(
             client = get(),
             loader = get()
         )
     }
-    single<ExtensionKindPreference> { ExtensionKindPreference(preferenceStore = get()) }
-    single<ExtensionManager> {
-        ExtensionManager(
+    single<ParserKindPreference> { ParserKindPreference(preferenceStore = get()) }
+    single<ParserManager> {
+        ParserManager(
             context = androidContext(),
             loader = get(),
             installer = get(),
@@ -86,8 +86,8 @@ val appModule = module {
             kindPreference = get()
         )
     }
-    single<ExtensionUpdateChecker> {
-        ExtensionUpdateChecker(
+    single<ParserUpdateChecker> {
+        ParserUpdateChecker(
             context = androidContext(),
             manager = get(),
             updatePreferences = get(),
@@ -107,9 +107,9 @@ val appModule = module {
     single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
     single<StatementUpdater> {
         StatementUpdater(
-            sources = { get<ExtensionManager>().sources },
+            sources = { get<ParserManager>().sources },
             accountRepository = get(),
-            accountExtensionRepository = get(),
+            accountParserRepository = get(),
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),

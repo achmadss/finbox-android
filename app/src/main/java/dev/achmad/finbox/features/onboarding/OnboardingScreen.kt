@@ -32,7 +32,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.util.koin.injectLazy
 import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
 import dev.achmad.finbox.features.expenses.ExpensesScreen
@@ -87,8 +87,8 @@ private fun OnboardingScreen(
         onEvent(OnboardingScreenModel.Event.OnSignInResult(result.data))
     }
     val slideDistance = rememberSlideDistance()
-    val extensionManager by remember { injectLazy<ExtensionManager>() }
-    val availableExtensions by extensionManager.available.collectAsState()
+    val parserManager by remember { injectLazy<ParserManager>() }
+    val availableParsers by parserManager.available.collectAsState()
     val activity = LocalActivity.current
     val notificationPermission = rememberNotificationPermissionState()
     var confirmExit by remember { mutableStateOf(false) }
@@ -156,14 +156,14 @@ private fun OnboardingScreen(
                     }
                 )
             }
-            is OnboardingScreenModel.State.InstallExtensions -> {
-                OnboardingInstallExtensionsContent(
-                    extensions = availableExtensions,
+            is OnboardingScreenModel.State.InstallParsers -> {
+                OnboardingInstallParsersContent(
+                    parsers = availableParsers,
                     loading = onboardingState.isLoading,
                     installing = onboardingState.isInstalling,
-                    onRefresh = { onEvent(OnboardingScreenModel.Event.OnRefreshExtensions) },
-                    onClickInstallExtensions = { extensions ->
-                        onEvent(OnboardingScreenModel.Event.OnRequestInstallExtensions(extensions))
+                    onRefresh = { onEvent(OnboardingScreenModel.Event.OnRefreshParsers) },
+                    onClickInstallParsers = { parsers ->
+                        onEvent(OnboardingScreenModel.Event.OnRequestInstallParsers(parsers))
                     }
                 )
             }

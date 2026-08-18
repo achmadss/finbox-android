@@ -1,7 +1,7 @@
 package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
-import dev.achmad.finbox.extension.EmailMessage
+import dev.achmad.finbox.parser.EmailMessage
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
 import dev.achmad.finbox.core.gmail.model.MessageRef
@@ -53,14 +53,14 @@ interface GmailApi {
         pageToken: String? = null,
     ): HistoryResponse
 
-    /** The full message, normalized for extensions. */
+    /** The full message, normalized for parsers. */
     suspend fun getEmail(accountId: String, messageId: String): EmailMessage
 
     companion object {
         /** Safety net against walking an entire mailbox. */
         const val MAX_MESSAGES = 5_000
 
-        /** Builds a normalized [EmailMessage] for extensions. */
+        /** Builds a normalized [EmailMessage] for parsers. */
         fun toEmailMessage(response: MessageResponse): EmailMessage {
             val headers = response.payload?.headers.orEmpty()
             fun header(name: String): String? = headers.firstOrNull { it.name.equals(name, true) }?.value
@@ -84,8 +84,8 @@ interface GmailApi {
          *
          * A bank receipt is often html and nothing else, and it is left that
          * way: turning markup into the lines a parser reads is a parser's
-         * decision, and it belongs to whoever knows the bank. Extensions do it
-         * with the receipt library in finbox-extension.
+         * decision, and it belongs to whoever knows the bank. Parsers do it
+         * with the receipt library in finbox-parser.
          */
         private fun collectBodies(payload: Payload?): Pair<String, String> {
             if (payload == null) return "" to ""

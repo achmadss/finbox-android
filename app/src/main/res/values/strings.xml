@@ -12,10 +12,10 @@
     <string name="app_update_available">Finbox %1$s is available</string>
     <string name="app_update_open">Tap to open the release page</string>
 
-    <string name="extension_update_channel">Extension updates</string>
-    <plurals name="extension_update_available">
-        <item quantity="one">%1$d extension update available</item>
-        <item quantity="other">%1$d extension updates available</item>
+    <string name="parser_update_channel">Parser updates</string>
+    <plurals name="parser_update_available">
+        <item quantity="one">%1$d parser update available</item>
+        <item quantity="other">%1$d parser updates available</item>
     </plurals>
 
     <string name="onboarding_auth_title">From inbox to statements</string>
@@ -31,12 +31,12 @@
     <string name="onboarding_notification_allow">Allow Notifications</string>
     <string name="onboarding_notification_skip">Not now</string>
 
-    <string name="onboarding_extensions_title">Extensions</string>
-    <string name="onboarding_extensions_subtitle">Install at least one extension to start:</string>
-    <string name="onboarding_extensions_install">Install and Continue</string>
-    <string name="onboarding_extensions_installing">Installing…</string>
-    <string name="onboarding_extensions_info">An extension tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
-    <string name="onboarding_extensions_install_failed">Could not install %1$s</string>
+    <string name="onboarding_parsers_title">Parsers</string>
+    <string name="onboarding_parsers_subtitle">Install at least one parser to start:</string>
+    <string name="onboarding_parsers_install">Install and Continue</string>
+    <string name="onboarding_parsers_installing">Installing…</string>
+    <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
+    <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
 
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>

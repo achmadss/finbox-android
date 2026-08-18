@@ -9,8 +9,8 @@ import android.os.Build
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.extension.AvailableExtension
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.parser.AvailableParser
+import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.util.ui.MviScreenModel
 import dev.achmad.finbox.core.statement.StatementUpdateJob
@@ -24,7 +24,7 @@ import dev.achmad.finbox.core.preference.OnboardingPreference
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
     private val accountRepository: AccountRepository = inject(),
-    private val extensionManager: ExtensionManager = inject(),
+    private val parserManager: ParserManager = inject(),
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
     private val context: Context = injectAndroidContext(),
@@ -34,8 +34,8 @@ class OnboardingScreenModel(
     init {
         screenModelScope.launch {
             // What's on disk decides which step is next, and the index fills the
-            // extension list; neither is known when the screen is constructed.
-            runCatching { extensionManager.reload() }
+            // parser list; neither is known when the screen is constructed.
+            runCatching { parserManager.reload() }
             next()
 
             // Sign-in finishes in the browser and lands in AuthCallbackActivity.
@@ -74,18 +74,18 @@ class OnboardingScreenModel(
                 preferences.notificationPromptSeen().set(true)
                 next()
             }
-            is Event.OnRefreshExtensions -> refreshIndex()
-            is Event.OnRequestInstallExtensions -> screenModelScope.launch {
-                mutableState.value = State.InstallExtensions(isInstalling = true)
-                Log.i("Onboarding", "Installing ${event.availableExtensions.map { it.pkg }}")
-                for (extension in event.availableExtensions) {
-                    runCatching { extensionManager.installAndWait(extension) }
-                        .onSuccess { Log.i("Onboarding", "Installed ${extension.pkg}") }
+            is Event.OnRefreshParsers -> refreshIndex()
+            is Event.OnRequestInstallParsers -> screenModelScope.launch {
+                mutableState.value = State.InstallParsers(isInstalling = true)
+                Log.i("Onboarding", "Installing ${event.availableParsers.map { it.pkg }}")
+                for (parser in event.availableParsers) {
+                    runCatching { parserManager.installAndWait(parser) }
+                        .onSuccess { Log.i("Onboarding", "Installed ${parser.pkg}") }
                         .onFailure {
                             toastHelper.show(
                                 context.getString(
-                                    R.string.onboarding_extensions_install_failed,
-                                    extension.name,
+                                    R.string.onboarding_parsers_install_failed,
+                                    parser.name,
                                 )
                             )
                         }
@@ -93,7 +93,7 @@ class OnboardingScreenModel(
                 // An APK can install and still not load — an unsupported lib
                 // version, a missing parser class. Without this the step just
                 // stays put, with the reason sitting unread in loadErrors.
-                extensionManager.loadErrors.value.forEach { (file, reason) ->
+                parserManager.loadErrors.value.forEach { (file, reason) ->
                     Log.e("Onboarding", "$file did not load: $reason")
                 }
                 next()
@@ -113,7 +113,7 @@ class OnboardingScreenModel(
             mutableState.value = resolved
             // What's published changes without the app hearing about it, so the
             // list is fetched on arrival rather than once per screen model.
-            if (resolved is State.InstallExtensions) refreshIndex()
+            if (resolved is State.InstallParsers) refreshIndex()
             return
         }
         // Nothing left to ask: remember that, and start the first import on the
@@ -126,7 +126,7 @@ class OnboardingScreenModel(
     private suspend fun resolve(): State? = when {
         accountRepository.all().isEmpty() -> State.SignIn
         !notificationSettled() -> State.NotificationPermission
-        extensionManager.installedInfo.value.isEmpty() -> State.InstallExtensions()
+        parserManager.installedInfo.value.isEmpty() -> State.InstallParsers()
         else -> null
     }
 
@@ -134,15 +134,15 @@ class OnboardingScreenModel(
     private fun refreshIndex() {
         screenModelScope.launch {
             setLoading(true)
-            runCatching { extensionManager.refreshIndex() }
-                .onFailure { Log.e("Onboarding", "Extension index fetch failed", it) }
+            runCatching { parserManager.refreshIndex() }
+                .onFailure { Log.e("Onboarding", "Parser index fetch failed", it) }
             setLoading(false)
         }
     }
 
     private fun setLoading(loading: Boolean) {
         val current = state.value
-        if (current is State.InstallExtensions) {
+        if (current is State.InstallParsers) {
             mutableState.value = current.copy(isLoading = loading)
         }
     }
@@ -164,9 +164,9 @@ class OnboardingScreenModel(
         data class OnSignInResult(val data: Intent?): Event
         object OnRequestNotificationPermission: Event
         object OnSkipNotificationPermission: Event
-        object OnRefreshExtensions: Event
-        data class OnRequestInstallExtensions(
-            val availableExtensions: List<AvailableExtension>,
+        object OnRefreshParsers: Event
+        data class OnRequestInstallParsers(
+            val availableParsers: List<AvailableParser>,
         ): Event
     }
 
@@ -179,7 +179,7 @@ class OnboardingScreenModel(
         object Resolving: State()
         object SignIn: State()
         object NotificationPermission: State()
-        data class InstallExtensions(
+        data class InstallParsers(
             val isLoading: Boolean = false,
             val isInstalling: Boolean = false,
         ): State()

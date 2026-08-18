@@ -1,0 +1,31 @@
+CREATE TABLE installed_parser (
+    pkg TEXT NOT NULL PRIMARY KEY,
+    provider TEXT NOT NULL,
+    name TEXT NOT NULL,
+    file TEXT NOT NULL,
+    version_code INTEGER NOT NULL,
+    version_name TEXT NOT NULL,
+    lib_version TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    source_ids TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1
+);
+
+SELECTAll:
+SELECT * FROM installed_parser ORDER BY name;
+
+SELECTByPkg:
+SELECT * FROM installed_parser WHERE pkg = :pkg;
+
+INSERTOrReplace:
+INSERT OR REPLACE INTO installed_parser(pkg, provider, name, file, version_code, version_name, lib_version, sha256, source_ids, enabled)
+VALUES (:pkg, :provider, :name, :file, :version_code, :version_name, :lib_version, :sha256, :source_ids, :enabled);
+
+DELETEByPkg:
+DELETE FROM installed_parser WHERE pkg = :pkg;
+
+SETEnabled:
+UPDATE installed_parser SET enabled = :enabled WHERE pkg = :pkg;
+
+DELETEAllParsers:
+DELETE FROM installed_parser;

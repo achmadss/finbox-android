@@ -116,7 +116,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
                 )
                 if (sources.isEmpty()) {
                     Text(
-                        text = "No parsers installed. Install an extension first.",
+                        text = "No parsers installed. Install a parser first.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

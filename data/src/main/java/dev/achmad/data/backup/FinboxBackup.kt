@@ -1,15 +1,15 @@
 package dev.achmad.data.backup
 
-import dev.achmad.data.model.AccountExtension
+import dev.achmad.data.model.AccountParser
 import dev.achmad.data.model.Email
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.model.InstalledExtension
+import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.InstalledExtensionRepository
+import dev.achmad.data.repository.InstalledParserRepository
 import dev.achmad.data.repository.TransactionRepository
 import java.io.InputStream
 import java.io.OutputStream
@@ -27,7 +27,7 @@ data class BackupData(
     val createdAt: Long = 0L,
     val accounts: List<BackupAccount> = emptyList(),
     val assignments: List<BackupAssignment> = emptyList(),
-    val extensions: List<BackupExtension> = emptyList(),
+    val parsers: List<BackupParser> = emptyList(),
     val emails: List<BackupEmail> = emptyList(),
     val transactions: List<BackupTransaction> = emptyList(),
 )
@@ -57,7 +57,7 @@ data class BackupAssignment(
 )
 
 @Serializable
-data class BackupExtension(
+data class BackupParser(
     val pkg: String,
     val provider: String,
     val name: String,
@@ -105,7 +105,7 @@ data class BackupTransaction(
 )
 
 /** What the app writes and reads back: gzipped JSON, `.finboxbackup`. */
-const val BACKUP_EXTENSION = "finboxbackup"
+const val BACKUP_FILE_EXTENSION = "finboxbackup"
 
 /** Bumped when a released format can no longer be read as-is. */
 const val FORMAT_VERSION = 1
@@ -124,8 +124,8 @@ const val FORMAT_VERSION = 1
  */
 class FinboxBackup(
     private val accounts: AccountRepository,
-    private val assignments: AccountExtensionRepository,
-    private val extensions: InstalledExtensionRepository,
+    private val assignments: AccountParserRepository,
+    private val parsers: InstalledParserRepository,
     private val emails: EmailRepository,
     private val transactions: TransactionRepository,
 ) {
@@ -141,7 +141,7 @@ class FinboxBackup(
             createdAt = System.currentTimeMillis(),
             accounts = accounts.all().map { it.toBackup() },
             assignments = assignments.all().map { it.toBackup() },
-            extensions = extensions.all().map { it.toBackup() },
+            parsers = parsers.all().map { it.toBackup() },
             emails = emails.all().map { it.toBackup() },
             transactions = transactions.all().map { it.toBackup() },
         )
@@ -161,7 +161,7 @@ class FinboxBackup(
             "Backup format ${data.version} is newer than this app understands"
         }
         accounts.replaceAll(data.accounts.map { it.toModel() })
-        extensions.replaceAll(data.extensions.map { it.toModel() })
+        parsers.replaceAll(data.parsers.map { it.toModel() })
         assignments.replaceAll(data.assignments.map { it.toModel() })
         emails.replaceAll(data.emails.map { it.toModel() })
         transactions.replaceAll(data.transactions.map { it.toModel() })
@@ -178,15 +178,15 @@ private fun BackupAccount.toModel() = EmailAccount(
     lastSyncAt, lastHistoryId, syncQuery, importCursor, importedBackTo,
 )
 
-private fun AccountExtension.toBackup() = BackupAssignment(accountId, sourceId, enabled, position)
+private fun AccountParser.toBackup() = BackupAssignment(accountId, sourceId, enabled, position)
 
-private fun BackupAssignment.toModel() = AccountExtension(accountId, sourceId, enabled, position)
+private fun BackupAssignment.toModel() = AccountParser(accountId, sourceId, enabled, position)
 
-private fun InstalledExtension.toBackup() = BackupExtension(
+private fun InstalledParser.toBackup() = BackupParser(
     pkg, provider, name, file, versionCode, versionName, libVersion, sha256, sourceIds, enabled,
 )
 
-private fun BackupExtension.toModel() = InstalledExtension(
+private fun BackupParser.toModel() = InstalledParser(
     pkg, provider, name, file, versionCode, versionName, libVersion, sha256, sourceIds, enabled,
 )
 

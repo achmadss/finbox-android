@@ -48,12 +48,12 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.parser.ParserUpdateChecker
 import dev.achmad.finbox.core.update.AppUpdateChecker
-import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
+import dev.achmad.finbox.core.parser.ParserUpdateNotifier
 import dev.achmad.finbox.core.statement.StatementUpdateStatus
 import dev.achmad.finbox.features.expenses.ExpensesScreen
-import dev.achmad.finbox.features.extensions.ExtensionsScreen
+import dev.achmad.finbox.features.parsers.ParsersScreen
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
@@ -71,7 +71,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
-    private val extensionUpdateChecker: ExtensionUpdateChecker by injectLazy()
+    private val parserUpdateChecker: ParserUpdateChecker by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
     private val statementUpdateStatus by lazy { StatementUpdateStatus(applicationContext) }
 
@@ -164,8 +164,8 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
-            runCatching { extensionUpdateChecker.checkForUpdates() }
-                .onFailure { Log.e("Extensions", "Extension update check failed", it) }
+            runCatching { parserUpdateChecker.checkForUpdates() }
+                .onFailure { Log.e("Parsers", "Parser update check failed", it) }
             appUpdateChecker.checkAndNotify()
         }
     }
@@ -189,8 +189,8 @@ class MainActivity : AppCompatActivity() {
     private fun handleIntentAction(intent: Intent, navigator: Navigator) {
         when (intent.action) {
             // Onboarding has to finish before there is anywhere sensible to land.
-            ExtensionUpdateNotifier.ACTION_OPEN_EXTENSIONS -> {
-                if (navigator.lastItem is ExpensesScreen) navigator.push(ExtensionsScreen)
+            ParserUpdateNotifier.ACTION_OPEN_PARSERS -> {
+                if (navigator.lastItem is ExpensesScreen) navigator.push(ParsersScreen)
             }
         }
     }

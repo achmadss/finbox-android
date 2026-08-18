@@ -79,9 +79,9 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
-import dev.achmad.finbox.core.extension.LoadedSource
+import dev.achmad.finbox.core.parser.LoadedSource
 import dev.achmad.finbox.features.accounts.AccountsScreen
-import dev.achmad.finbox.features.extensions.ExtensionsScreen
+import dev.achmad.finbox.features.parsers.ParsersScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.theme.components.AppBar
@@ -127,7 +127,7 @@ object ExpensesScreen : Screen {
         val filter by model.filter.collectAsState()
         val accounts by model.accounts.collectAsState()
         val sources by model.sources.collectAsState()
-        val extensionUpdates by model.extensionUpdates.collectAsState()
+        val parserUpdates by model.parserUpdates.collectAsState()
 
         ExpensesScreenContent(
             monthly = monthly,
@@ -138,12 +138,12 @@ object ExpensesScreen : Screen {
             filter = filter,
             accounts = accounts,
             sources = sources,
-            extensionUpdates = extensionUpdates,
+            parserUpdates = parserUpdates,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
             onOpenAccounts = { navigator.push(AccountsScreen) },
-            onOpenExtensions = { navigator.push(ExtensionsScreen) },
+            onOpenParsers = { navigator.push(ParsersScreen) },
             onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
@@ -161,28 +161,28 @@ private fun ExpensesScreenContent(
     filter: ExpenseFilter,
     accounts: List<EmailAccount>,
     sources: List<LoadedSource>,
-    /** Extensions with a newer build in the repo index. */
-    extensionUpdates: Int = 0,
+    /** Parsers with a newer build in the repo index. */
+    parserUpdates: Int = 0,
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,
     onFilterChange: (ExpenseFilter) -> Unit,
     onOpenAccounts: () -> Unit,
-    onOpenExtensions: () -> Unit,
+    onOpenParsers: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
 
     // Keyed on the kind alone, not on the source it was parsed by: a source id carries the
-    // extension's version, so rows written by an older build would otherwise lose their name.
-    // ponytail: two extensions declaring the same key show one name — per-source if that lands.
-    // Empty until the registry loads, and empty for a kind an extension dropped, so the rows
+    // parser's version, so rows written by an older build would otherwise lose their name.
+    // ponytail: two parsers declaring the same key show one name — per-source if that lands.
+    // Empty until the registry loads, and empty for a kind a parser dropped, so the rows
     // fall through to the description as before.
     val kindNames = remember(sources) {
         sources.flatMap { it.kinds }.associate { it.key to it.name }
     }
     // By id here, because that is all a transaction stores. A row parsed by an earlier build of
-    // an extension is filed under that build's source id and so goes unnamed, same as the filter.
+    // a parser is filed under that build's source id and so goes unnamed, same as the filter.
     val sourceNames = remember(sources) { sources.associate { it.id to it.name } }
 
     if (showMonthPicker) {
@@ -227,10 +227,10 @@ private fun ExpensesScreenContent(
                         onClick = onOpenAccounts,
                     ),
                     AppBar.OverflowAction(
-                        title = "Extensions",
+                        title = "Parsers",
                         icon = Icons.Outlined.Extension,
-                        badge = extensionUpdates,
-                        onClick = onOpenExtensions,
+                        badge = parserUpdates,
+                        onClick = onOpenParsers,
                     ),
                     AppBar.OverflowAction(
                         title = "Settings",
@@ -682,7 +682,7 @@ private fun TransactionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                // The extension's own word for it — "QRIS Payment", not the `QRIS` key stored
+                // The parser's own word for it — "QRIS Payment", not the `QRIS` key stored
                 // with the row.
                 text = kind
                     ?: transaction.description
@@ -802,7 +802,7 @@ private fun ExpensesScreenPreview() {
             onMonthChange = {},
             onFilterChange = {},
             onOpenAccounts = {},
-            onOpenExtensions = {},
+            onOpenParsers = {},
             onOpenSettings = {},
         )
     }

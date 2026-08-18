@@ -5,11 +5,11 @@ import android.util.Log
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.LoadedSource
+import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.core.parser.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,10 +20,10 @@ import kotlinx.coroutines.launch
 
 class AccountsScreenModel(
     private val accountRepository: AccountRepository = inject(),
-    private val accountExtensionRepository: AccountExtensionRepository = inject(),
+    private val accountParserRepository: AccountParserRepository = inject(),
     private val tokenStore: GmailTokenStore = inject(),
     private val authManager: GmailAuthManager = inject(),
-    private val extensionManager: ExtensionManager = inject(),
+    private val parserManager: ParserManager = inject(),
 ) : ScreenModel {
 
     val accounts: StateFlow<List<EmailAccount>> = accountRepository.accounts()
@@ -38,7 +38,7 @@ class AccountsScreenModel(
      * configured yet — while it was in fact reading with all of them.
      */
     val disabledByAccount: StateFlow<Map<String, Set<Long>>> =
-        accountExtensionRepository.allAssignments()
+        accountParserRepository.allAssignments()
             .map { list ->
                 list.filterNot { it.enabled }
                     .groupBy({ it.accountId }, { it.sourceId })
@@ -47,7 +47,7 @@ class AccountsScreenModel(
             .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
 
     /** Parsers currently loaded — what an assignment's `sourceId` points at. */
-    val sources: StateFlow<List<LoadedSource>> = extensionManager.sourcesFlow
+    val sources: StateFlow<List<LoadedSource>> = parserManager.sourcesFlow
 
     /** The browser flow to launch for result; hand the result back to [addAccount]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
@@ -72,7 +72,7 @@ class AccountsScreenModel(
     fun remove(id: String) {
         screenModelScope.launch {
             accountRepository.delete(id)
-            accountExtensionRepository.deleteForAccount(id)
+            accountParserRepository.deleteForAccount(id)
             // A removed account keeping a live refresh token is a token nothing will ever use.
             tokenStore.clear(id)
         }
@@ -80,7 +80,7 @@ class AccountsScreenModel(
 
     fun setParserEnabled(accountId: String, sourceId: Long, enabled: Boolean) {
         screenModelScope.launch {
-            accountExtensionRepository.setEnabled(accountId, sourceId, enabled)
+            accountParserRepository.setEnabled(accountId, sourceId, enabled)
         }
     }
 }

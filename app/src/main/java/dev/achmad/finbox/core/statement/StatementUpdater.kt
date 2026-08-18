@@ -4,17 +4,17 @@ import dev.achmad.data.model.Email
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.preference.ExtensionKindPreference
-import dev.achmad.finbox.core.extension.LoadedSource
+import dev.achmad.finbox.core.preference.ParserKindPreference
+import dev.achmad.finbox.core.parser.LoadedSource
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineSourceQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
 import dev.achmad.finbox.util.network.HttpException
-import dev.achmad.finbox.extension.EmailMessage
+import dev.achmad.finbox.parser.EmailMessage
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -58,11 +58,11 @@ class StatementUpdater(
     /** The installed sources, read at update time so an install takes effect at once. */
     private val sources: () -> List<LoadedSource>,
     private val accountRepository: AccountRepository,
-    private val accountExtensionRepository: AccountExtensionRepository,
+    private val accountParserRepository: AccountParserRepository,
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
-    private val kindPreference: ExtensionKindPreference,
+    private val kindPreference: ParserKindPreference,
 ) {
 
     /** One update at a time per account, so two refreshes can't race the cursor. */
@@ -150,7 +150,7 @@ class StatementUpdater(
      */
     private suspend fun sourcesFor(account: EmailAccount): List<LoadedSource> {
         val installed = sources()
-        val assignments = accountExtensionRepository.forAccount(account.id).first()
+        val assignments = accountParserRepository.forAccount(account.id).first()
         if (assignments.isEmpty()) return installed
 
         val position = assignments.associate { it.sourceId to it.position }

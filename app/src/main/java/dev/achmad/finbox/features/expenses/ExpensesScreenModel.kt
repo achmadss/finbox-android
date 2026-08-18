@@ -8,8 +8,8 @@ import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.LoadedSource
+import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.core.parser.LoadedSource
 import dev.achmad.finbox.core.statement.StatementUpdateJob
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -74,20 +74,20 @@ internal fun monthRange(
 class ExpensesScreenModel(
     transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
-    private val extensionManager: ExtensionManager = inject(),
+    private val parserManager: ParserManager = inject(),
     private val context: Context = injectAndroidContext()
 ) : ScreenModel {
 
     /** Parsers currently loaded — what a transaction's `sourceId` points at. */
-    val sources: StateFlow<List<LoadedSource>> = extensionManager.sourcesFlow
+    val sources: StateFlow<List<LoadedSource>> = parserManager.sourcesFlow
 
-    /** Badge on the Extensions menu item. */
-    val extensionUpdates: StateFlow<Int> = extensionManager.updatesCount
+    /** Badge on the Parsers menu item. */
+    val parserUpdates: StateFlow<Int> = parserManager.updatesCount
 
     init {
         // The registry only fills on reload, and opening straight onto this screen means nothing
         // has done that yet — the filter sheet would offer no parsers. Idempotent and cheap.
-        screenModelScope.launch { extensionManager.reload() }
+        screenModelScope.launch { parserManager.reload() }
     }
 
     private val picked = MutableStateFlow<YearMonth?>(null)

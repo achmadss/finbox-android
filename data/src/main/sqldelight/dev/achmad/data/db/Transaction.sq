@@ -14,7 +14,7 @@ CREATE TABLE transactions (
     currency TEXT,
     type TEXT,
     -- The source's own name for what this is, e.g. QRIS or TRANSFER_BI_FAST.
-    -- The user switches these on and off per extension, so a row has to say
+    -- The user switches these on and off per parser, so a row has to say
     -- which one it was parsed under.
     kind TEXT,
     category TEXT,

@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import dev.achmad.data.backup.BACKUP_EXTENSION
+import dev.achmad.data.backup.BACKUP_FILE_EXTENSION
 import dev.achmad.data.backup.FinboxBackup
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountRepository
@@ -40,7 +40,7 @@ class SettingsScreenModel : ScreenModel {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
-    fun backupFileName(): String = "finbox_${LocalDate.now()}.$BACKUP_EXTENSION"
+    fun backupFileName(): String = "finbox_${LocalDate.now()}.$BACKUP_FILE_EXTENSION"
 
     fun csvFileName(): String = "finbox_${LocalDate.now()}.csv"
 
@@ -63,7 +63,7 @@ class SettingsScreenModel : ScreenModel {
         screenModelScope.launch { StatementUpdateJob.runNow(context) }
     }
 
-    /** Hands stored mail to the current extensions again, in the background. */
+    /** Hands stored mail to the current parsers again, in the background. */
     fun reindexTransactions(context: Context) {
         screenModelScope.launch { StatementUpdateJob.reparseNow(context) }
     }
@@ -71,8 +71,8 @@ class SettingsScreenModel : ScreenModel {
     /**
      * Forced, so neither the daily throttle nor the switch swallows it.
      *
-     * Extensions have no equivalent here: their list refreshes itself whenever
-     * the extensions screen opens, which is where a new one gets installed.
+     * Parsers have no equivalent here: their list refreshes itself whenever
+     * the parsers screen opens, which is where a new one gets installed.
      */
     fun checkAppUpdateNow() {
         screenModelScope.launch {

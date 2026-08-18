@@ -9,9 +9,9 @@ package dev.achmad.finbox.core
  */
 object FinboxConfig {
 
-    /** The single extension repo index (see finbox-extension). */
-    const val EXTENSION_INDEX_URL =
-        "https://raw.githubusercontent.com/achmadss/finbox-extension/main/repo/index.json"
+    /** The single parser repo index (see finbox-parser). */
+    const val PARSER_INDEX_URL =
+        "https://raw.githubusercontent.com/achmadss/finbox-parser/main/repo/index.json"
 
     /** Where a newer build of the app itself is published. */
     const val APP_RELEASES_URL =
@@ -38,27 +38,27 @@ object FinboxConfig {
     const val USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     /**
-     * The parser API this app ships. An extension declares the one it was built
-     * against via `finbox.extension.lib`, or by the leading components of its
+     * The parser API this app ships. A parser declares the one it was built
+     * against via `finbox.parser.lib`, or by the leading components of its
      * versionName ("1.3.5" -> 1.3).
      */
-    const val LIB_VERSION = 1.5
+    const val LIB_VERSION = 1.6
 
     /**
      * The oldest parser API still loadable.
      *
      * Adding to the API raises [LIB_VERSION] and leaves this alone, so every
-     * extension already published keeps working — it simply never uses what it
-     * doesn't know about. Only a change that breaks an existing extension
+     * parser already published keeps working — it simply never uses what it
+     * doesn't know about. Only a change that breaks an existing parser
      * raises this, and that is meant to hurt: it orphans every APK below it
      * until each is rebuilt.
      *
-     * At 1.5 because a source now declares its `kinds` and tags each parsed
-     * transaction with one: an extension built against 1.4 doesn't implement
-     * that member, and its `ParsedTransaction` calls a constructor that no
-     * longer exists.
+     * At 1.6 because the API moved from `dev.achmad.finbox.extension` to
+     * `dev.achmad.finbox.parser`: a parser built against 1.5 asks its
+     * classloader for types under the old package, which the app no longer
+     * has, so every published APK has to be rebuilt.
      */
-    const val MIN_LIB_VERSION = 1.5
+    const val MIN_LIB_VERSION = 1.6
 
     /**
      * Whether a parser API version is one this app can load.

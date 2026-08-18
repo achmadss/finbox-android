@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.TransactionType
-import dev.achmad.finbox.core.extension.LoadedSource
+import dev.achmad.finbox.core.parser.LoadedSource
 import dev.achmad.finbox.theme.components.CheckboxItem
 import dev.achmad.finbox.theme.components.CollapsibleBox
 import dev.achmad.finbox.theme.components.SettingsItemsPaddings
@@ -78,7 +78,7 @@ fun ExpensesFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = headingOf("Extensions", filter.sourceIds.size)) {
+            CollapsibleBox(heading = headingOf("Parsers", filter.sourceIds.size)) {
                 if (sources.isEmpty()) {
                     EmptySectionHint("No parsers installed")
                 }
