@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,12 +43,6 @@ fun OnboardingAuthContent(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Thin, above the button, and in the layout only while it runs: the step
-                // is busy but nothing behind it is blocked.
-                if (signingIn) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     // The browser is out there, or the token exchange is in flight. Either

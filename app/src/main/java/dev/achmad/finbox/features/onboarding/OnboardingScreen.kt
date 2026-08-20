@@ -116,7 +116,7 @@ private fun OnboardingScreen(
             },
             dismissButton = {
                 TextButton(onClick = { confirmExit = false }) {
-                    Text(stringResource(R.string.cancel))
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
         )

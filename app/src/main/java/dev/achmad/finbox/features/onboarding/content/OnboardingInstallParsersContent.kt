@@ -61,7 +61,7 @@ fun OnboardingInstallParsersContent(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(R.string.onboarding_parsers_title))
+                    Text(stringResource(R.string.parsers))
                 }
             )
         },
@@ -141,7 +141,7 @@ fun OnboardingInstallParsersContent(
                         ) {
                             Text(
                                 stringResource(
-                                    if (allSelected) R.string.onboarding_parsers_clear_selection
+                                    if (allSelected) R.string.action_clear
                                     else R.string.onboarding_parsers_select_all
                                 )
                             )

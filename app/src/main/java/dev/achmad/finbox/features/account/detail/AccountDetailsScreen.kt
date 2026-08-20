@@ -45,6 +45,8 @@ import dev.achmad.finbox.features.account.list.AccountAvatar
 import dev.achmad.finbox.features.account.list.RemoveAccountConfirmation
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 data class AccountDetailsScreen(private val id: String) : Screen {
 
@@ -68,10 +70,10 @@ data class AccountDetailsScreen(private val id: String) : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Account info") },
+                    title = { Text(stringResource(R.string.label_account_info)) },
                     navigationIcon = {
                         IconButton(onClick = navigator::pop) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_bar_up_description))
                         }
                     },
                 )
@@ -99,21 +101,21 @@ data class AccountDetailsScreen(private val id: String) : Screen {
                 )
                 HorizontalDivider()
                 SwitchRow(
-                    title = "Sync",
-                    subtitle = "Read new transactions from this mailbox",
+                    title = stringResource(R.string.sync),
+                    subtitle = stringResource(R.string.account_sync_summ),
                     checked = current.enabled,
                     onCheckedChange = model::setSyncEnabled,
                 )
                 HorizontalDivider()
                 Text(
-                    text = "Parsers",
+                    text = stringResource(R.string.parsers),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
                 )
                 if (sources.isEmpty()) {
                     Text(
-                        text = "No parsers installed. Install a parser first.",
+                        text = stringResource(R.string.account_no_parsers),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -163,8 +165,9 @@ private fun DetailsHeader(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = account.lastSyncAt?.let { "Synced ${formatDate(it, rememberUse24HourClock())}" }
-                ?: "Never synced",
+            text = account.lastSyncAt
+                ?.let { stringResource(R.string.synced, formatDate(it, rememberUse24HourClock())) }
+                ?: stringResource(R.string.never_synced),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -176,7 +179,7 @@ private fun DetailsHeader(
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClickRemove,
-        ) { Text("Remove account") }
+        ) { Text(stringResource(R.string.action_remove_account)) }
     }
 }
 

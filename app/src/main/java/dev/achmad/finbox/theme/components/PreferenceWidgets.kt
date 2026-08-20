@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /** The rows [PreferenceScreen] is made of, in the style of Tachiyomi's settings. */
 internal val PrefsHorizontalPadding = 16.dp
@@ -185,7 +187,7 @@ fun <T> ListPreferenceWidget(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDialog = false }) { Text(text = "Cancel") }
+                TextButton(onClick = { showDialog = false }) { Text(text = stringResource(R.string.action_cancel)) }
             },
         )
     }

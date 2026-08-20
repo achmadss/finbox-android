@@ -2,6 +2,7 @@ package dev.achmad.finbox.features.settings
 
 import android.content.Context
 import android.content.Intent
+import dev.achmad.finbox.R
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.ui.ToastHelper
 
@@ -14,5 +15,5 @@ import dev.achmad.finbox.util.ui.ToastHelper
  */
 internal fun Context.openSystemSettings(intent: Intent) {
     runCatching { startActivity(intent) }
-        .onFailure { inject<ToastHelper>().show("Your device has no screen for this") }
+        .onFailure { inject<ToastHelper>().show(R.string.error_no_system_screen) }
 }

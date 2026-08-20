@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +48,7 @@ fun AppBar(
                 IconButton(onClick = it) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "Navigate up",
+                        contentDescription = stringResource(R.string.action_bar_up_description),
                     )
                 }
             }
@@ -80,7 +82,7 @@ fun RowScope.AppBarActions(actions: List<AppBar.AppBarAction>) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.MoreVert,
-                contentDescription = "More",
+                contentDescription = stringResource(R.string.action_menu_overflow_description),
             )
         }
     }

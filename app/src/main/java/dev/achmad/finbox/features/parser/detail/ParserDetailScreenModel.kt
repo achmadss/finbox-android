@@ -1,9 +1,11 @@
 package dev.achmad.finbox.features.parser.detail
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.TransactionRepository
+import dev.achmad.finbox.R
 import dev.achmad.finbox.core.preference.ParserKindPreference
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.InstallStep
@@ -132,12 +134,13 @@ class ParserDetailScreenModel(
          * after the database does, and "Expense only" flickering into "Multi
          * type" reads as a bug.
          */
-        val summary: String
+        @get:StringRes
+        val summary: Int
             get() = when {
-                kinds.isEmpty() -> "Unknown"
-                kinds.all { it.type == TransactionType.EXPENSE } -> "Expense only"
-                kinds.all { it.type == TransactionType.INCOME } -> "Income only"
-                else -> "Multi type"
+                kinds.isEmpty() -> R.string.unknown
+                kinds.all { it.type == TransactionType.EXPENSE } -> R.string.parser_summary_expense_only
+                kinds.all { it.type == TransactionType.INCOME } -> R.string.parser_summary_income_only
+                else -> R.string.parser_summary_multi_type
             }
     }
 }

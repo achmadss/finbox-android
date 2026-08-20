@@ -59,6 +59,9 @@ import coil3.compose.AsyncImage
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.parser.rememberParserPainter
 import dev.achmad.finbox.features.parser.detail.ParserDetailScreen
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 object ParsersScreen : Screen {
     private fun readResolve(): Any = ParsersScreen
@@ -77,7 +80,7 @@ object ParsersScreen : Screen {
             topBar = {
                 TopAppBar(
                     modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
-                    title = { Text("Parsers") },
+                    title = { Text(stringResource(R.string.parsers)) },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
@@ -97,7 +100,7 @@ object ParsersScreen : Screen {
                     }
                     state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                         Text(
-                            "Nothing to show. Pull to refresh.",
+                            stringResource(R.string.parsers_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -165,28 +168,28 @@ private fun ParserContent(
     ) {
         if (state.updates.isNotEmpty()) {
             item(key = "header-updates", contentType = "header") {
-                ParserHeader("Update pending") {
-                    Button(onClick = onClickUpdateAll) { Text("Update all") }
+                ParserHeader(stringResource(R.string.parsers_header_updates)) {
+                    Button(onClick = onClickUpdateAll) { Text(stringResource(R.string.action_update_all)) }
                 }
             }
             parserItems(state.updates, onClickItem, onLongClickItem, onClickAction, onClickCancel)
         }
 
         if (state.installed.isNotEmpty()) {
-            item(key = "header-installed", contentType = "header") { ParserHeader("Installed") }
+            item(key = "header-installed", contentType = "header") { ParserHeader(stringResource(R.string.parsers_header_installed)) }
             parserItems(state.installed, onClickItem, onLongClickItem, onClickAction, onClickCancel)
         }
 
         if (state.available.isNotEmpty()) {
-            item(key = "header-available", contentType = "header") { ParserHeader("Available") }
+            item(key = "header-available", contentType = "header") { ParserHeader(stringResource(R.string.parsers_header_available)) }
             parserItems(state.available, onClickItem, onLongClickItem, onClickAction, onClickCancel)
         }
 
         if (state.errors.isNotEmpty()) {
-            item(key = "header-errors", contentType = "header") { ParserHeader("Failed to load") }
+            item(key = "header-errors", contentType = "header") { ParserHeader(stringResource(R.string.parsers_header_errors)) }
             items(state.errors.toList(), key = { "error-${it.first}" }) { (file, reason) ->
                 Text(
-                    text = "$file: $reason",
+                    text = stringResource(R.string.parser_load_error, file, reason),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
@@ -261,13 +264,12 @@ private fun ParserItem(
 
 @Composable
 private fun ParserSubtitle(item: ParserUiModel) {
-    val details = buildList {
-        add("v${item.versionName}")
-        item.installStep.label()?.let { add(it) }
-    }
+    val version = stringResource(R.string.parser_version_name, item.versionName)
+    val step = item.installStep.labelRes()?.let { stringResource(it) }
+    val details = listOfNotNull(version, step)
     val warning = when {
-        item.installStep == InstallStep.Error -> "FAILED"
-        item is ParserUiModel.Installed && !item.enabled -> "DISABLED"
+        item.installStep == InstallStep.Error -> stringResource(R.string.parser_badge_failed)
+        item is ParserUiModel.Installed && !item.enabled -> stringResource(R.string.parser_badge_disabled)
         else -> null
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -290,10 +292,11 @@ private fun ParserSubtitle(item: ParserUiModel) {
 }
 
 /** Only the steps worth naming: the finished ones are told by the row itself. */
-private fun InstallStep.label(): String? = when (this) {
-    InstallStep.Pending -> "Pending"
-    InstallStep.Downloading -> "Downloading"
-    InstallStep.Installing -> "Installing"
+@StringRes
+internal fun InstallStep.labelRes(): Int? = when (this) {
+    InstallStep.Pending -> R.string.parser_step_pending
+    InstallStep.Downloading -> R.string.parser_step_downloading
+    InstallStep.Installing -> R.string.parser_step_installing
     else -> null
 }
 
@@ -306,27 +309,27 @@ private fun ParserItemActions(
     when {
         item.isRunning -> {
             IconButton(onClick = { onClickCancel(item) }) {
-                Icon(Icons.Outlined.Close, contentDescription = "Cancel")
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_cancel))
             }
         }
         item.installStep == InstallStep.Error -> {
             IconButton(onClick = { onClickAction(item) }) {
-                Icon(Icons.Outlined.Refresh, contentDescription = "Retry")
+                Icon(Icons.Outlined.Refresh, contentDescription = stringResource(R.string.action_retry))
             }
         }
         item is ParserUiModel.Installed && item.update != null -> {
             IconButton(onClick = { onClickAction(item) }) {
-                Icon(Icons.Outlined.GetApp, contentDescription = "Update")
+                Icon(Icons.Outlined.GetApp, contentDescription = stringResource(R.string.action_update))
             }
         }
         item is ParserUiModel.Installed -> {
             IconButton(onClick = { onClickAction(item) }) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Parser info")
+                Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.label_parser_info))
             }
         }
         else -> {
             IconButton(onClick = { onClickAction(item) }) {
-                Icon(Icons.Outlined.GetApp, contentDescription = "Install")
+                Icon(Icons.Outlined.GetApp, contentDescription = stringResource(R.string.action_install))
             }
         }
     }
@@ -380,18 +383,18 @@ fun UninstallConfirmation(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-        title = { Text("Uninstall parser") },
-        text = { Text("Remove $name? Transactions it already parsed stay.") },
+        title = { Text(stringResource(R.string.uninstall_parser)) },
+        text = { Text(stringResource(R.string.uninstall_parser_confirmation, name)) },
         confirmButton = {
             TextButton(
                 onClick = {
                     onConfirm()
                     onDismiss()
                 },
-            ) { Text("Uninstall") }
+            ) { Text(stringResource(R.string.action_uninstall)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }

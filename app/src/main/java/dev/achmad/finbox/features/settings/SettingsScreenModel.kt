@@ -2,12 +2,15 @@ package dev.achmad.finbox.features.settings
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import androidx.annotation.StringRes
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.backup.BACKUP_FILE_EXTENSION
 import dev.achmad.data.backup.FinboxBackup
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountRepository
+import dev.achmad.finbox.R
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.util.koin.inject
@@ -44,17 +47,17 @@ class SettingsScreenModel : ScreenModel {
 
     fun csvFileName(): String = "finbox_${LocalDate.now()}.csv"
 
-    fun createBackup(uri: Uri) = runExclusive("Backup saved") {
+    fun createBackup(uri: Uri) = runExclusive(R.string.backup_created) {
         context.contentResolver.openOutputStream(uri)?.use { backup.backupTo(it) }
             ?: error("Could not open the file")
     }
 
-    fun restoreBackup(uri: Uri) = runExclusive("Backup restored") {
+    fun restoreBackup(uri: Uri) = runExclusive(R.string.backup_restored) {
         context.contentResolver.openInputStream(uri)?.use { backup.restoreFrom(it) }
             ?: error("Could not open the file")
     }
 
-    fun exportCsv(uri: Uri) = runExclusive("Transactions exported") {
+    fun exportCsv(uri: Uri) = runExclusive(R.string.transactions_exported) {
         context.contentResolver.openOutputStream(uri)?.use { csv.exportTo(it) }
             ?: error("Could not open the file")
     }
@@ -78,22 +81,29 @@ class SettingsScreenModel : ScreenModel {
         screenModelScope.launch {
             runCatching { appUpdateChecker.checkForUpdate(force = true) }
                 .onSuccess { update ->
-                    toast.show(
-                        update?.let { "Finbox ${it.version} is available" }
-                            ?: "Finbox is up to date",
-                    )
+                    when (update) {
+                        null -> toast.show(R.string.app_update_up_to_date)
+                        else -> toast.show(R.string.app_update_available, update.version)
+                    }
                 }
-                .onFailure { toast.show("Could not check for app updates") }
+                .onFailure {
+                    Log.e("Settings", "App update check failed", it)
+                    toast.show(R.string.app_update_check_failed)
+                }
         }
     }
 
-    private fun runExclusive(success: String, block: suspend () -> Unit) {
+    /** The reason is logged rather than shown: it comes from the platform, untranslated. */
+    private fun runExclusive(@StringRes success: Int, block: suspend () -> Unit) {
         if (_busy.value) return
         _busy.value = true
         screenModelScope.launch {
             runCatching { block() }
                 .onSuccess { toast.show(success) }
-                .onFailure { toast.show(it.message ?: "Something went wrong") }
+                .onFailure {
+                    Log.e("Settings", "File operation failed", it)
+                    toast.show(R.string.error_generic)
+                }
             _busy.value = false
         }
     }

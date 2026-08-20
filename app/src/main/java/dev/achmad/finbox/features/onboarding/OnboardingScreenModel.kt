@@ -63,19 +63,15 @@ class OnboardingScreenModel(
         screenModelScope.launch {
             runCatching { authManager.handleCallback(data) }
                 .onSuccess {
-                    toastHelper.show(
-                        context.getString(R.string.onboarding_auth_connected, it.email)
-                    )
+                    toastHelper.show(R.string.onboarding_auth_connected, it.email)
                 }
                 .onFailure {
                     Log.e("Onboarding", "Sign-in failed", it)
                     // Back to a step that can be tried again; next() leaves it on SignIn.
                     mutableState.value = State.SignIn()
                     toastHelper.show(
-                        message = context.getString(
-                            R.string.onboarding_auth_failed,
-                            it.message.orEmpty(),
-                        ),
+                        R.string.onboarding_auth_failed,
+                        it.message.orEmpty(),
                         duration = Toast.LENGTH_LONG,
                     )
                 }
@@ -110,12 +106,7 @@ class OnboardingScreenModel(
 
             val steps = parserManager.installSteps.value
             requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
-                toastHelper.show(
-                    context.getString(
-                        R.string.onboarding_parsers_install_failed,
-                        parser.name,
-                    )
-                )
+                toastHelper.show(R.string.onboarding_parsers_install_failed, parser.name)
             }
             // An APK can install and still not load — an unsupported lib
             // version, a missing parser class. Without this the step just

@@ -35,12 +35,14 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
-import dev.achmad.finbox.features.transaction.list.label
+import dev.achmad.finbox.features.transaction.list.labelRes
 import dev.achmad.finbox.parser.TransactionKind
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 data class TransactionDetailScreen(private val id: String) : Screen {
 
@@ -62,19 +64,19 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         Scaffold(
             topBar = {
                 AppBar(
-                    title = "Transaction",
+                    title = stringResource(R.string.transaction),
                     navigateUp = navigator::pop,
                     actions = if (transaction == null) {
                         emptyList()
                     } else {
                         listOf(
                             AppBar.Action(
-                                title = "Edit",
+                                title = stringResource(R.string.action_edit),
                                 icon = Icons.Outlined.Edit,
                                 onClick = { navigator.push(TransactionEditScreen(id)) },
                             ),
                             AppBar.Action(
-                                title = "Delete",
+                                title = stringResource(R.string.action_delete),
                                 icon = Icons.Outlined.Delete,
                                 onClick = { confirmDelete = true },
                             ),
@@ -103,18 +105,18 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         if (confirmDelete) {
             AlertDialog(
                 onDismissRequest = { confirmDelete = false },
-                title = { Text("Delete transaction?") },
-                text = { Text("It disappears from your transactions. Re-reading the email brings it back.") },
+                title = { Text(stringResource(R.string.delete_transaction)) },
+                text = { Text(stringResource(R.string.delete_transaction_confirmation)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             confirmDelete = false
                             model.delete()
                         },
-                    ) { Text("Delete") }
+                    ) { Text(stringResource(R.string.action_delete)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                    TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
                 },
             )
         }
@@ -143,16 +145,16 @@ private fun TransactionView(transaction: Transaction, kinds: List<TransactionKin
         )
     }
     HorizontalDivider()
-    Field("Type", transaction.type?.label)
+    Field(stringResource(R.string.type), transaction.type?.let { stringResource(it.labelRes) })
     // The parser's own word for the kind, falling back to the stored key when its
     // parser is gone or dropped it.
-    Field("Kind", kinds.nameOf(transaction.kind) ?: transaction.kind)
-    Field("Category", transaction.category)
-    Field("Description", transaction.description)
-    Field("Merchant", transaction.merchant)
+    Field(stringResource(R.string.kind), kinds.nameOf(transaction.kind) ?: transaction.kind)
+    Field(stringResource(R.string.category), transaction.category)
+    Field(stringResource(R.string.description), transaction.description)
+    Field(stringResource(R.string.merchant), transaction.merchant)
     HorizontalDivider()
-    Field("Added", formatDate(transaction.createdAt, use24Hour))
-    Field("Edited", formatDate(transaction.updatedAt, use24Hour))
+    Field(stringResource(R.string.label_added), formatDate(transaction.createdAt, use24Hour))
+    Field(stringResource(R.string.label_edited), formatDate(transaction.updatedAt, use24Hour))
 }
 
 /** One read-only row. An empty value still shows, so the shape of the record is visible. */

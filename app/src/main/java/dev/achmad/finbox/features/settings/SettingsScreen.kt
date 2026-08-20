@@ -30,6 +30,8 @@ import dev.achmad.finbox.util.locale.currentLanguage
 import dev.achmad.finbox.util.locale.displayName
 import dev.achmad.finbox.util.preference.collectAsState
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /** Every setting the app has, in one screen. */
 object SettingsScreen : Screen {
@@ -41,7 +43,7 @@ object SettingsScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         PreferenceScreen(
-            title = "Settings",
+            title = stringResource(R.string.label_settings),
             onBackPressed = navigator::pop,
             itemsProvider = {
                 listOf(
@@ -62,36 +64,36 @@ object SettingsScreen : Screen {
         val themeMode by preferences.themeMode().collectAsState()
 
         return Preference.PreferenceGroup(
-            title = "Appearance",
+            title = stringResource(R.string.pref_category_appearance),
             preferenceItems = listOf(
                 Preference.PreferenceItem.ListPreference(
                     preference = preferences.themeMode(),
-                    title = "Theme",
+                    title = stringResource(R.string.pref_app_theme),
                     entries = mapOf(
-                        ThemeMode.SYSTEM to "Follow system",
-                        ThemeMode.LIGHT to "Light",
-                        ThemeMode.DARK to "Dark",
+                        ThemeMode.SYSTEM to stringResource(R.string.theme_system),
+                        ThemeMode.LIGHT to stringResource(R.string.theme_light),
+                        ThemeMode.DARK to stringResource(R.string.theme_dark),
                     ),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.amoledDark(),
-                    title = "Pure black mode",
+                    title = stringResource(R.string.pref_dark_theme_pure_black),
                     // Nothing to see while the app is held in light mode.
                     enabled = themeMode != ThemeMode.LIGHT,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.dynamicColor(),
-                    title = "Dynamic colors",
-                    subtitle = "Match the app colors to your wallpaper",
+                    title = stringResource(R.string.pref_dynamic_color),
+                    subtitle = stringResource(R.string.pref_dynamic_color_summ),
                     enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.use24HourClock(),
-                    title = "24-hour clock",
-                    subtitle = "Show 14:05 instead of 2:05 PM",
+                    title = stringResource(R.string.pref_24_hour_clock),
+                    subtitle = stringResource(R.string.pref_24_hour_clock_summ),
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Language",
+                    title = stringResource(R.string.language),
                     subtitle = displayName(currentLanguage(context)),
                     onClick = { navigator.push(SettingsLanguageScreen) },
                 ),
@@ -113,42 +115,43 @@ object SettingsScreen : Screen {
         val reschedule: suspend (Any?) -> Unit = { TransactionUpdateJob.schedule(context) }
 
         return Preference.PreferenceGroup(
-            title = "Sync",
+            title = stringResource(R.string.sync),
             preferenceItems = listOf(
                 Preference.PreferenceItem.ListPreference(
                     preference = preferences.autoFetchIntervalHours(),
-                    title = "Check for new email",
-                    entries = INTERVAL_ENTRIES,
+                    title = stringResource(R.string.pref_fetch_interval),
+                    entries = intervalEntries(),
                     onValueChanged = reschedule,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.fetchOnUnmeteredOnly(),
-                    title = "Wi-Fi only",
-                    subtitle = "Never sync on mobile data",
+                    title = stringResource(R.string.pref_fetch_unmetered),
+                    subtitle = stringResource(R.string.pref_fetch_unmetered_summ),
                     enabled = intervalHours > 0,
                     onValueChanged = reschedule,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.fetchWhenChargingOnly(),
-                    title = "While charging only",
+                    title = stringResource(R.string.pref_fetch_charging),
                     enabled = intervalHours > 0,
                     onValueChanged = reschedule,
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.fetchWhenBatteryNotLow(),
-                    title = "Skip on low battery",
+                    title = stringResource(R.string.pref_fetch_battery_not_low),
                     enabled = intervalHours > 0,
                     onValueChanged = reschedule,
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Sync now",
-                    subtitle = lastSync?.let { "Last synced ${formatDate(it, use24Hour)}" }
-                        ?: "Never synced",
+                    title = stringResource(R.string.pref_sync_now),
+                    subtitle = lastSync
+                        ?.let { stringResource(R.string.last_synced, formatDate(it, use24Hour)) }
+                        ?: stringResource(R.string.never_synced),
                     onClick = { model.fetchNow(context) },
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Reindex transactions",
-                    subtitle = "Force app to recheck your cached emails for new transactions",
+                    title = stringResource(R.string.pref_reindex),
+                    subtitle = stringResource(R.string.pref_reindex_summ),
                     onClick = { model.reindexTransactions(context) },
                 ),
             ),
@@ -171,22 +174,22 @@ object SettingsScreen : Screen {
         ) { uri -> uri?.let(model::exportCsv) }
 
         return Preference.PreferenceGroup(
-            title = "Data and storage",
+            title = stringResource(R.string.pref_category_data),
             preferenceItems = listOf(
                 Preference.PreferenceItem.TextPreference(
-                    title = "Create backup",
-                    subtitle = "Save your accounts, email and transactions to a file",
+                    title = stringResource(R.string.pref_create_backup),
+                    subtitle = stringResource(R.string.pref_create_backup_summ),
                     enabled = !busy,
                     onClick = { createBackup.launch(model.backupFileName()) },
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Restore backup",
-                    subtitle = "Replace everything here with a backup file",
+                    title = stringResource(R.string.pref_restore_backup),
+                    subtitle = stringResource(R.string.pref_restore_backup_summ),
                     enabled = !busy,
                     onClick = { restoreBackup.launch(arrayOf("*/*")) },
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Export as CSV",
+                    title = stringResource(R.string.pref_export_csv),
                     enabled = !busy,
                     onClick = { exportCsv.launch(model.csvFileName()) },
                 ),
@@ -201,10 +204,10 @@ object SettingsScreen : Screen {
         val preferences = remember { inject<UpdatePreferences>() }
 
         return Preference.PreferenceGroup(
-            title = "System",
+            title = stringResource(R.string.pref_category_system),
             preferenceItems = listOf(
                 Preference.PreferenceItem.TextPreference(
-                    title = "Manage notifications",
+                    title = stringResource(R.string.pref_manage_notifications),
                     // The system owns this screen, and its version is always current.
                     onClick = {
                         context.openSystemSettings(
@@ -215,16 +218,16 @@ object SettingsScreen : Screen {
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.checkParserUpdates(),
-                    title = "Parser updates",
-                    subtitle = "Check once a day when the app opens",
+                    title = stringResource(R.string.parser_updates),
+                    subtitle = stringResource(R.string.pref_check_updates_summ),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.checkAppUpdates(),
-                    title = "App updates",
-                    subtitle = "Check once a day when the app opens",
+                    title = stringResource(R.string.app_updates),
+                    subtitle = stringResource(R.string.pref_check_updates_summ),
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = "Check for app updates now",
+                    title = stringResource(R.string.pref_check_app_updates_now),
                     onClick = { model.checkAppUpdateNow() },
                 ),
             ),
@@ -232,14 +235,15 @@ object SettingsScreen : Screen {
     }
 
     /** 0 turns the schedule off; the rest are hours between syncs. */
-    private val INTERVAL_ENTRIES = mapOf(
-        0 to "Never",
-        1 to "Every hour",
-        2 to "Every 2 hours",
-        3 to "Every 3 hours",
-        6 to "Every 6 hours",
-        12 to "Every 12 hours",
-        24 to "Every day",
-        48 to "Every 2 days",
+    @Composable
+    private fun intervalEntries(): Map<Int, String> = mapOf(
+        0 to stringResource(R.string.fetch_interval_never),
+        1 to stringResource(R.string.fetch_interval_hourly),
+        2 to stringResource(R.string.fetch_interval_hours, 2),
+        3 to stringResource(R.string.fetch_interval_hours, 3),
+        6 to stringResource(R.string.fetch_interval_hours, 6),
+        12 to stringResource(R.string.fetch_interval_hours, 12),
+        24 to stringResource(R.string.fetch_interval_daily),
+        48 to stringResource(R.string.fetch_interval_days, 2),
     )
 }

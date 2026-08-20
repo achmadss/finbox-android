@@ -17,6 +17,8 @@ import dev.achmad.finbox.util.locale.currentLanguage
 import dev.achmad.finbox.util.locale.displayName
 import dev.achmad.finbox.util.locale.setLanguage
 import dev.achmad.finbox.util.locale.supportedLanguages
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /**
  * The languages this build ships, one row each.
@@ -33,7 +35,7 @@ object SettingsLanguageScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         PreferenceScreen(
-            title = "Language",
+            title = stringResource(R.string.language),
             onBackPressed = navigator::pop,
             itemsProvider = { languages() },
         )

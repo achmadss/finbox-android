@@ -91,7 +91,6 @@ import dev.achmad.finbox.util.formatter.formatTime
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import dev.achmad.finbox.util.formatter.toLocalDate
 import java.time.YearMonth
-import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -99,6 +98,9 @@ import androidx.compose.ui.platform.LocalLocale
 import dev.achmad.finbox.features.transaction.detail.TransactionDetailScreen
 import kotlin.collections.get
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /** How far the month labels drift over a full swipe. */
 private val SwipeDrift = 24.dp
@@ -210,28 +212,28 @@ private fun TransactionsScreenContent(
         topBar = {
             AppBar(
                 modifier = Modifier.dropShadow(RectangleShape, Shadow(2.dp)),
-                title = "Transactions",
+                title = stringResource(R.string.transactions),
                 actions = listOf(
                     AppBar.Action(
-                        title = "Filter",
+                        title = stringResource(R.string.action_filter),
                         icon = Icons.Outlined.FilterList,
                         iconTint = Color.Yellow.takeIf { filter.isActive },
                         onClick = { showFilterBottomSheet = true },
                     ),
                     // TODO feed the accounts badge a real count (unread accounts)
                     AppBar.OverflowAction(
-                        title = "Accounts",
+                        title = stringResource(R.string.accounts),
                         icon = Icons.Outlined.AccountCircle,
                         onClick = onOpenAccounts,
                     ),
                     AppBar.OverflowAction(
-                        title = "Parsers",
+                        title = stringResource(R.string.parsers),
                         icon = Icons.Outlined.Extension,
                         badge = parserUpdates,
                         onClick = onOpenParsers,
                     ),
                     AppBar.OverflowAction(
-                        title = "Settings",
+                        title = stringResource(R.string.label_settings),
                         icon = Icons.Outlined.Settings,
                         onClick = onOpenSettings,
                     ),
@@ -404,8 +406,8 @@ private fun MonthPage(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         ) {
-            MonthTotal(label = "Out", amount = -spent)
-            MonthTotal(label = "In", amount = earned)
+            MonthTotal(label = stringResource(R.string.label_out), amount = -spent)
+            MonthTotal(label = stringResource(R.string.label_in), amount = earned)
         }
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider()
@@ -489,7 +491,7 @@ private fun MonthSelector(
                 )
                 Icon(
                     imageVector = Icons.Outlined.ArrowDropDown,
-                    contentDescription = "Pick month",
+                    contentDescription = stringResource(R.string.action_pick_month),
                 )
             }
             MonthStep(
@@ -509,7 +511,7 @@ private fun MonthSelector(
             enabled = !atLatest,
             modifier = Modifier.alpha(jumpAlpha),
         ) {
-            Text("Jump to latest")
+            Text(stringResource(R.string.action_jump_to_latest))
         }
     }
 }
@@ -537,7 +539,7 @@ private fun RowScope.MonthStep(
             if (leading) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                    contentDescription = "Previous month",
+                    contentDescription = stringResource(R.string.action_previous_month),
                 )
             }
             Text(
@@ -552,7 +554,7 @@ private fun RowScope.MonthStep(
             if (!leading) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = "Next month",
+                    contentDescription = stringResource(R.string.action_next_month),
                 )
             }
         }
@@ -600,7 +602,7 @@ private fun TransactionList(
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
                             val kind = kindNames[transaction.kind]
-                            val source = sourceNames[transaction.sourceId] ?: "Unknown"
+                            val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
                             TransactionRow(transaction, kind, source) { onOpenTransaction(transaction) }
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
@@ -636,7 +638,7 @@ private fun FlatTransactionList(
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
                     val kind = kindNames[transaction.kind]
-                    val source = sourceNames[transaction.sourceId] ?: "Unknown"
+                    val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
                     TransactionRow(transaction, kind, source, showDay = true) {
                         onOpenTransaction(transaction)
                     }
@@ -672,7 +674,7 @@ private fun TransactionRow(
                     ?: transaction.description
                     ?: transaction.merchant
                     ?: transaction.reference
-                    ?: "Unknown",
+                    ?: stringResource(R.string.unknown),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -721,15 +723,17 @@ private fun EmptyTransactions(filtered: Boolean) {
             modifier = Modifier.size(48.dp),
         )
         Text(
-            text = if (filtered) "Nothing matches the filter" else "Nothing this month",
+            text = stringResource(
+                if (filtered) R.string.transactions_empty_filtered
+                else R.string.transactions_empty,
+            ),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = if (filtered) {
-                "Loosen the filter, or pick another month."
-            } else {
-                "Transactions parsed out of your email show up here."
-            },
+            text = stringResource(
+                if (filtered) R.string.transactions_empty_filtered_info
+                else R.string.transactions_empty_info,
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -737,9 +741,12 @@ private fun EmptyTransactions(filtered: Boolean) {
     }
 }
 
-// TODO strings.xml, along with the rest of the copy on this screen
-internal val TransactionType.label: String
-    get() = name.lowercase(Locale.getDefault()).replaceFirstChar { it.uppercase() }
+@get:StringRes
+internal val TransactionType.labelRes: Int
+    get() = when (this) {
+        TransactionType.EXPENSE -> R.string.type_expense
+        TransactionType.INCOME -> R.string.type_income
+    }
 
 @Preview
 @Composable

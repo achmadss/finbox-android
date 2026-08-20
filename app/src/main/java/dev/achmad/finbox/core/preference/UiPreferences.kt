@@ -17,7 +17,7 @@ class UiPreferences(
     fun amoledDark() = preferenceStore.getBoolean("amoled_dark", false)
 
     /** Material You, where the system offers it. Ignored below Android 12. */
-    fun dynamicColor() = preferenceStore.getBoolean("dynamic_color", true)
+    fun dynamicColor() = preferenceStore.getBoolean("dynamic_color", false)
 
     /** Off shows `2:05 PM` instead of `14:05`. */
     fun use24HourClock() = preferenceStore.getBoolean("use_24_hour_clock", true)

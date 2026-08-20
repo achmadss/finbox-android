@@ -20,7 +20,7 @@ sealed class UiText {
     fun asString(): String {
         return when (this) {
             is DynamicText -> text
-            is StringResource -> stringResource(res)
+            is StringResource -> stringResource(res, args)
         }
     }
 

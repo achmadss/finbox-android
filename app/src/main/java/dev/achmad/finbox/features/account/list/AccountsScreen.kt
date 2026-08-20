@@ -54,6 +54,9 @@ import dev.achmad.finbox.features.account.detail.AccountDetailsScreen
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 object AccountsScreen : Screen {
     private fun readResolve(): Any = AccountsScreen
@@ -78,11 +81,11 @@ object AccountsScreen : Screen {
             topBar = {
                 AppBar(
                     modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
-                    title = "Accounts",
+                    title = stringResource(R.string.accounts),
                     navigateUp = navigator::pop,
                     actions = listOf(
                         AppBar.Action(
-                            title = "Add account",
+                            title = stringResource(R.string.action_add_account),
                             icon = Icons.Outlined.Add,
                             onClick = { addAccount.launch(model.authorizationIntent()) },
                         ),
@@ -93,7 +96,7 @@ object AccountsScreen : Screen {
             if (accounts.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
                     Text(
-                        "No accounts yet. Add the mailbox your transactions arrive in.",
+                        stringResource(R.string.accounts_empty),
                         modifier = Modifier.padding(horizontal = 32.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -158,7 +161,7 @@ private fun AccountItem(
         }
 
         IconButton(onClick = onClickItem) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Account info")
+            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.label_account_info))
         }
     }
 }
@@ -203,10 +206,12 @@ private fun AvatarPlaceholder() {
 @Composable
 private fun AccountSubtitle(account: EmailAccount, parsers: Int) {
     val use24Hour = rememberUse24HourClock()
-    val details = buildList {
-        add(account.lastSyncAt?.let { "Synced ${formatDate(it, use24Hour)}" } ?: "Never synced")
-        add(if (parsers == 1) "1 parser" else "$parsers parsers")
-    }
+    val details = listOf(
+        account.lastSyncAt
+            ?.let { stringResource(R.string.synced, formatDate(it, use24Hour)) }
+            ?: stringResource(R.string.never_synced),
+        pluralStringResource(R.plurals.account_parser_count, parsers, parsers),
+    )
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = details.joinToString(" • "),
@@ -218,7 +223,7 @@ private fun AccountSubtitle(account: EmailAccount, parsers: Int) {
         // The one state worth shouting about: the mailbox is there but nothing is read from it.
         if (!account.enabled) {
             Text(
-                text = " • SYNC OFF",
+                text = " • " + stringResource(R.string.account_badge_sync_off),
                 maxLines = 1,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
@@ -236,19 +241,19 @@ fun RemoveAccountConfirmation(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-        title = { Text("Remove account") },
+        title = { Text(stringResource(R.string.action_remove_account)) },
         // Says what survives, because nothing here deletes what was already read.
-        text = { Text("Remove $email? It stops syncing and its parser choices go. Transactions already read from it stay.") },
+        text = { Text(stringResource(R.string.remove_account_confirmation, email)) },
         confirmButton = {
             TextButton(
                 onClick = {
                     onConfirm()
                     onDismiss()
                 },
-            ) { Text("Remove") }
+            ) { Text(stringResource(R.string.action_remove)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }

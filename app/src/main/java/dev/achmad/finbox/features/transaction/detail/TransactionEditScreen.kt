@@ -47,7 +47,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
-import dev.achmad.finbox.features.transaction.list.label
+import dev.achmad.finbox.features.transaction.list.labelRes
 import dev.achmad.finbox.parser.TransactionKind
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
@@ -59,6 +59,8 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /**
  * Edits one transaction. The ids, the timestamps and the deleted flag belong to the
@@ -99,12 +101,12 @@ data class TransactionEditScreen(private val id: String) : Screen {
         Scaffold(
             topBar = {
                 AppBar(
-                    title = "Edit transaction",
+                    title = stringResource(R.string.label_edit_transaction),
                     navigateUp = leave,
                     actions = listOfNotNull(
                         edited?.let {
                             AppBar.Action(
-                                title = "Save",
+                                title = stringResource(R.string.action_save),
                                 icon = Icons.Outlined.Check,
                                 onClick = {
                                     transaction?.let { current -> model.save(it.applyTo(current)) }
@@ -139,18 +141,18 @@ data class TransactionEditScreen(private val id: String) : Screen {
         if (confirmDiscard) {
             AlertDialog(
                 onDismissRequest = { confirmDiscard = false },
-                title = { Text("Discard changes?") },
-                text = { Text("What you edited here is not saved yet.") },
+                title = { Text(stringResource(R.string.discard_changes)) },
+                text = { Text(stringResource(R.string.discard_changes_confirmation)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             confirmDiscard = false
                             navigator.pop()
                         },
-                    ) { Text("Discard") }
+                    ) { Text(stringResource(R.string.action_discard)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") }
+                    TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.action_keep_editing)) }
                 },
             )
         }
@@ -178,14 +180,14 @@ private fun TransactionEditor(
                     selected = draft.type == type,
                     // Tapping the selected one clears it, which is what an unparsed type looks like.
                     onClick = { onChange(draft.copy(type = type.takeIf { it != draft.type })) },
-                    label = { Text(type.label) },
+                    label = { Text(stringResource(type.labelRes)) },
                 )
             }
         }
         OutlinedTextField(
             value = draft.amount,
             onValueChange = { onChange(draft.copy(amount = it.filter(Char::isDigit))) },
-            label = { Text("Amount") },
+            label = { Text(stringResource(R.string.amount)) },
             // Unsigned: the type decides which way the money went.
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
@@ -193,13 +195,13 @@ private fun TransactionEditor(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             PickerField(
-                label = "Date",
-                value = draft.date?.let { formatDateOnly(it) } ?: "Not set",
+                label = stringResource(R.string.date),
+                value = draft.date?.let { formatDateOnly(it) } ?: stringResource(R.string.not_set),
                 modifier = Modifier.weight(1f),
                 onClick = { pickDate = true },
             )
             PickerField(
-                label = "Time",
+                label = stringResource(R.string.time),
                 // No date, no time to set: the row has no instant to hang one on.
                 value = draft.date?.let { formatTime(it, use24Hour) } ?: "-",
                 modifier = Modifier.weight(1f),
@@ -208,28 +210,28 @@ private fun TransactionEditor(
             )
         }
         PickerField(
-            label = "Kind",
-            value = kinds.nameOf(draft.kind) ?: draft.kind ?: "None",
+            label = stringResource(R.string.kind),
+            value = kinds.nameOf(draft.kind) ?: draft.kind ?: stringResource(R.string.none),
             modifier = Modifier.fillMaxWidth(),
             onClick = { pickKind = true },
         )
         OutlinedTextField(
             value = draft.category,
             onValueChange = { onChange(draft.copy(category = it)) },
-            label = { Text("Category") },
+            label = { Text(stringResource(R.string.category)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = draft.description,
             onValueChange = { onChange(draft.copy(description = it)) },
-            label = { Text("Description") },
+            label = { Text(stringResource(R.string.description)) },
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = draft.merchant,
             onValueChange = { onChange(draft.copy(merchant = it)) },
-            label = { Text("Merchant") },
+            label = { Text(stringResource(R.string.merchant)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -290,9 +292,8 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
     // The picker works in UTC days while the row holds an instant in the device's zone, so
     // the day goes out and comes back through UTC.
     val state = rememberDatePickerState(
-        initialSelectedDateMillis = date?.let { millis ->
-            millis.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        },
+        initialSelectedDateMillis = date?.toLocalDate()?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
+            ?.toEpochMilli(),
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -307,7 +308,7 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
                     }
                     onDismiss()
                 },
-            ) { Text("OK") }
+            ) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
             // A row the parser found no date for is a real state, so it has to be reachable.
@@ -316,7 +317,7 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
                     onSelect(null)
                     onDismiss()
                 },
-            ) { Text("Clear") }
+            ) { Text(stringResource(R.string.action_clear)) }
         },
     ) {
         DatePicker(state = state)
@@ -346,10 +347,10 @@ private fun TimePickerDialog(
                     onSelect(at.toLocalDate().atTime(state.hour, state.minute).toEpochMillis())
                     onDismiss()
                 },
-            ) { Text("OK") }
+            ) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
@@ -365,14 +366,15 @@ private fun KindPickerDialog(
     onDismiss: () -> Unit,
     onSelect: (String?) -> Unit,
 ) {
+    val none = stringResource(R.string.none)
     val options = buildList<Pair<String?, String>> {
-        add(null to "None")
+        add(null to none)
         kinds.forEach { add(it.key to it.name) }
         if (selected != null && kinds.none { it.key == selected }) add(selected to selected)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Kind") },
+        title = { Text(stringResource(R.string.kind)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 options.forEach { (key, name) ->
@@ -393,7 +395,7 @@ private fun KindPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }

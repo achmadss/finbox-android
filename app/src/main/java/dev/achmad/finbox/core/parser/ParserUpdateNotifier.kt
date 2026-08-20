@@ -43,7 +43,7 @@ class ParserUpdateNotifier(private val context: Context) {
         manager?.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                context.getString(R.string.parser_update_channel),
+                context.getString(R.string.parser_updates),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ),
         )

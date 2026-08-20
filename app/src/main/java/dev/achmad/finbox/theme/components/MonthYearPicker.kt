@@ -44,6 +44,8 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import kotlin.math.abs
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 /** The picker wheels: an odd row count, so one of them sits under the selection band. */
 private val WheelItemHeight = 44.dp
@@ -86,7 +88,7 @@ fun MonthYearPickerSheet(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp),
         ) {
-            Text(text = "Select period", style = MaterialTheme.typography.titleLarge)
+            Text(text = stringResource(R.string.label_select_period), style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier.height(WheelHeight),
@@ -126,7 +128,7 @@ fun MonthYearPickerSheet(
                 enabled = draft in range,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Apply")
+                Text(stringResource(R.string.action_apply))
             }
         }
     }

@@ -50,6 +50,10 @@ import dev.achmad.finbox.features.parser.list.ParserIcon
 import dev.achmad.finbox.features.parser.list.ParserUiModel
 import dev.achmad.finbox.features.parser.list.UninstallConfirmation
 import dev.achmad.finbox.parser.TransactionType
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
+import dev.achmad.finbox.features.parser.list.labelRes
 
 data class ParserDetailScreen(private val pkg: String) : Screen {
 
@@ -68,10 +72,10 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Parser info") },
+                    title = { Text(stringResource(R.string.label_parser_info)) },
                     navigationIcon = {
                         IconButton(onClick = navigator::pop) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_bar_up_description))
                         }
                     },
                 )
@@ -101,14 +105,14 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
                 )
                 HorizontalDivider()
                 SwitchRow(
-                    title = "Enabled",
+                    title = stringResource(R.string.label_enabled),
                     checked = parser.enabled,
                     onCheckedChange = model::setEnabled,
                 )
                 HorizontalDivider()
                 if (state.kinds.isNotEmpty()) {
                     Text(
-                        text = "Transaction types",
+                        text = stringResource(R.string.parser_transaction_types),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
@@ -116,10 +120,12 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
                     state.kinds.forEach { kind ->
                         SwitchRow(
                             title = kind.name,
-                            subtitle = when (kind.type) {
-                                TransactionType.EXPENSE -> "Expense"
-                                TransactionType.INCOME -> "Income"
-                            },
+                            subtitle = stringResource(
+                                when (kind.type) {
+                                    TransactionType.EXPENSE -> R.string.type_expense
+                                    TransactionType.INCOME -> R.string.type_income
+                                },
+                            ),
                             checked = kind.enabled,
                             onCheckedChange = { model.toggleKind(kind.key) },
                         )
@@ -142,7 +148,7 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
 @Composable
 private fun DetailsHeader(
     parser: ParserUiModel.Installed,
-    summary: String,
+    @StringRes summary: Int,
     sizeBytes: Long?,
     installStep: InstallStep,
     onClickUpdate: () -> Unit,
@@ -178,9 +184,9 @@ private fun DetailsHeader(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        InfoText(Modifier.weight(1f), parser.versionName, "Version")
+        InfoText(Modifier.weight(1f), parser.versionName, stringResource(R.string.version))
         InfoDivider()
-        InfoText(Modifier.weight(1f), summary, "Transactions")
+        InfoText(Modifier.weight(1f), stringResource(summary), stringResource(R.string.transactions))
         InfoDivider()
         InfoText(
             modifier = Modifier.weight(1f),
@@ -189,7 +195,7 @@ private fun DetailsHeader(
             primary = sizeBytes
                 ?.let { Formatter.formatShortFileSize(LocalContext.current, it) }
                 ?: "—",
-            secondary = "Size",
+            secondary = stringResource(R.string.size),
         )
     }
 
@@ -200,7 +206,7 @@ private fun DetailsHeader(
         OutlinedButton(
             modifier = Modifier.weight(1f),
             onClick = onClickUninstall,
-        ) { Text("Uninstall") }
+        ) { Text(stringResource(R.string.action_uninstall)) }
 
         if (parser.update != null) {
             val running = !installStep.isCompleted()
@@ -211,9 +217,12 @@ private fun DetailsHeader(
             ) {
                 Text(
                     when {
-                        running -> "${installStep.name}…"
-                        installStep == InstallStep.Error -> "Retry update"
-                        else -> "Update to v${parser.update.versionName}"
+                        running -> stringResource(
+                            R.string.parser_step_ongoing,
+                            installStep.labelRes()?.let { stringResource(it) }.orEmpty(),
+                        )
+                        installStep == InstallStep.Error -> stringResource(R.string.parser_retry_update)
+                        else -> stringResource(R.string.parser_update_to, parser.update.versionName)
                     },
                 )
             }

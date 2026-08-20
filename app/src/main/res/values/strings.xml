@@ -1,23 +1,107 @@
 <resources>
-    <string name="app_name">Finbox</string>
+    <string name="app_name" translatable="false">Finbox</string>
 
+    <!-- Generic strings -->
+    <string name="unknown">Unknown</string>
+    <string name="none">None</string>
+    <string name="not_set">Not set</string>
+    <string name="synced">Synced %1$s</string>
+    <string name="never_synced">Never synced</string>
+    <string name="last_synced">Last synced %1$s</string>
+    <string name="error_generic">Something went wrong</string>
+    <string name="error_no_system_screen">Your device has no screen for this</string>
+    <string name="action_bar_up_description">Navigate up</string>
+    <string name="action_menu_overflow_description">More</string>
+
+    <!-- Models -->
+    <string name="transaction">Transaction</string>
+    <string name="transactions">Transactions</string>
+    <string name="accounts">Accounts</string>
+    <string name="parsers">Parsers</string>
+    <string name="type">Type</string>
+    <string name="kind">Kind</string>
+    <string name="amount">Amount</string>
+    <string name="date">Date</string>
+    <string name="time">Time</string>
+    <string name="category">Category</string>
+    <string name="description">Description</string>
+    <string name="merchant">Merchant</string>
+    <string name="version">Version</string>
+    <string name="size">Size</string>
+    <string name="language">Language</string>
+    <string name="sync">Sync</string>
+    <string name="type_expense">Expense</string>
+    <string name="type_income">Income</string>
+
+    <!-- Screen titles -->
+    <string name="label_settings">Settings</string>
+    <string name="label_edit_transaction">Edit transaction</string>
+    <string name="label_account_info">Account info</string>
+    <string name="label_parser_info">Parser info</string>
+    <string name="label_select_period">Select period</string>
+
+    <!-- Shared labels -->
+    <string name="label_added">Added</string>
+    <string name="label_edited">Edited</string>
+    <string name="label_enabled">Enabled</string>
+    <string name="label_out">Out</string>
+    <string name="label_in">In</string>
+
+    <!-- Actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_apply">Apply</string>
+    <string name="action_filter">Filter</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_install">Install</string>
+    <string name="action_download">Download</string>
+    <string name="action_update">Update</string>
+    <string name="action_update_all">Update all</string>
+    <string name="action_uninstall">Uninstall</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="action_add_account">Add account</string>
+    <string name="action_remove_account">Remove account</string>
+    <string name="action_pick_month">Pick month</string>
+    <string name="action_previous_month">Previous month</string>
+    <string name="action_next_month">Next month</string>
+    <string name="action_jump_to_latest">Jump to latest</string>
+
+    <!-- Notifications -->
     <string name="transaction_update_channel">Transaction updates</string>
     <string name="transaction_update_importing">Importing your transactions</string>
-    <string name="transaction_update_importing_progress">Importing transactions... (%1$d)</string>
+    <string name="transaction_update_importing_progress">Importing transactions… (%1$d)</string>
     <string name="transaction_update_done_title">Transactions updated</string>
-    <string name="transaction_update_done">%1$d transactions imported</string>
+    <string name="transaction_update_done">%1$d new transactions imported</string>
     <string name="transaction_update_ongoing">An update is already ongoing</string>
 
-    <string name="app_update_channel">App updates</string>
+    <!-- Updates -->
+    <string name="app_updates">App updates</string>
     <string name="app_update_available">Finbox %1$s is available</string>
     <string name="app_update_open">Tap to open the release page</string>
-
-    <string name="parser_update_channel">Parser updates</string>
+    <string name="app_update_download_hint">Tap to download</string>
+    <string name="app_update_release_notes">What\'s new</string>
+    <string name="app_update_downloading">Downloading the update</string>
+    <string name="app_update_downloading_version">Downloading Finbox %1$s</string>
+    <string name="app_update_downloaded">Update downloaded</string>
+    <string name="app_update_downloaded_version">Finbox %1$s downloaded</string>
+    <string name="app_update_install_hint">Tap to install</string>
+    <string name="app_update_download_error">Could not download the update</string>
+    <string name="app_update_up_to_date">Finbox is up to date</string>
+    <string name="app_update_check_failed">Could not check for app updates</string>
+    <string name="parser_updates">Parser updates</string>
     <plurals name="parser_update_available">
         <item quantity="one">%1$d parser update available</item>
         <item quantity="other">%1$d parser updates available</item>
     </plurals>
 
+    <!-- Onboarding -->
     <string name="onboarding_auth_title">From inbox to transactions</string>
     <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them for you. Your data stays on your phone.</string>
     <string name="onboarding_auth_sign_in">Sign in with Google</string>
@@ -25,24 +109,121 @@
     <string name="onboarding_auth_connected">Connected %1$s</string>
     <string name="onboarding_auth_failed">Sign-in failed: %1$s</string>
     <string name="onboarding_auth_scope_note">Finbox only needs read-only Gmail access.\nIt never sends mail or stores message bodies.</string>
-
     <string name="onboarding_notification_title">Stay up to date</string>
     <string name="onboarding_notification_body">Finbox can notify you when your email import is complete and when new transactions are found in your Gmail.</string>
     <string name="onboarding_notification_note">You can skip notifications and Finbox will continue working normally. You just won\'t receive updates outside the app.</string>
     <string name="onboarding_notification_allow">Allow Notifications</string>
     <string name="onboarding_notification_skip">Not now</string>
-
-    <string name="onboarding_parsers_title">Parsers</string>
     <string name="onboarding_parsers_subtitle">Install at least one parser to start:</string>
     <string name="onboarding_parsers_install">Install and Continue</string>
     <string name="onboarding_parsers_installing">Installing…</string>
     <string name="onboarding_parsers_select_all">Select all</string>
-    <string name="onboarding_parsers_clear_selection">Clear</string>
     <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
     <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
-
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
     <string name="onboarding_exit_confirm">Exit</string>
-    <string name="cancel">Cancel</string>
+
+    <!-- Transactions screen -->
+    <string name="transactions_empty">Nothing this month</string>
+    <string name="transactions_empty_info">Transactions parsed out of your email show up here.</string>
+    <string name="transactions_empty_filtered">Nothing matches the filter</string>
+    <string name="transactions_empty_filtered_info">Loosen the filter, or pick another month.</string>
+
+    <!-- Transaction filter sheet -->
+    <string name="filter_section_count">%1$s (%2$d)</string>
+    <string name="filter_sort_by">Sort by</string>
+    <string name="filter_no_parsers">No parsers installed</string>
+    <string name="filter_no_accounts">No accounts added</string>
+
+    <!-- Transaction screen -->
+    <string name="delete_transaction">Delete transaction?</string>
+    <string name="delete_transaction_confirmation">It disappears from your transactions. Re-reading the email brings it back.</string>
+    <string name="discard_changes">Discard changes?</string>
+    <string name="discard_changes_confirmation">What you edited here is not saved yet.</string>
+
+    <!-- Preferences -->
+      <!-- Subsections -->
+    <string name="pref_category_appearance">Appearance</string>
+    <string name="pref_category_data">Data and storage</string>
+    <string name="pref_category_system">System</string>
+
+      <!-- Appearance section -->
+    <string name="pref_app_theme">Theme</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="pref_dark_theme_pure_black">Pure black mode</string>
+    <string name="pref_dynamic_color">Dynamic colors</string>
+    <string name="pref_dynamic_color_summ">Match the app colors to your wallpaper</string>
+    <string name="pref_24_hour_clock">24-hour clock</string>
+    <string name="pref_24_hour_clock_summ">Show 14:05 instead of 2:05 PM</string>
+
+      <!-- Sync section -->
+    <string name="pref_fetch_interval">Check for new email</string>
+    <string name="fetch_interval_never">Never</string>
+    <string name="fetch_interval_hourly">Every hour</string>
+    <string name="fetch_interval_hours">Every %1$d hours</string>
+    <string name="fetch_interval_daily">Every day</string>
+    <string name="fetch_interval_days">Every %1$d days</string>
+    <string name="pref_fetch_unmetered">Wi-Fi only</string>
+    <string name="pref_fetch_unmetered_summ">Never sync on mobile data</string>
+    <string name="pref_fetch_charging">While charging only</string>
+    <string name="pref_fetch_battery_not_low">Skip on low battery</string>
+    <string name="pref_sync_now">Sync now</string>
+    <string name="pref_reindex">Reindex transactions</string>
+    <string name="pref_reindex_summ">Force app to recheck your cached emails for new transactions</string>
+
+      <!-- Data and storage section -->
+    <string name="pref_create_backup">Create backup</string>
+    <string name="pref_create_backup_summ">Save your accounts, email and transactions to a file</string>
+    <string name="backup_created">Backup saved</string>
+    <string name="pref_restore_backup">Restore backup</string>
+    <string name="pref_restore_backup_summ">Replace everything here with a backup file</string>
+    <string name="backup_restored">Backup restored</string>
+    <string name="pref_export_csv">Export as CSV</string>
+    <string name="transactions_exported">Transactions exported</string>
+
+      <!-- System section -->
+    <string name="pref_manage_notifications">Manage notifications</string>
+    <string name="pref_check_updates_summ">Check once a day when the app opens</string>
+    <string name="pref_check_app_updates_now">Check for app updates now</string>
+
+    <!-- Parsers screen -->
+    <string name="parsers_empty">Nothing to show. Pull to refresh.</string>
+    <string name="parsers_header_updates">Update pending</string>
+    <string name="parsers_header_installed">Installed</string>
+    <string name="parsers_header_available">Available</string>
+    <string name="parsers_header_errors">Failed to load</string>
+    <string name="parser_load_error">%1$s: %2$s</string>
+    <string name="parser_version_name">v%1$s</string>
+    <string name="parser_step_pending">Pending</string>
+    <string name="parser_step_downloading">Downloading</string>
+    <string name="parser_step_installing">Installing</string>
+    <string name="parser_step_ongoing">%1$s…</string>
+    <string name="parser_badge_failed">FAILED</string>
+    <string name="parser_badge_disabled">DISABLED</string>
+    <string name="uninstall_parser">Uninstall parser</string>
+    <string name="uninstall_parser_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
+
+    <!-- Parser info screen -->
+    <string name="parser_transaction_types">Transaction types</string>
+    <string name="parser_retry_update">Retry update</string>
+    <string name="parser_update_to">Update to v%1$s</string>
+    <string name="parser_summary_expense_only">Expense only</string>
+    <string name="parser_summary_income_only">Income only</string>
+    <string name="parser_summary_multi_type">Multi type</string>
+
+    <!-- Accounts screen -->
+    <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>
+    <plurals name="account_parser_count">
+        <item quantity="one">%1$d parser</item>
+        <item quantity="other">%1$d parsers</item>
+    </plurals>
+    <string name="account_badge_sync_off">SYNC OFF</string>
+    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its parser choices go. Transactions already read from it stay.</string>
+
+    <!-- Account info screen -->
+    <string name="account_sync_summ">Read new transactions from this mailbox</string>
+    <string name="account_no_parsers">No parsers installed. Install a parser first.</string>
 </resources>

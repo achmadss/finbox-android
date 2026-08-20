@@ -25,6 +25,9 @@ import dev.achmad.finbox.theme.components.CheckboxItem
 import dev.achmad.finbox.theme.components.CollapsibleBox
 import dev.achmad.finbox.theme.components.SettingsItemsPaddings
 import dev.achmad.finbox.theme.components.SortItem
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import dev.achmad.finbox.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,7 @@ fun TransactionsFilterSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Filter",
+                    text = stringResource(R.string.action_filter),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
@@ -60,14 +63,14 @@ fun TransactionsFilterSheet(
                     onClick = { onFilterChange(TransactionFilter()) },
                     enabled = filter.isActive,
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.action_reset))
                 }
             }
 
-            CollapsibleBox(heading = headingOf("Type", filter.types.size)) {
+            CollapsibleBox(heading = headingOf(R.string.type, filter.types.size)) {
                 TransactionType.entries.forEach { type ->
                     CheckboxItem(
-                        label = type.label,
+                        label = stringResource(type.labelRes),
                         checked = type in filter.types,
                         onClick = {
                             onFilterChange(filter.copy(types = filter.types.toggle(type)))
@@ -78,9 +81,9 @@ fun TransactionsFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = headingOf("Parsers", filter.sourceIds.size)) {
+            CollapsibleBox(heading = headingOf(R.string.parsers, filter.sourceIds.size)) {
                 if (sources.isEmpty()) {
-                    EmptySectionHint("No parsers installed")
+                    EmptySectionHint(stringResource(R.string.filter_no_parsers))
                 }
                 sources.forEach { source ->
                     CheckboxItem(
@@ -97,9 +100,9 @@ fun TransactionsFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = headingOf("Accounts", filter.accountIds.size)) {
+            CollapsibleBox(heading = headingOf(R.string.accounts, filter.accountIds.size)) {
                 if (accounts.isEmpty()) {
-                    EmptySectionHint("No accounts added")
+                    EmptySectionHint(stringResource(R.string.filter_no_accounts))
                 }
                 accounts.forEach { account ->
                     CheckboxItem(
@@ -116,10 +119,10 @@ fun TransactionsFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = "Sort by") {
+            CollapsibleBox(heading = stringResource(R.string.filter_sort_by)) {
                 TransactionSort.entries.forEach { sort ->
                     SortItem(
-                        label = sort.label,
+                        label = stringResource(sort.labelRes),
                         // Only the active sort shows an arrow; tapping it flips the direction.
                         sortDescending = filter.descending.takeIf { sort == filter.sort },
                         onClick = {
@@ -151,14 +154,18 @@ private fun EmptySectionHint(text: String) {
     )
 }
 
-private fun headingOf(title: String, selectedCount: Int): String =
-    if (selectedCount > 0) "$title ($selectedCount)" else title
+@Composable
+private fun headingOf(@StringRes title: Int, selectedCount: Int): String = when {
+    selectedCount > 0 -> stringResource(R.string.filter_section_count, stringResource(title), selectedCount)
+    else -> stringResource(title)
+}
 
 private fun <T> Set<T>.toggle(value: T): Set<T> =
     if (value in this) this - value else this + value
 
-private val TransactionSort.label: String
+@get:StringRes
+private val TransactionSort.labelRes: Int
     get() = when (this) {
-        TransactionSort.DATE -> "Date"
-        TransactionSort.AMOUNT -> "Amount"
+        TransactionSort.DATE -> R.string.date
+        TransactionSort.AMOUNT -> R.string.amount
     }
