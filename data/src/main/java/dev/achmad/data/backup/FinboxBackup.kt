@@ -6,6 +6,7 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.transactionIndexOf
 import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
@@ -239,10 +240,12 @@ private fun Transaction.toBackup() = BackupTransaction(
 )
 
 private fun BackupTransaction.toModel() = Transaction(
-    id = id,
     accountId = accountId,
     sourceId = sourceId,
     emailMessageId = emailMessageId,
+    // The backup still carries the whole id, so a file written by an older build
+    // restores under the identity it had.
+    index = transactionIndexOf(id),
     threadId = threadId,
     reference = reference,
     date = date,

@@ -39,7 +39,7 @@ interface TransactionSource {
 
     /**
      * Whether this email is really one of this provider's transaction mails.
-     * A bank sends statements, OTPs and promotions from the same address, and
+     * A bank sends transaction mail, OTPs and promotions from the same address, and
      * those must not reach [parseEmail].
      */
     fun isEmailForProvider(email: EmailMessage): Boolean

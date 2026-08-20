@@ -74,10 +74,12 @@ WHERE id = :id;
 
 UPDATEById:
 UPDATE transactions SET
+    reference = :reference,
     date = :date,
     amount = :amount,
     currency = :currency,
     type = :type,
+    kind = :kind,
     category = :category,
     description = :description,
     merchant = :merchant,

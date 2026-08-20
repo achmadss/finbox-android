@@ -22,9 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -32,12 +29,14 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
+import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
+import dev.achmad.finbox.features.onboarding.content.OnboardingInstallParsersContent
+import dev.achmad.finbox.features.onboarding.content.OnboardingNotificationPermissionContent
 import dev.achmad.finbox.util.koin.injectLazy
 import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
-import dev.achmad.finbox.features.expenses.ExpensesScreen
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
 
@@ -51,26 +50,21 @@ object OnboardingScreen: Screen {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { OnboardingScreenModel() }
         val state by screenModel.state.collectAsState()
-        val lifecycleOwner = LocalLifecycleOwner.current
 
-        LaunchedEffect(lifecycleOwner.lifecycle, screenModel.effect) {
-            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                withContext(Dispatchers.Main.immediate) {
-                    screenModel.effect.collect { effect ->
-                        when(effect) {
-                            is OnboardingScreenModel.Effect.NavigateToHome -> {
-                                navigator.replace(ExpensesScreen)
-                            }
-                        }
-                    }
-                }
-            }
+        // The last step is leaving: nothing else is waiting on this screen, so the
+        // state saying so is the whole signal.
+        LaunchedEffect(state) {
+            if (state is OnboardingScreenModel.State.Done) navigator.replace(TransactionsScreen)
         }
 
         OnboardingScreen(
             state = state,
             authorizationIntent = screenModel::authorizationIntent,
-            onEvent = { screenModel.handleEvent(it) },
+            onSignInStarted = screenModel::onSignInStarted,
+            onSignInResult = screenModel::onSignInResult,
+            onNotificationPromptSettled = screenModel::onNotificationPromptSettled,
+            onRefreshParsers = screenModel::onRefreshParsers,
+            onInstallParsers = screenModel::onInstallParsers,
         )
     }
 }
@@ -79,12 +73,16 @@ object OnboardingScreen: Screen {
 private fun OnboardingScreen(
     state: OnboardingScreenModel.State,
     authorizationIntent: () -> Intent,
-    onEvent: (OnboardingScreenModel.Event) -> Unit = {},
+    onSignInStarted: () -> Unit,
+    onSignInResult: (Intent?) -> Unit,
+    onNotificationPromptSettled: () -> Unit,
+    onRefreshParsers: () -> Unit,
+    onInstallParsers: (List<AvailableParser>) -> Unit,
 ) {
     val signIn = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        onEvent(OnboardingScreenModel.Event.OnSignInResult(result.data))
+        onSignInResult(result.data)
     }
     val slideDistance = rememberSlideDistance()
     val parserManager by remember { injectLazy<ParserManager>() }
@@ -102,7 +100,7 @@ private fun OnboardingScreen(
         if (state is OnboardingScreenModel.State.NotificationPermission &&
             notificationPermission.isGranted.value
         ) {
-            onEvent(OnboardingScreenModel.Event.OnRequestNotificationPermission)
+            onNotificationPromptSettled()
         }
     }
 
@@ -142,18 +140,23 @@ private fun OnboardingScreen(
         modifier = Modifier.fillMaxSize(),
     ) { onboardingState ->
         when(onboardingState) {
-            is OnboardingScreenModel.State.Resolving -> Unit
+            // Nothing to draw for either: one is before the first step, the other after
+            // the last, and both last a frame while the navigator catches up.
+            is OnboardingScreenModel.State.Resolving,
+            is OnboardingScreenModel.State.Done -> Unit
             is OnboardingScreenModel.State.SignIn -> {
                 OnboardingAuthContent(
-                    onClickSignIn = { signIn.launch(authorizationIntent()) },
+                    signingIn = onboardingState.isSigningIn,
+                    onClickSignIn = {
+                        onSignInStarted()
+                        signIn.launch(authorizationIntent())
+                    },
                 )
             }
             is OnboardingScreenModel.State.NotificationPermission -> {
                 OnboardingNotificationPermissionContent(
                     onClickAllowNotification = { notificationPermission.requestPermission() },
-                    onSkipNotificationPermission = {
-                        onEvent(OnboardingScreenModel.Event.OnSkipNotificationPermission)
-                    }
+                    onSkipNotificationPermission = onNotificationPromptSettled,
                 )
             }
             is OnboardingScreenModel.State.InstallParsers -> {
@@ -161,10 +164,8 @@ private fun OnboardingScreen(
                     parsers = availableParsers,
                     loading = onboardingState.isLoading,
                     installing = onboardingState.isInstalling,
-                    onRefresh = { onEvent(OnboardingScreenModel.Event.OnRefreshParsers) },
-                    onClickInstallParsers = { parsers ->
-                        onEvent(OnboardingScreenModel.Event.OnRequestInstallParsers(parsers))
-                    }
+                    onRefresh = onRefreshParsers,
+                    onClickInstallParsers = onInstallParsers,
                 )
             }
         }

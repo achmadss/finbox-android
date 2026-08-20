@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import android.content.Context
 import android.os.Build
+import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
@@ -13,8 +14,7 @@ import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
-import dev.achmad.finbox.util.ui.MviScreenModel
-import dev.achmad.finbox.core.statement.StatementUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.util.permission.arePermissionsAllowed
 import dev.achmad.finbox.util.koin.inject
@@ -31,9 +31,7 @@ class OnboardingScreenModel(
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
     private val context: Context = injectAndroidContext(),
-): MviScreenModel<OnboardingScreenModel.State, OnboardingScreenModel.Event, OnboardingScreenModel.Effect>(
-    State.Resolving
-) {
+): StateScreenModel<OnboardingScreenModel.State>(State.Resolving) {
     init {
         screenModelScope.launch {
             // What's on disk decides which step is next, and the index fills the
@@ -49,67 +47,83 @@ class OnboardingScreenModel(
         }
     }
 
-    override fun handleEvent(event: Event) {
-        when(event) {
-            is Event.OnSignInResult -> screenModelScope.launch {
-                // Null data is the user backing out of the browser; nothing to say.
-                val data = event.data ?: return@launch
-                runCatching { authManager.handleCallback(data) }
-                    .onSuccess {
-                        toastHelper.show(
-                            context.getString(R.string.onboarding_auth_connected, it.email)
-                        )
-                    }
-                    .onFailure {
-                        Log.e("Onboarding", "Sign-in failed", it)
-                        toastHelper.show(
-                            message = context.getString(
-                                R.string.onboarding_auth_failed,
-                                it.message.orEmpty(),
-                            ),
-                            duration = Toast.LENGTH_LONG,
-                        )
-                    }
-                next()
-            }
-            is Event.OnRequestNotificationPermission,
-            is Event.OnSkipNotificationPermission -> screenModelScope.launch {
-                preferences.notificationPromptSeen().set(true)
-                next()
-            }
-            is Event.OnRefreshParsers -> refreshIndex()
-            is Event.OnRequestInstallParsers -> screenModelScope.launch {
-                mutableState.value = State.InstallParsers(isInstalling = true)
-                val requested = event.availableParsers
-                Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
-                // The manager runs them, the same as the parsers screen does, so
-                // leaving mid-download does not cancel one. This step only waits
-                // for each to land: loaded, or failed with a reason on the row.
-                requested.forEach { parserManager.install(it) }
-                combine(
-                    parserManager.installedInfo,
-                    parserManager.installSteps,
-                ) { installed, steps ->
-                    requested.filter { it.pkg !in installed && steps[it.pkg] != InstallStep.Error }
-                }.first { it.isEmpty() }
+    /** The browser is up; the step is busy until its result lands. */
+    fun onSignInStarted() {
+        mutableState.value = State.SignIn(isSigningIn = true)
+    }
 
-                val steps = parserManager.installSteps.value
-                requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
+    /** What the browser flow came back with. */
+    fun onSignInResult(data: Intent?) {
+        // Null data is the user backing out of the browser; nothing to say beyond
+        // handing the step back.
+        if (data == null) {
+            mutableState.value = State.SignIn()
+            return
+        }
+        screenModelScope.launch {
+            runCatching { authManager.handleCallback(data) }
+                .onSuccess {
                     toastHelper.show(
-                        context.getString(
-                            R.string.onboarding_parsers_install_failed,
-                            parser.name,
-                        )
+                        context.getString(R.string.onboarding_auth_connected, it.email)
                     )
                 }
-                // An APK can install and still not load — an unsupported lib
-                // version, a missing parser class. Without this the step just
-                // stays put, with the reason sitting unread in loadErrors.
-                parserManager.loadErrors.value.forEach { (file, reason) ->
-                    Log.e("Onboarding", "$file did not load: $reason")
+                .onFailure {
+                    Log.e("Onboarding", "Sign-in failed", it)
+                    // Back to a step that can be tried again; next() leaves it on SignIn.
+                    mutableState.value = State.SignIn()
+                    toastHelper.show(
+                        message = context.getString(
+                            R.string.onboarding_auth_failed,
+                            it.message.orEmpty(),
+                        ),
+                        duration = Toast.LENGTH_LONG,
+                    )
                 }
-                next()
+            next()
+        }
+    }
+
+    /** Granted or skipped — either way the prompt has been seen and the step is done. */
+    fun onNotificationPromptSettled() {
+        screenModelScope.launch {
+            preferences.notificationPromptSeen().set(true)
+            next()
+        }
+    }
+
+    fun onRefreshParsers() = refreshIndex()
+
+    fun onInstallParsers(requested: List<AvailableParser>) {
+        screenModelScope.launch {
+            mutableState.value = State.InstallParsers(isInstalling = true)
+            Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
+            // The manager runs them, the same as the parsers screen does, so
+            // leaving mid-download does not cancel one. This step only waits
+            // for each to land: loaded, or failed with a reason on the row.
+            requested.forEach { parserManager.install(it) }
+            combine(
+                parserManager.installedInfo,
+                parserManager.installSteps,
+            ) { installed, steps ->
+                requested.filter { it.pkg !in installed && steps[it.pkg] != InstallStep.Error }
+            }.first { it.isEmpty() }
+
+            val steps = parserManager.installSteps.value
+            requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
+                toastHelper.show(
+                    context.getString(
+                        R.string.onboarding_parsers_install_failed,
+                        parser.name,
+                    )
+                )
             }
+            // An APK can install and still not load — an unsupported lib
+            // version, a missing parser class. Without this the step just
+            // stays put, with the reason sitting unread in loadErrors.
+            parserManager.loadErrors.value.forEach { (file, reason) ->
+                Log.e("Onboarding", "$file did not load: $reason")
+            }
+            next()
         }
     }
 
@@ -131,12 +145,14 @@ class OnboardingScreenModel(
         // Nothing left to ask: remember that, and start the first import on the
         // way out so the ledger is filling before Home is drawn.
         preferences.onboardingComplete().set(true)
-        StatementUpdateJob.runNow(context)
-        emit(Effect.NavigateToHome)
+        // Nobody pressed refresh — this is the way out of onboarding, and a parser
+        // install a moment earlier may still have its own re-read running.
+        TransactionUpdateJob.runNow(context, userInitiated = false)
+        mutableState.value = State.Done
     }
 
     private suspend fun resolve(): State? = when {
-        accountRepository.all().isEmpty() -> State.SignIn
+        accountRepository.all().isEmpty() -> State.SignIn()
         !notificationSettled() -> State.NotificationPermission
         parserManager.installedInfo.value.isEmpty() -> State.InstallParsers()
         else -> null
@@ -165,22 +181,8 @@ class OnboardingScreenModel(
             context.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
 
-    sealed interface Effect {
-        object NavigateToHome: Effect
-    }
-
-    /** The browser flow to launch for result; its outcome comes back as [Event.OnSignInResult]. */
+    /** The browser flow to launch for result; its outcome comes back as [onSignInResult]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
-
-    sealed interface Event {
-        data class OnSignInResult(val data: Intent?): Event
-        object OnRequestNotificationPermission: Event
-        object OnSkipNotificationPermission: Event
-        object OnRefreshParsers: Event
-        data class OnRequestInstallParsers(
-            val availableParsers: List<AvailableParser>,
-        ): Event
-    }
 
     sealed class State {
         /**
@@ -189,12 +191,16 @@ class OnboardingScreenModel(
          * opens the app.
          */
         object Resolving: State()
-        object SignIn: State()
+        /** [isSigningIn] while the browser flow is out and its token exchange runs. */
+        data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
         data class InstallParsers(
             val isLoading: Boolean = false,
             val isInstalling: Boolean = false,
         ): State()
+
+        /** Setup is finished; the screen leaves for the transaction list. */
+        object Done: State()
     }
 
 }

@@ -41,6 +41,10 @@ fun formatDate(epochMillis: Long?, use24Hour: Boolean): String {
     }
 }
 
+/** The calendar day, e.g. `10 Aug 2026` — for a date shown without its time. */
+fun formatDateOnly(epochMillis: Long): String =
+    dateOnlyFormatter.format(Instant.ofEpochMilli(epochMillis))
+
 /** Day and month only, e.g. `10 Aug` — for day headers in a list. */
 fun formatDay(epochMillis: Long?): String {
     if (epochMillis == null) return "-"

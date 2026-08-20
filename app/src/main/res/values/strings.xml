@@ -1,12 +1,12 @@
 <resources>
     <string name="app_name">Finbox</string>
 
-    <string name="statement_update_channel">Statement updates</string>
-    <string name="statement_update_importing">Importing your statement</string>
-    <string name="statement_update_importing_progress">Importing transactions... (%1$d)</string>
-    <string name="statement_update_done_title">Statement updated</string>
-    <string name="statement_update_done">%1$d transactions imported</string>
-    <string name="statement_update_ongoing">An update is already ongoing</string>
+    <string name="transaction_update_channel">Transaction updates</string>
+    <string name="transaction_update_importing">Importing your transactions</string>
+    <string name="transaction_update_importing_progress">Importing transactions... (%1$d)</string>
+    <string name="transaction_update_done_title">Transactions updated</string>
+    <string name="transaction_update_done">%1$d transactions imported</string>
+    <string name="transaction_update_ongoing">An update is already ongoing</string>
 
     <string name="app_update_channel">App updates</string>
     <string name="app_update_available">Finbox %1$s is available</string>
@@ -18,9 +18,10 @@
         <item quantity="other">%1$d parser updates available</item>
     </plurals>
 
-    <string name="onboarding_auth_title">From inbox to statements</string>
-    <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them into statements. Your data stays on your phone.</string>
+    <string name="onboarding_auth_title">From inbox to transactions</string>
+    <string name="onboarding_auth_body">Finbox extracts transactions from your bank emails and organizes them for you. Your data stays on your phone.</string>
     <string name="onboarding_auth_sign_in">Sign in with Google</string>
+    <string name="onboarding_auth_signing_in">Signing in…</string>
     <string name="onboarding_auth_connected">Connected %1$s</string>
     <string name="onboarding_auth_failed">Sign-in failed: %1$s</string>
     <string name="onboarding_auth_scope_note">Finbox only needs read-only Gmail access.\nIt never sends mail or stores message bodies.</string>
@@ -35,6 +36,8 @@
     <string name="onboarding_parsers_subtitle">Install at least one parser to start:</string>
     <string name="onboarding_parsers_install">Install and Continue</string>
     <string name="onboarding_parsers_installing">Installing…</string>
+    <string name="onboarding_parsers_select_all">Select all</string>
+    <string name="onboarding_parsers_clear_selection">Clear</string>
     <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
     <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
 

@@ -22,5 +22,4 @@ class UiPreferences(
     /** Off shows `2:05 PM` instead of `14:05`. */
     fun use24HourClock() = preferenceStore.getBoolean("use_24_hour_clock", true)
 
-    // TODO language pref
 }

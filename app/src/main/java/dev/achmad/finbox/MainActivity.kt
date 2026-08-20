@@ -49,11 +49,11 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
 import dev.achmad.finbox.core.parser.ParserUpdateChecker
-import dev.achmad.finbox.core.update.AppUpdateChecker
+import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.core.parser.ParserUpdateNotifier
-import dev.achmad.finbox.core.statement.StatementUpdateStatus
-import dev.achmad.finbox.features.expenses.ExpensesScreen
-import dev.achmad.finbox.features.parsers.ParsersScreen
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
+import dev.achmad.finbox.features.transaction.list.TransactionsScreen
+import dev.achmad.finbox.features.parser.list.ParsersScreen
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppTheme
@@ -73,10 +73,10 @@ class MainActivity : AppCompatActivity() {
     private val onboardingPreference: OnboardingPreference by injectLazy()
     private val parserUpdateChecker: ParserUpdateChecker by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
-    private val statementUpdateStatus by lazy { StatementUpdateStatus(applicationContext) }
+    private val transactionUpdateStatus by lazy { TransactionUpdateStatus(applicationContext) }
 
     private var isReady = false
-    private var initialScreen: Screen = ExpensesScreen
+    private var initialScreen: Screen = TransactionsScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,9 +102,9 @@ class MainActivity : AppCompatActivity() {
             AppTheme {
                 val slideDistance = rememberSlideDistance()
 
-                val imported by statementUpdateStatus.imported.collectAsState(initial = null)
+                val imported by transactionUpdateStatus.imported.collectAsState(initial = null)
                 val importingText = imported?.let { count ->
-                    stringResource(R.string.statement_update_importing_progress, count)
+                    stringResource(R.string.transaction_update_importing_progress, count)
                 }
 
                 val horizontalInsets = WindowInsets.navigationBars
@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity() {
         // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
         // Onboarding sets its flag on the last step; anything short of that and
         // it re-opens and works out which step is still missing.
-        initialScreen = if (onboardingPreference.onboardingComplete().get()) ExpensesScreen else OnboardingScreen
+        initialScreen = if (onboardingPreference.onboardingComplete().get()) TransactionsScreen else OnboardingScreen
         isReady = true
     }
 
@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity() {
         when (intent.action) {
             // Onboarding has to finish before there is anywhere sensible to land.
             ParserUpdateNotifier.ACTION_OPEN_PARSERS -> {
-                if (navigator.lastItem is ExpensesScreen) navigator.push(ParsersScreen)
+                if (navigator.lastItem is TransactionsScreen) navigator.push(ParsersScreen)
             }
         }
     }

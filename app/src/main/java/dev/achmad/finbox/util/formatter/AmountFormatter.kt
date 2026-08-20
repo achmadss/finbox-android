@@ -11,8 +11,9 @@ private const val DEFAULT_CURRENCY = "IDR"
 private val formatters = mutableMapOf<String, NumberFormat>()
 
 /**
- * Money as text, e.g. `-Rp7.456.000`. [currencyCode] is an ISO code such as `IDR`;
- * unknown or missing codes fall back to rupiah.
+ * Money as text, e.g. `-Rp7.456.000`. Both directions carry their sign, so money in reads
+ * as `+Rp7.456.000` against money out; zero stays unsigned. [currencyCode] is an ISO code
+ * such as `IDR`; unknown or missing codes fall back to rupiah.
  */
 fun formatAmount(amount: Long?, currencyCode: String? = null): String {
     if (amount == null) return "-"
@@ -23,5 +24,6 @@ fun formatAmount(amount: Long?, currencyCode: String? = null): String {
             runCatching { currency = Currency.getInstance(code) }
         }
     }
-    return formatter.format(amount)
+    val text = formatter.format(amount)
+    return if (amount > 0) "+$text" else text
 }

@@ -3,8 +3,9 @@ package dev.achmad.finbox.core.parser
 import android.content.Context
 import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.repository.InstalledParserRepository
-import dev.achmad.finbox.core.statement.StatementUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,6 +72,9 @@ class ParserManager(
     /** Kept so a cancel button has something to stop. */
     private val installJobs = ConcurrentHashMap<String, Job>()
 
+    /** Set by an install that landed, cleared by whichever one asks for the re-read. */
+    private val reparseWanted = AtomicBoolean(false)
+
     /** sourceId -> loaded LoadedSource for enabled parsers. */
     private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
 
@@ -124,7 +128,11 @@ class ParserManager(
                     if (last != InstallStep.Error) _installSteps.update { it - pkg }
                 }
                 .collect()
-            if (last == InstallStep.Installed) reparse()
+            if (last == InstallStep.Installed) reparseWanted.set(true)
+            // The last install of a batch speaks for all of them. Asking per parser only
+            // gets the first request in — the rest arrive while that one runs and are
+            // turned away, so the parsers behind them were never re-read.
+            if (installJobs.isEmpty() && reparseWanted.getAndSet(false)) reparse()
         }
     }
 
@@ -148,7 +156,8 @@ class ParserManager(
      * one may raise a toast.
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
-        StatementUpdateJob.reparseNow(context)
+        // The app asked, not the user: a request turned down here is not worth a toast.
+        TransactionUpdateJob.reparseNow(context, userInitiated = false)
     }
 
     /** Installed parsers the index has a newer build of. */

@@ -8,8 +8,8 @@ import dev.achmad.data.backup.BACKUP_FILE_EXTENSION
 import dev.achmad.data.backup.FinboxBackup
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountRepository
-import dev.achmad.finbox.core.statement.StatementUpdateJob
-import dev.achmad.finbox.core.update.AppUpdateChecker
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
 import dev.achmad.finbox.util.ui.ToastHelper
@@ -60,12 +60,12 @@ class SettingsScreenModel : ScreenModel {
     }
 
     fun fetchNow(context: Context) {
-        screenModelScope.launch { StatementUpdateJob.runNow(context) }
+        screenModelScope.launch { TransactionUpdateJob.runNow(context) }
     }
 
     /** Hands stored mail to the current parsers again, in the background. */
     fun reindexTransactions(context: Context) {
-        screenModelScope.launch { StatementUpdateJob.reparseNow(context) }
+        screenModelScope.launch { TransactionUpdateJob.reparseNow(context) }
     }
 
     /**

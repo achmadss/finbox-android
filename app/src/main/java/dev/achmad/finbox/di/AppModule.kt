@@ -18,11 +18,11 @@ import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailAuthManagerImpl
 import dev.achmad.finbox.core.gmail.GmailTokenManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.core.statement.StatementUpdater
+import dev.achmad.finbox.core.update.transaction.TransactionUpdater
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.core.preference.UpdatePreferences
-import dev.achmad.finbox.core.update.AppUpdateChecker
+import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.core.preference.UiPreferences
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -105,8 +105,8 @@ val appModule = module {
     single<UiPreferences> { UiPreferences(preferenceStore = get()) }
     single<SyncPreferences> { SyncPreferences(preferenceStore = get()) }
     single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
-    single<StatementUpdater> {
-        StatementUpdater(
+    single<TransactionUpdater> {
+        TransactionUpdater(
             sources = { get<ParserManager>().sources },
             accountRepository = get(),
             accountParserRepository = get(),

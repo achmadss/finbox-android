@@ -27,7 +27,7 @@ import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.preference.collectAsState
 
 /**
- * The whole app's colours, from what Appearance settings say.
+ * The whole app's colors, from what Appearance settings say.
  *
  * The preferences are read here rather than passed in: the theme is above every
  * screen, and a screen that changes one has no way to hand the new value up.

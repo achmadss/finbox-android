@@ -6,6 +6,7 @@ import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.db.Transactions
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.transactionIndexOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -47,7 +48,7 @@ class TransactionRepository(
      *
      * An id is derived from the email, so re-parsing a message refreshes the rows
      * it already wrote instead of adding more. Two different messages reporting
-     * one transaction — a notification and a statement, say — are caught by the
+     * one transaction — an alert and a receipt, say — are caught by the
      * provider reference: the same reference from the same source is the same
      * transaction, and the row already stored wins, so user-owned fields such as
      * the category survive.
@@ -74,16 +75,19 @@ class TransactionRepository(
         }
     }
 
+    /** The edit path: everything the user owns, stamped with a fresh [Transaction.updatedAt]. */
     suspend fun update(transaction: Transaction) = withContext(Dispatchers.IO) {
         db.transactionQueries.UPDATEById(
+            reference = transaction.reference,
             date = transaction.date,
             amount = transaction.amount,
             currency = transaction.currency,
             type = transaction.type?.name,
+            kind = transaction.kind,
             category = transaction.category,
             description = transaction.description,
             merchant = transaction.merchant,
-            updated_at = transaction.updatedAt,
+            updated_at = System.currentTimeMillis(),
             id = transaction.id,
         )
         Unit
@@ -149,10 +153,12 @@ class TransactionRepository(
     )
 
     private fun Transactions.toModel() = Transaction(
-        id = id,
         accountId = account_id,
         sourceId = source_id,
         emailMessageId = email_message_id,
+        // The model derives its id from these four, so the number has to come back
+        // out of the stored one — nothing else records it.
+        index = transactionIndexOf(id),
         threadId = thread_id,
         reference = reference,
         date = date,

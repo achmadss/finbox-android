@@ -15,6 +15,12 @@ class AmountFormatterTest {
     }
 
     @Test
+    fun `money in is signed too, and zero is not`() {
+        assertTrue(formatAmount(7_456_000).startsWith("+"))
+        assertTrue(formatAmount(0).startsWith("Rp"))
+    }
+
+    @Test
     fun `a missing amount is a dash, not a zero`() {
         assertEquals("-", formatAmount(null))
     }

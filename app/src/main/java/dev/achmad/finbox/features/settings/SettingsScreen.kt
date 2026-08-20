@@ -20,7 +20,8 @@ import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.core.preference.ThemeMode
 import dev.achmad.finbox.core.preference.UiPreferences
 import dev.achmad.finbox.core.preference.UpdatePreferences
-import dev.achmad.finbox.core.statement.StatementUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.features.settings.language.SettingsLanguageScreen
 import dev.achmad.finbox.theme.components.Preference
 import dev.achmad.finbox.theme.components.PreferenceScreen
 import dev.achmad.finbox.util.formatter.formatDate
@@ -109,7 +110,7 @@ object SettingsScreen : Screen {
 
         // WorkManager replaces the job in place, so a new schedule or condition
         // applies now instead of after the old period runs out.
-        val reschedule: suspend (Any?) -> Unit = { StatementUpdateJob.schedule(context) }
+        val reschedule: suspend (Any?) -> Unit = { TransactionUpdateJob.schedule(context) }
 
         return Preference.PreferenceGroup(
             title = "Sync",

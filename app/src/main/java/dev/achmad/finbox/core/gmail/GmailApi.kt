@@ -9,7 +9,7 @@ import dev.achmad.finbox.core.gmail.model.MessageResponse
 import dev.achmad.finbox.core.gmail.model.Payload
 
 /**
- * The reads a statement update makes against a mailbox.
+ * The reads a transaction update makes against a mailbox.
  *
  * An interface so a debug build can run the whole import offline against
  * `GmailApiMockImpl`; [GmailApiImpl] is the one that talks to Gmail. Which one is
