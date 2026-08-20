@@ -51,6 +51,7 @@ import cafe.adriel.voyager.transitions.ScreenTransition
 import dev.achmad.finbox.core.parser.ParserUpdateChecker
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.core.parser.ParserUpdateNotifier
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import dev.achmad.finbox.features.parser.list.ParsersScreen
@@ -191,6 +192,10 @@ class MainActivity : AppCompatActivity() {
             // Onboarding has to finish before there is anywhere sensible to land.
             ParserUpdateNotifier.ACTION_OPEN_PARSERS -> {
                 if (navigator.lastItem is TransactionsScreen) navigator.push(ParsersScreen)
+            }
+            // The list is the root, so whatever was open on top of it goes.
+            TransactionUpdateNotifier.ACTION_OPEN_TRANSACTIONS -> {
+                if (navigator.items.firstOrNull() is TransactionsScreen) navigator.popUntilRoot()
             }
         }
     }

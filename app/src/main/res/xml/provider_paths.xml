@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Where the downloaded APK lands, so the system installer can read it. -->
+<paths>
+    <external-cache-path
+        name="external_cache"
+        path="." />
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

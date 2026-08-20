@@ -3,9 +3,12 @@ package dev.achmad.finbox.core.update.transaction
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
+import dev.achmad.finbox.MainActivity
 import dev.achmad.finbox.R
 
 /**
@@ -38,7 +41,12 @@ class TransactionUpdateNotifier(private val context: Context) {
         indeterminate = true,
     )
 
-    /** Posts a separate notification so WorkManager cannot remove it with the foreground one. */
+    /**
+     * Posts a separate notification so WorkManager cannot remove it with the foreground one.
+     *
+     * This one is worth tapping — the transactions it announces are in the list — so it
+     * carries an intent onto that list, and dismisses itself once tapped.
+     */
     fun showDone(imported: Int) {
         manager?.notify(
             DONE_NOTIFICATION_ID,
@@ -47,6 +55,8 @@ class TransactionUpdateNotifier(private val context: Context) {
                 text = context.getString(R.string.transaction_update_done, imported),
                 ongoing = false,
                 indeterminate = false,
+                contentIntent = openTransactionsIntent(),
+                autoCancel = true,
             ),
         )
     }
@@ -56,6 +66,8 @@ class TransactionUpdateNotifier(private val context: Context) {
         text: String,
         ongoing: Boolean,
         indeterminate: Boolean,
+        contentIntent: PendingIntent? = null,
+        autoCancel: Boolean = false,
     ): Notification =
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
@@ -65,9 +77,28 @@ class TransactionUpdateNotifier(private val context: Context) {
             .setOngoing(ongoing)
             .setOnlyAlertOnce(true)
             .setSilent(true)
+            .setContentIntent(contentIntent)
+            .setAutoCancel(autoCancel)
             .build()
 
+    /**
+     * CLEAR_TOP so a tap lands on the app as it already is rather than stacking a
+     * second copy of it, and the action tells [MainActivity] to show the list.
+     */
+    private fun openTransactionsIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_TRANSACTIONS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        return PendingIntent.getActivity(
+            context,
+            DONE_NOTIFICATION_ID,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     companion object {
+        const val ACTION_OPEN_TRANSACTIONS = "dev.achmad.finbox.OPEN_TRANSACTIONS"
         const val CHANNEL_ID = "transaction_update"
         const val NOTIFICATION_ID = 1001
         private const val DONE_NOTIFICATION_ID = 1002
