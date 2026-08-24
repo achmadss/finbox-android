@@ -52,96 +52,120 @@ import dev.achmad.finbox.features.parser.list.UninstallConfirmation
 import dev.achmad.finbox.parser.TransactionDirection
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.previewInstalledParser
 import dev.achmad.finbox.R
 import dev.achmad.finbox.features.parser.list.labelRes
 
 data class ParserDetailScreen(private val pkg: String) : Screen {
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = pkg) { ParserDetailScreenModel(pkg) }
         val state by model.state.collectAsState()
-        var confirmUninstall by remember { mutableStateOf(false) }
 
         LaunchedEffect(state.uninstalled) {
             if (state.uninstalled) navigator.pop()
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.label_parser_info)) },
-                    navigationIcon = {
-                        IconButton(onClick = navigator::pop) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_bar_up_description))
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            val parser = state.parser
-            if (parser == null) {
-                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                return@Scaffold
-            }
+        ParserDetailScreenContent(
+            state = state,
+            onBack = navigator::pop,
+            onClickUpdate = model::update,
+            onEnabledChange = model::setEnabled,
+            onToggleType = model::toggleType,
+            onUninstall = model::uninstall,
+        )
+    }
+}
 
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                DetailsHeader(
-                    parser = parser,
-                    summary = state.summary,
-                    sizeBytes = state.sizeBytes,
-                    installStep = parser.installStep,
-                    onClickUpdate = model::update,
-                    onClickUninstall = { confirmUninstall = true },
-                )
-                HorizontalDivider()
-                SwitchRow(
-                    title = stringResource(R.string.label_enabled),
-                    checked = parser.enabled,
-                    onCheckedChange = model::setEnabled,
-                )
-                HorizontalDivider()
-                if (state.types.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.parser_transaction_types),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
-                    )
-                    state.types.forEach { type ->
-                        SwitchRow(
-                            title = type.name,
-                            subtitle = stringResource(
-                                when (type.direction) {
-                                    TransactionDirection.OUTGOING -> R.string.direction_outgoing
-                                    TransactionDirection.INCOMING -> R.string.direction_incoming
-                                },
-                            ),
-                            checked = type.enabled,
-                            onCheckedChange = { model.toggleType(type.key) },
-                        )
+/** A null `state.parser` is the first read still running. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ParserDetailScreenContent(
+    state: ParserDetailScreenModel.State,
+    onBack: () -> Unit = {},
+    onClickUpdate: () -> Unit = {},
+    onEnabledChange: (Boolean) -> Unit = {},
+    onToggleType: (String) -> Unit = {},
+    onUninstall: () -> Unit = {},
+) {
+    var confirmUninstall by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.label_parser_info)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_bar_up_description))
                     }
-                    HorizontalDivider()
-                }
+                },
+            )
+        },
+    ) { padding ->
+        val parser = state.parser
+        if (parser == null) {
+            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                CircularProgressIndicator()
             }
+            return@Scaffold
         }
 
-        if (confirmUninstall) {
-            UninstallConfirmation(
-                name = state.parser?.name.orEmpty(),
-                onConfirm = model::uninstall,
-                onDismiss = { confirmUninstall = false },
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            DetailsHeader(
+                parser = parser,
+                summary = state.summary,
+                sizeBytes = state.sizeBytes,
+                installStep = parser.installStep,
+                onClickUpdate = onClickUpdate,
+                onClickUninstall = { confirmUninstall = true },
             )
+            HorizontalDivider()
+            SwitchRow(
+                title = stringResource(R.string.label_enabled),
+                checked = parser.enabled,
+                onCheckedChange = onEnabledChange,
+            )
+            HorizontalDivider()
+            if (state.types.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.parser_transaction_types),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
+                )
+                state.types.forEach { type ->
+                    SwitchRow(
+                        title = type.name,
+                        subtitle = stringResource(
+                            when (type.direction) {
+                                TransactionDirection.OUTGOING -> R.string.direction_outgoing
+                                TransactionDirection.INCOMING -> R.string.direction_incoming
+                            },
+                        ),
+                        checked = type.enabled,
+                        onCheckedChange = { onToggleType(type.key) },
+                    )
+                }
+                HorizontalDivider()
+            }
         }
+    }
+
+    if (confirmUninstall) {
+        UninstallConfirmation(
+            name = state.parser?.name.orEmpty(),
+            onConfirm = onUninstall,
+            onDismiss = { confirmUninstall = false },
+        )
     }
 }
 
@@ -280,5 +304,44 @@ private fun SwitchRow(
             }
         }
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Preview
+@Composable
+private fun ParserDetailPreview() {
+    AppTheme {
+        ParserDetailScreenContent(
+            state = ParserDetailScreenModel.State(
+                parser = ParserUiModel.Installed(
+                    parser = previewInstalledParser(),
+                    update = null,
+                    installStep = InstallStep.Idle,
+                ),
+                types = listOf(
+                    ParserDetailScreenModel.TypeUiModel(
+                        key = "QRIS",
+                        name = "QRIS payment",
+                        direction = TransactionDirection.OUTGOING,
+                        enabled = true,
+                    ),
+                    ParserDetailScreenModel.TypeUiModel(
+                        key = "TOPUP",
+                        name = "Top up",
+                        direction = TransactionDirection.INCOMING,
+                        enabled = false,
+                    ),
+                ),
+                sizeBytes = 482_000,
+            ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ParserDetailLoadingPreview() {
+    AppTheme {
+        ParserDetailScreenContent(state = ParserDetailScreenModel.State())
     }
 }

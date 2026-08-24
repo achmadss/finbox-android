@@ -60,6 +60,9 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.R
 
 /**
@@ -88,74 +91,94 @@ data class TransactionEditScreen(private val id: String) : Screen {
             }
         }
 
-        val edited = draft
-        val dirty = edited != null && edited != transaction?.toDraft()
-        var confirmDiscard by remember { mutableStateOf(false) }
-        val leave: () -> Unit = {
-            if (dirty) confirmDiscard = true else navigator.pop()
-        }
+        TransactionEditScreenContent(
+            draft = draft,
+            types = types,
+            use24Hour = rememberUse24HourClock(),
+            // What is on screen against what is stored: the only thing worth warning about.
+            dirty = draft != null && draft != transaction?.toDraft(),
+            onDraftChange = { draft = it },
+            onSave = { edited -> transaction?.let { model.save(edited.applyTo(it)) } },
+            onLeave = navigator::pop,
+        )
+    }
+}
 
-        // Only while there is something to lose; otherwise back is back.
-        BackHandler(enabled = dirty) { confirmDiscard = true }
+/** Null [draft] is the first read still running. */
+@Composable
+internal fun TransactionEditScreenContent(
+    draft: Draft?,
+    types: List<TransactionType>,
+    use24Hour: Boolean,
+    dirty: Boolean = false,
+    onDraftChange: (Draft) -> Unit = {},
+    onSave: (Draft) -> Unit = {},
+    onLeave: () -> Unit = {},
+) {
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val leave: () -> Unit = { if (dirty) confirmDiscard = true else onLeave() }
 
-        Scaffold(
-            topBar = {
-                AppBar(
-                    title = stringResource(R.string.label_edit_transaction),
-                    navigateUp = leave,
-                    actions = listOfNotNull(
-                        edited?.let {
-                            AppBar.Action(
-                                title = stringResource(R.string.action_save),
-                                icon = Icons.Outlined.Check,
-                                onClick = {
-                                    transaction?.let { current -> model.save(it.applyTo(current)) }
-                                    navigator.pop()
-                                },
-                            )
-                        },
-                    ),
-                )
-            },
-        ) { padding ->
-            if (edited == null) {
-                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                return@Scaffold
+    // Only while there is something to lose; otherwise back is back.
+    BackHandler(enabled = dirty) { confirmDiscard = true }
+
+    Scaffold(
+        topBar = {
+            AppBar(
+                title = stringResource(R.string.label_edit_transaction),
+                navigateUp = leave,
+                actions = listOfNotNull(
+                    draft?.let {
+                        AppBar.Action(
+                            title = stringResource(R.string.action_save),
+                            icon = Icons.Outlined.Check,
+                            onClick = {
+                                onSave(it)
+                                onLeave()
+                            },
+                        )
+                    },
+                ),
+            )
+        },
+    ) { padding ->
+        if (draft == null) {
+            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                CircularProgressIndicator()
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                TransactionEditor(
-                    draft = edited,
-                    types = types,
-                    onChange = { draft = it },
-                )
-            }
+            return@Scaffold
         }
-
-        if (confirmDiscard) {
-            AlertDialog(
-                onDismissRequest = { confirmDiscard = false },
-                title = { Text(stringResource(R.string.discard_changes)) },
-                text = { Text(stringResource(R.string.discard_changes_confirmation)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            confirmDiscard = false
-                            navigator.pop()
-                        },
-                    ) { Text(stringResource(R.string.action_discard)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.action_keep_editing)) }
-                },
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            TransactionEditor(
+                draft = draft,
+                types = types,
+                use24Hour = use24Hour,
+                onChange = onDraftChange,
             )
         }
+    }
+
+    if (confirmDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text(stringResource(R.string.discard_changes)) },
+            text = { Text(stringResource(R.string.discard_changes_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDiscard = false
+                        onLeave()
+                    },
+                ) { Text(stringResource(R.string.action_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.action_keep_editing)) }
+            },
+        )
     }
 }
 
@@ -163,9 +186,9 @@ data class TransactionEditScreen(private val id: String) : Screen {
 private fun TransactionEditor(
     draft: Draft,
     types: List<TransactionType>,
+    use24Hour: Boolean,
     onChange: (Draft) -> Unit,
 ) {
-    val use24Hour = rememberUse24HourClock()
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
     var pickType by remember { mutableStateOf(false) }
@@ -446,3 +469,15 @@ internal fun Draft.applyTo(transaction: Transaction) = transaction.copy(
 )
 
 private fun String.blankToNull(): String? = trim().takeIf { it.isNotEmpty() }
+
+@Preview
+@Composable
+private fun TransactionEditPreview() {
+    AppTheme {
+        TransactionEditScreenContent(
+            draft = previewTransaction().toDraft(),
+            types = emptyList(),
+            use24Hour = true,
+        )
+    }
+}

@@ -57,7 +57,7 @@ import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import dev.achmad.finbox.features.parser.list.ParsersScreen
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
-import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.theme.AppThemeFromPreferences
 import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         enableEdgeToEdge()
         setContent {
-            AppTheme {
+            AppThemeFromPreferences {
                 val slideDistance = rememberSlideDistance()
 
                 val imported by transactionUpdateStatus.imported.collectAsState(initial = null)

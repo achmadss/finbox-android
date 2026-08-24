@@ -42,6 +42,9 @@ import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.R
 
 data class TransactionDetailScreen(private val id: String) : Screen {
@@ -52,7 +55,6 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
         val types by model.types.collectAsState()
-        var confirmDelete by remember { mutableStateOf(false) }
 
         // Same rule as the account details screen: gone *after* it was here means deleted,
         // whereas gone at the start is just the first read still running.
@@ -61,71 +63,95 @@ data class TransactionDetailScreen(private val id: String) : Screen {
             if (transaction != null) everLoaded = true else if (everLoaded) navigator.pop()
         }
 
-        Scaffold(
-            topBar = {
-                AppBar(
-                    title = stringResource(R.string.transaction),
-                    navigateUp = navigator::pop,
-                    actions = if (transaction == null) {
-                        emptyList()
-                    } else {
-                        listOf(
-                            AppBar.Action(
-                                title = stringResource(R.string.action_edit),
-                                icon = Icons.Outlined.Edit,
-                                onClick = { navigator.push(TransactionEditScreen(id)) },
-                            ),
-                            AppBar.Action(
-                                title = stringResource(R.string.action_delete),
-                                icon = Icons.Outlined.Delete,
-                                onClick = { confirmDelete = true },
-                            ),
-                        )
-                    },
-                )
-            },
-        ) { padding ->
-            val current = transaction
-            if (current == null) {
-                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                return@Scaffold
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                TransactionView(transaction = current, types = types)
-            }
-        }
+        TransactionDetailScreenContent(
+            transaction = transaction,
+            types = types,
+            use24Hour = rememberUse24HourClock(),
+            onBack = navigator::pop,
+            onClickEdit = { navigator.push(TransactionEditScreen(id)) },
+            onDelete = model::delete,
+        )
+    }
+}
 
-        if (confirmDelete) {
-            AlertDialog(
-                onDismissRequest = { confirmDelete = false },
-                title = { Text(stringResource(R.string.delete_transaction)) },
-                text = { Text(stringResource(R.string.delete_transaction_confirmation)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            confirmDelete = false
-                            model.delete()
-                        },
-                    ) { Text(stringResource(R.string.action_delete)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
+/** Null [transaction] is the first read still running; the screen leaves once it was here and went. */
+@Composable
+fun TransactionDetailScreenContent(
+    transaction: Transaction?,
+    types: List<TransactionType>,
+    use24Hour: Boolean,
+    onBack: () -> Unit = {},
+    onClickEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            AppBar(
+                title = stringResource(R.string.transaction),
+                navigateUp = onBack,
+                actions = if (transaction == null) {
+                    emptyList()
+                } else {
+                    listOf(
+                        AppBar.Action(
+                            title = stringResource(R.string.action_edit),
+                            icon = Icons.Outlined.Edit,
+                            onClick = onClickEdit,
+                        ),
+                        AppBar.Action(
+                            title = stringResource(R.string.action_delete),
+                            icon = Icons.Outlined.Delete,
+                            onClick = { confirmDelete = true },
+                        ),
+                    )
                 },
             )
+        },
+    ) { padding ->
+        if (transaction == null) {
+            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
         }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            TransactionView(transaction = transaction, types = types, use24Hour = use24Hour)
+        }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_transaction)) },
+            text = { Text(stringResource(R.string.delete_transaction_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onDelete()
+                    },
+                ) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
     }
 }
 
 @Composable
-private fun TransactionView(transaction: Transaction, types: List<TransactionType>) {
-    val use24Hour = rememberUse24HourClock()
+private fun TransactionView(
+    transaction: Transaction,
+    types: List<TransactionType>,
+    use24Hour: Boolean,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -167,5 +193,25 @@ private fun Field(label: String, value: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(text = value?.takeIf { it.isNotBlank() } ?: "-")
+    }
+}
+
+@Preview
+@Composable
+private fun TransactionDetailPreview() {
+    AppTheme {
+        TransactionDetailScreenContent(
+            transaction = previewTransaction(),
+            types = emptyList(),
+            use24Hour = true,
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TransactionDetailLoadingPreview() {
+    AppTheme {
+        TransactionDetailScreenContent(transaction = null, types = emptyList(), use24Hour = true)
     }
 }

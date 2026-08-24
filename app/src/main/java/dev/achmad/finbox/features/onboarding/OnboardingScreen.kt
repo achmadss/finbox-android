@@ -1,6 +1,5 @@
 package dev.achmad.finbox.features.onboarding
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,23 +21,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.parser.AvailableParser
-import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingInstallParsersContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingNotificationPermissionContent
-import dev.achmad.finbox.util.koin.injectLazy
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
 import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
 
@@ -47,11 +46,18 @@ object OnboardingScreen: Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
+    @OptIn(ExperimentalPermissionsApi::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { OnboardingScreenModel() }
         val state by screenModel.state.collectAsState()
+        val activity = LocalActivity.current
+        val notificationPermission = rememberNotificationPermissionState()
+
+        val signIn = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) { result -> screenModel.onSignInResult(result.data) }
 
         // The last step is leaving: nothing else is waiting on this screen, so the
         // state saying so is the whole signal.
@@ -59,53 +65,46 @@ object OnboardingScreen: Screen {
             if (state is OnboardingScreenModel.State.Done) navigator.replace(TransactionsScreen)
         }
 
+        // The grant lands on the activity result, not on the button press.
+        LaunchedEffect(notificationPermission.status.isGranted, state) {
+            if (state is OnboardingScreenModel.State.NotificationPermission &&
+                notificationPermission.status.isGranted
+            ) {
+                screenModel.onNotificationPromptSettled()
+            }
+        }
+
         OnboardingScreenContent(
             state = state,
-            authorizationIntent = screenModel::authorizationIntent,
-            onSignInStarted = screenModel::onSignInStarted,
-            onSignInResult = screenModel::onSignInResult,
+            onClickSignIn = {
+                screenModel.onSignInStarted()
+                signIn.launch(screenModel.authorizationIntent())
+            },
+            onClickAllowNotification = notificationPermission::launchPermissionRequest,
             onNotificationPromptSettled = screenModel::onNotificationPromptSettled,
             onRefreshParsers = screenModel::onRefreshParsers,
             onInstallParsers = screenModel::onInstallParsers,
+            onExit = { activity?.finish() },
         )
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun OnboardingScreenContent(
+fun OnboardingScreenContent(
     state: OnboardingScreenModel.State,
-    authorizationIntent: () -> Intent,
-    onSignInStarted: () -> Unit,
-    onSignInResult: (Intent?) -> Unit,
-    onNotificationPromptSettled: () -> Unit,
-    onRefreshParsers: () -> Unit,
-    onInstallParsers: (List<AvailableParser>) -> Unit,
+    onClickSignIn: () -> Unit = {},
+    onClickAllowNotification: () -> Unit = {},
+    onNotificationPromptSettled: () -> Unit = {},
+    onRefreshParsers: () -> Unit = {},
+    onInstallParsers: (List<AvailableParser>) -> Unit = {},
+    onExit: () -> Unit = {},
 ) {
-    val signIn = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        onSignInResult(result.data)
-    }
     val slideDistance = rememberSlideDistance()
-    val parserManager by remember { injectLazy<ParserManager>() }
-    val availableParsers by parserManager.available.collectAsState()
-    val activity = LocalActivity.current
-    val notificationPermission = rememberNotificationPermissionState()
     var confirmExit by remember { mutableStateOf(false) }
 
     // Nothing to go back to — the only step left is leaving, and half-finished
     // setup resumes from where it stopped.
     BackHandler { confirmExit = true }
-
-    // The grant lands on the activity result, not on the button press.
-    LaunchedEffect(notificationPermission.status.isGranted, state) {
-        if (state is OnboardingScreenModel.State.NotificationPermission &&
-            notificationPermission.status.isGranted
-        ) {
-            onNotificationPromptSettled()
-        }
-    }
 
     if (confirmExit) {
         AlertDialog(
@@ -113,7 +112,7 @@ private fun OnboardingScreenContent(
             title = { Text(stringResource(R.string.onboarding_exit_title)) },
             text = { Text(stringResource(R.string.onboarding_exit_message)) },
             confirmButton = {
-                TextButton(onClick = { activity?.finish() }) {
+                TextButton(onClick = onExit) {
                     Text(stringResource(R.string.onboarding_exit_confirm))
                 }
             },
@@ -150,21 +149,18 @@ private fun OnboardingScreenContent(
             is OnboardingScreenModel.State.SignIn -> {
                 OnboardingAuthContent(
                     signingIn = onboardingState.isSigningIn,
-                    onClickSignIn = {
-                        onSignInStarted()
-                        signIn.launch(authorizationIntent())
-                    },
+                    onClickSignIn = onClickSignIn,
                 )
             }
             is OnboardingScreenModel.State.NotificationPermission -> {
                 OnboardingNotificationPermissionContent(
-                    onClickAllowNotification = { notificationPermission.launchPermissionRequest() },
+                    onClickAllowNotification = onClickAllowNotification,
                     onSkipNotificationPermission = onNotificationPromptSettled,
                 )
             }
             is OnboardingScreenModel.State.InstallParsers -> {
                 OnboardingInstallParsersContent(
-                    parsers = availableParsers,
+                    parsers = onboardingState.parsers,
                     loading = onboardingState.isLoading,
                     installing = onboardingState.isInstalling,
                     onRefresh = onRefreshParsers,
@@ -172,5 +168,31 @@ private fun OnboardingScreenContent(
                 )
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun OnboardingSignInPreview() {
+    AppTheme {
+        OnboardingScreenContent(state = OnboardingScreenModel.State.SignIn())
+    }
+}
+
+@Preview
+@Composable
+private fun OnboardingNotificationPreview() {
+    AppTheme {
+        OnboardingScreenContent(state = OnboardingScreenModel.State.NotificationPermission)
+    }
+}
+
+@Preview
+@Composable
+private fun OnboardingInstallParsersPreview() {
+    AppTheme {
+        OnboardingScreenContent(
+            state = OnboardingScreenModel.State.InstallParsers(parsers = emptyList()),
+        )
     }
 }

@@ -44,6 +44,17 @@ class OnboardingScreenModel(
                 if (state.value is State.SignIn && it.isNotEmpty()) next()
             }
         }
+
+        // The step renders what the state holds, so the published list is folded
+        // in here rather than read from the composition.
+        screenModelScope.launch {
+            parserManager.available.collect { available ->
+                val current = state.value
+                if (current is State.InstallParsers) {
+                    mutableState.value = current.copy(parsers = available)
+                }
+            }
+        }
     }
 
     /** The browser is up; the step is busy until its result lands. */
@@ -90,7 +101,8 @@ class OnboardingScreenModel(
 
     fun onInstallParsers(requested: List<AvailableParser>) {
         screenModelScope.launch {
-            mutableState.value = State.InstallParsers(isInstalling = true)
+            val current = state.value as? State.InstallParsers ?: State.InstallParsers()
+            mutableState.value = current.copy(isInstalling = true)
             Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
             // The manager runs them, the same as the parsers screen does, so
             // leaving mid-download does not cancel one. This step only waits
@@ -144,7 +156,8 @@ class OnboardingScreenModel(
     private suspend fun resolve(): State? = when {
         accountRepository.all().isEmpty() -> State.SignIn()
         !notificationSettled() -> State.NotificationPermission
-        parserManager.installedInfo.value.isEmpty() -> State.InstallParsers()
+        parserManager.installedInfo.value.isEmpty() ->
+            State.InstallParsers(parsers = parserManager.available.value)
         else -> null
     }
 
@@ -185,6 +198,8 @@ class OnboardingScreenModel(
         data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
         data class InstallParsers(
+            /** What the index is offering. Carried here so the step draws from state alone. */
+            val parsers: List<AvailableParser> = emptyList(),
             val isLoading: Boolean = false,
             val isInstalling: Boolean = false,
         ): State()

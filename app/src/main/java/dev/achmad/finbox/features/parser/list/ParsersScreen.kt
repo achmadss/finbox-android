@@ -57,10 +57,15 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
 import dev.achmad.finbox.core.parser.InstallStep
+import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.rememberParserPainter
 import dev.achmad.finbox.features.parser.detail.ParserDetailScreen
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.previewAvailableParser
+import dev.achmad.finbox.util.preview.previewInstalledParser
 import dev.achmad.finbox.R
 
 object ParsersScreen : Screen {
@@ -68,88 +73,110 @@ object ParsersScreen : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel { ParsersScreenModel() }
         val state by model.state.collectAsState()
-        var confirmUninstall by remember { mutableStateOf<ParserUiModel.Installed?>(null) }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
-                    title = { Text(stringResource(R.string.parsers)) },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = model::refresh,
-                modifier = Modifier.fillMaxSize().padding(padding),
-            ) {
-                when {
-                    state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        CircularProgressIndicator()
+        ParsersScreenContent(
+            state = state,
+            onBack = navigator::pop,
+            onRefresh = model::refresh,
+            onOpenParser = { navigator.push(ParserDetailScreen(it)) },
+            onInstall = model::install,
+            onUpdate = model::update,
+            onUpdateAll = model::updateAll,
+            onCancelInstall = model::cancelInstall,
+            onUninstall = model::uninstall,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ParsersScreenContent(
+    state: ParsersScreenModel.State,
+    onBack: () -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onOpenParser: (String) -> Unit = {},
+    onInstall: (AvailableParser) -> Unit = {},
+    onUpdate: (String) -> Unit = {},
+    onUpdateAll: () -> Unit = {},
+    onCancelInstall: (String) -> Unit = {},
+    onUninstall: (String) -> Unit = {},
+) {
+    var confirmUninstall by remember { mutableStateOf<ParserUiModel.Installed?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
+                title = { Text(stringResource(R.string.parsers)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
-                    state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text(
-                            stringResource(R.string.parsers_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    else -> ParserContent(
-                        state = state,
-                        onClickItem = { item ->
-                            when (item) {
-                                is ParserUiModel.Installed -> navigator.push(
-                                    ParserDetailScreen(
-                                        item.pkg
-                                    )
-                                )
-                                is ParserUiModel.Available -> model.install(item.parser)
-                            }
-                        },
-                        onLongClickItem = { item ->
-                            when (item) {
-                                is ParserUiModel.Installed -> confirmUninstall = item
-                                is ParserUiModel.Available -> model.install(item.parser)
-                            }
-                        },
-                        onClickAction = { item ->
-                            when {
-                                // Error keeps the row's action pointed at trying again.
-                                item.installStep == InstallStep.Error -> when (item) {
-                                    is ParserUiModel.Installed -> model.update(item.pkg)
-                                    is ParserUiModel.Available -> model.install(item.parser)
-                                }
-                                item is ParserUiModel.Installed ->
-                                    if (item.update != null) model.update(item.pkg)
-                                    else navigator.push(ParserDetailScreen(item.pkg))
-                                item is ParserUiModel.Available -> model.install(item.parser)
-                            }
-                        },
-                        onClickCancel = { model.cancelInstall(it.pkg) },
-                        onClickUpdateAll = model::updateAll,
+                },
+            )
+        },
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        ) {
+            when {
+                state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    Text(
+                        stringResource(R.string.parsers_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                else -> ParserContent(
+                    state = state,
+                    onClickItem = { item ->
+                        when (item) {
+                            is ParserUiModel.Installed -> onOpenParser(item.pkg)
+                            is ParserUiModel.Available -> onInstall(item.parser)
+                        }
+                    },
+                    onLongClickItem = { item ->
+                        when (item) {
+                            is ParserUiModel.Installed -> confirmUninstall = item
+                            is ParserUiModel.Available -> onInstall(item.parser)
+                        }
+                    },
+                    onClickAction = { item ->
+                        when {
+                            // Error keeps the row's action pointed at trying again.
+                            item.installStep == InstallStep.Error -> when (item) {
+                                is ParserUiModel.Installed -> onUpdate(item.pkg)
+                                is ParserUiModel.Available -> onInstall(item.parser)
+                            }
+                            item is ParserUiModel.Installed ->
+                                if (item.update != null) onUpdate(item.pkg)
+                                else onOpenParser(item.pkg)
+                            item is ParserUiModel.Available -> onInstall(item.parser)
+                        }
+                    },
+                    onClickCancel = { onCancelInstall(it.pkg) },
+                    onClickUpdateAll = onUpdateAll,
+                )
             }
         }
+    }
 
-        confirmUninstall?.let { item ->
-            UninstallConfirmation(
-                name = item.name,
-                onConfirm = { model.uninstall(item.pkg) },
-                onDismiss = { confirmUninstall = null },
-            )
-        }
+    confirmUninstall?.let { item ->
+        UninstallConfirmation(
+            name = item.name,
+            onConfirm = { onUninstall(item.pkg) },
+            onDismiss = { confirmUninstall = null },
+        )
     }
 }
 
@@ -397,4 +424,44 @@ fun UninstallConfirmation(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
+}
+
+@Preview
+@Composable
+private fun ParsersScreenPreview() {
+    AppTheme {
+        ParsersScreenContent(
+            state = ParsersScreenModel.State(
+                isLoading = false,
+                updates = listOf(
+                    ParserUiModel.Installed(
+                        parser = previewInstalledParser(),
+                        update = previewAvailableParser(pkg = "dev.achmad.parser.jago", name = "Jago"),
+                        installStep = InstallStep.Idle,
+                    ),
+                ),
+                installed = listOf(
+                    ParserUiModel.Installed(
+                        parser = previewInstalledParser(pkg = "dev.achmad.parser.bni", name = "BNI"),
+                        update = null,
+                        installStep = InstallStep.Idle,
+                    ),
+                ),
+                available = listOf(
+                    ParserUiModel.Available(
+                        parser = previewAvailableParser(),
+                        installStep = InstallStep.Idle,
+                    ),
+                ),
+            ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ParsersScreenEmptyPreview() {
+    AppTheme {
+        ParsersScreenContent(state = ParsersScreenModel.State(isLoading = false))
+    }
 }

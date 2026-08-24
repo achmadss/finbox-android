@@ -79,6 +79,8 @@ import dev.achmad.finbox.features.account.list.AccountsScreen
 import dev.achmad.finbox.features.parser.list.ParsersScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.PREVIEW_TIMESTAMP
+import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.theme.components.MonthYearPickerSheet
 import dev.achmad.finbox.theme.components.VerticalFastScroller
@@ -128,6 +130,7 @@ object TransactionsScreen : Screen {
         val parserUpdates by model.parserUpdates.collectAsState()
 
         TransactionsScreenContent(
+            use24Hour = rememberUse24HourClock(),
             monthly = monthly,
             months = months,
             month = month,
@@ -150,7 +153,8 @@ object TransactionsScreen : Screen {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransactionsScreenContent(
+fun TransactionsScreenContent(
+    use24Hour: Boolean,
     monthly: Map<YearMonth, List<Transaction>>,
     months: List<YearMonth>,
     month: YearMonth,
@@ -352,6 +356,7 @@ private fun TransactionsScreenContent(
                     overscrollEffect = rememberSpringOverscrollEffect(),
                 ) { index ->
                     MonthPage(
+                        use24Hour = use24Hour,
                         transactions = monthly[months[index]].orEmpty(),
                         filtered = filter.isActive,
                         // Day headers only make sense while the list is in date order.
@@ -368,6 +373,7 @@ private fun TransactionsScreenContent(
 
 @Composable
 private fun MonthPage(
+    use24Hour: Boolean,
     transactions: List<Transaction>,
     filtered: Boolean,
     grouped: Boolean,
@@ -413,8 +419,8 @@ private fun MonthPage(
         HorizontalDivider()
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
-            grouped -> TransactionList(transactions, typeNames, parserNames, onOpenTransaction)
-            else -> FlatTransactionList(transactions, typeNames, parserNames, onOpenTransaction)
+            grouped -> TransactionList(use24Hour, transactions, typeNames, parserNames, onOpenTransaction)
+            else -> FlatTransactionList(use24Hour, transactions, typeNames, parserNames, onOpenTransaction)
         }
     }
 }
@@ -564,6 +570,7 @@ private fun RowScope.MonthStep(
 
 @Composable
 private fun TransactionList(
+    use24Hour: Boolean,
     transactions: List<Transaction>,
     typeNames: Map<String, String>,
     parserNames: Map<Long, String>,
@@ -603,7 +610,7 @@ private fun TransactionList(
                         dayTransactions.forEachIndexed { index, transaction ->
                             val type = typeNames[transaction.type]
                             val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                            TransactionRow(transaction, type, parser) { onOpenTransaction(transaction) }
+                            TransactionRow(use24Hour, transaction, type, parser) { onOpenTransaction(transaction) }
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
                             }
@@ -618,6 +625,7 @@ private fun TransactionList(
 /** Sorted by something other than date, so the day goes on each row instead of a header. */
 @Composable
 private fun FlatTransactionList(
+    use24Hour: Boolean,
     transactions: List<Transaction>,
     typeNames: Map<String, String>,
     parserNames: Map<Long, String>,
@@ -639,7 +647,7 @@ private fun FlatTransactionList(
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
                     val type = typeNames[transaction.type]
                     val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                    TransactionRow(transaction, type, parser, showDay = true) {
+                    TransactionRow(use24Hour, transaction, type, parser, showDay = true) {
                         onOpenTransaction(transaction)
                     }
                     if (index != transactions.lastIndex) {
@@ -653,6 +661,7 @@ private fun FlatTransactionList(
 
 @Composable
 private fun TransactionRow(
+    use24Hour: Boolean,
     transaction: Transaction,
     type: String?,
     parser: String,
@@ -688,7 +697,6 @@ private fun TransactionRow(
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        val use24Hour = rememberUse24HourClock()
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = formatAmount(transaction.signedAmount, transaction.currency),
@@ -751,38 +759,54 @@ internal val TransactionDirection.labelRes: Int
 @Preview
 @Composable
 private fun TransactionsScreenPreview() {
-    val now = System.currentTimeMillis()
-    fun sample(id: String, description: String, amount: Long, direction: TransactionDirection, at: Long) =
-        Transaction(
-            accountId = "a",
-            parserId = 1L,
-            emailMessageId = "m$id",
-            index = 0,
-            threadId = null,
-            reference = null,
-            date = at,
-            amount = amount,
-            currency = "IDR",
-            direction = direction,
-            type = null,
-            category = null,
-            description = description,
-            merchant = description,
-            createdAt = at,
-            updatedAt = at,
-            deleted = false,
-        )
-    val transactions = listOf(
-        sample("1", "Kopi Kenangan", 24_000, TransactionDirection.OUTGOING, now),
-        sample("2", "Tokopedia", 315_000, TransactionDirection.OUTGOING, now),
-        sample("3", "Payroll", 12_500_000, TransactionDirection.INCOMING, now - 86_400_000L),
-        sample("4", "Transfer to savings", 1_000_000, TransactionDirection.OUTGOING, now - 86_400_000L),
-    )
-    val month = YearMonth.now()
+    val month = YearMonth.of(2023, 11)
+    val day = PREVIEW_TIMESTAMP
+    val dayBefore = PREVIEW_TIMESTAMP - 86_400_000L
     AppTheme {
         TransactionsScreenContent(
-            monthly = mapOf(month to transactions),
+            use24Hour = true,
+            monthly = mapOf(
+                month to listOf(
+                    previewTransaction(index = 1, amount = 24_000, description = "Kopi Kenangan", merchant = "Kopi Kenangan", date = day),
+                    previewTransaction(index = 2, amount = 315_000, description = "Tokopedia", merchant = "Tokopedia", date = day),
+                    previewTransaction(
+                        index = 3,
+                        amount = 12_500_000,
+                        direction = TransactionDirection.INCOMING,
+                        description = "Payroll",
+                        merchant = "Payroll",
+                        date = dayBefore,
+                    ),
+                    previewTransaction(index = 4, amount = 1_000_000, description = "Transfer to savings", merchant = "Savings", date = dayBefore),
+                ),
+            ),
             months = listOf(month.minusMonths(1), month),
+            month = month,
+            latest = month,
+            loading = false,
+            filter = TransactionFilter(),
+            accounts = emptyList(),
+            parsers = emptyList(),
+            onRefresh = {},
+            onMonthChange = {},
+            onFilterChange = {},
+            onOpenTransaction = {},
+            onOpenAccounts = {},
+            onOpenParsers = {},
+            onOpenSettings = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TransactionsScreenEmptyPreview() {
+    val month = YearMonth.of(2023, 11)
+    AppTheme {
+        TransactionsScreenContent(
+            use24Hour = true,
+            monthly = mapOf(month to emptyList()),
+            months = listOf(month),
             month = month,
             latest = month,
             loading = false,

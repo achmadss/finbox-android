@@ -27,20 +27,19 @@ import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.preference.collectAsState
 
 /**
- * The whole app's colors, from what Appearance settings say.
+ * The whole app's colors.
  *
- * The preferences are read here rather than passed in: the theme is above every
- * screen, and a screen that changes one has no way to hand the new value up.
+ * Takes the three appearance settings rather than reading them, so a preview
+ * can draw any screen without a preference store behind it. The composition
+ * root reads them once with [AppThemeFromPreferences].
  */
 @Composable
 fun AppTheme(
-    content: @Composable () -> Unit
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    amoled: Boolean = false,
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit,
 ) {
-    val preferences = remember { inject<UiPreferences>() }
-    val themeMode by preferences.themeMode().collectAsState()
-    val amoled by preferences.amoledDark().collectAsState()
-    val dynamicColor by preferences.dynamicColor().collectAsState()
-
     val darkTheme = when (themeMode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
@@ -74,6 +73,29 @@ fun AppTheme(
             content = content,
         )
     }
+}
+
+/**
+ * [AppTheme] with the stored settings applied.
+ *
+ * The theme sits above every screen, and a screen that changes one of these has
+ * no way to hand the new value up — so the read belongs here, at the root.
+ */
+@Composable
+fun AppThemeFromPreferences(
+    content: @Composable () -> Unit,
+) {
+    val preferences = remember { inject<UiPreferences>() }
+    val themeMode by preferences.themeMode().collectAsState()
+    val amoled by preferences.amoledDark().collectAsState()
+    val dynamicColor by preferences.dynamicColor().collectAsState()
+
+    AppTheme(
+        themeMode = themeMode,
+        amoled = amoled,
+        dynamicColor = dynamicColor,
+        content = content,
+    )
 }
 
 @Suppress("DEPRECATION")

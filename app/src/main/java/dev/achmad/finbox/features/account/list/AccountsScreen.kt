@@ -56,6 +56,9 @@ import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import dev.achmad.finbox.theme.AppTheme
+import dev.achmad.finbox.util.preview.previewAccount
 import dev.achmad.finbox.R
 
 object AccountsScreen : Screen {
@@ -67,69 +70,83 @@ object AccountsScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel { AccountsScreenModel() }
-        val accounts by model.accounts.collectAsState()
-        val disabledByAccount by model.disabledByAccount.collectAsState()
-        val parsers by model.parsers.collectAsState()
-        var confirmRemove by remember { mutableStateOf<EmailAccount?>(null) }
+        val rows by model.rows.collectAsState()
         val addAccount = rememberLauncherForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            model.addAccount(result.data)
-        }
+            ActivityResultContracts.StartActivityForResult(),
+        ) { result -> model.addAccount(result.data) }
 
-        Scaffold(
-            topBar = {
-                AppBar(
-                    modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
-                    title = stringResource(R.string.accounts),
-                    navigateUp = navigator::pop,
-                    actions = listOf(
-                        AppBar.Action(
-                            title = stringResource(R.string.action_add_account),
-                            icon = Icons.Outlined.Add,
-                            onClick = { addAccount.launch(model.authorizationIntent()) },
-                        ),
+        AccountsScreenContent(
+            rows = rows,
+            use24Hour = rememberUse24HourClock(),
+            onBack = navigator::pop,
+            onClickAdd = { addAccount.launch(model.authorizationIntent()) },
+            onClickAccount = { navigator.push(AccountDetailsScreen(it.id)) },
+            onRemoveAccount = { model.remove(it.id) },
+        )
+    }
+}
+
+@Composable
+fun AccountsScreenContent(
+    rows: List<AccountRow>,
+    use24Hour: Boolean,
+    onBack: () -> Unit = {},
+    onClickAdd: () -> Unit = {},
+    onClickAccount: (EmailAccount) -> Unit = {},
+    onRemoveAccount: (EmailAccount) -> Unit = {},
+) {
+    var confirmRemove by remember { mutableStateOf<EmailAccount?>(null) }
+
+    Scaffold(
+        topBar = {
+            AppBar(
+                modifier = Modifier.dropShadow(RectangleShape, Shadow(3.dp)),
+                title = stringResource(R.string.accounts),
+                navigateUp = onBack,
+                actions = listOf(
+                    AppBar.Action(
+                        title = stringResource(R.string.action_add_account),
+                        icon = Icons.Outlined.Add,
+                        onClick = onClickAdd,
                     ),
-                )
-            },
-        ) { padding ->
-            if (accounts.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                    Text(
-                        stringResource(R.string.accounts_empty),
-                        modifier = Modifier.padding(horizontal = 32.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                return@Scaffold
-            }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(vertical = 8.dp),
-            ) {
-                items(accounts, key = { "account-${it.id}" }) { account ->
-                    val disabled = disabledByAccount[account.id].orEmpty()
-                    AccountItem(
-                        modifier = Modifier.animateItem(),
-                        account = account,
-                        // Counted off the installed parsers, not off the rows: a parser with
-                        // no row of its own is one this account reads with.
-                        parsers = parsers.count { it.id !in disabled },
-                        onClickItem = { navigator.push(AccountDetailsScreen(account.id)) },
-                        onLongClickItem = { confirmRemove = account },
-                    )
-                }
-            }
-        }
-
-        confirmRemove?.let { account ->
-            RemoveAccountConfirmation(
-                email = account.email,
-                onConfirm = { model.remove(account.id) },
-                onDismiss = { confirmRemove = null },
+                ),
             )
+        },
+    ) { padding ->
+        if (rows.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                Text(
+                    stringResource(R.string.accounts_empty),
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            return@Scaffold
         }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(vertical = 8.dp),
+        ) {
+            items(rows, key = { "account-${it.account.id}" }) { row ->
+                AccountItem(
+                    modifier = Modifier.animateItem(),
+                    account = row.account,
+                    parsers = row.parserCount,
+                    use24Hour = use24Hour,
+                    onClickItem = { onClickAccount(row.account) },
+                    onLongClickItem = { confirmRemove = row.account },
+                )
+            }
+        }
+    }
+
+    confirmRemove?.let { account ->
+        RemoveAccountConfirmation(
+            email = account.email,
+            onConfirm = { onRemoveAccount(account) },
+            onDismiss = { confirmRemove = null },
+        )
     }
 }
 
@@ -137,6 +154,7 @@ object AccountsScreen : Screen {
 private fun AccountItem(
     account: EmailAccount,
     parsers: Int,
+    use24Hour: Boolean,
     onClickItem: () -> Unit,
     onLongClickItem: () -> Unit,
     modifier: Modifier = Modifier,
@@ -157,7 +175,7 @@ private fun AccountItem(
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            AccountSubtitle(account, parsers)
+            AccountSubtitle(account, parsers, use24Hour)
         }
 
         IconButton(onClick = onClickItem) {
@@ -204,8 +222,7 @@ private fun AvatarPlaceholder() {
 }
 
 @Composable
-private fun AccountSubtitle(account: EmailAccount, parsers: Int) {
-    val use24Hour = rememberUse24HourClock()
+private fun AccountSubtitle(account: EmailAccount, parsers: Int, use24Hour: Boolean) {
     val details = listOf(
         account.lastSyncAt
             ?.let { stringResource(R.string.synced, formatDate(it, use24Hour)) }
@@ -256,4 +273,34 @@ fun RemoveAccountConfirmation(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
+}
+
+@Preview
+@Composable
+private fun AccountsScreenPreview() {
+    AppTheme {
+        AccountsScreenContent(
+            rows = listOf(
+                AccountRow(previewAccount(), parserCount = 3),
+                AccountRow(
+                    previewAccount(
+                        id = "second",
+                        email = "other@example.com",
+                        enabled = false,
+                        lastSyncAt = null,
+                    ),
+                    parserCount = 0,
+                ),
+            ),
+            use24Hour = true,
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun AccountsScreenEmptyPreview() {
+    AppTheme {
+        AccountsScreenContent(rows = emptyList(), use24Hour = true)
+    }
 }

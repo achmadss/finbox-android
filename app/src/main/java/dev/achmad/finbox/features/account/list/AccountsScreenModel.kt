@@ -12,11 +12,20 @@ import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** One row of the list, with the count already worked out. */
+@Immutable
+data class AccountRow(
+    val account: EmailAccount,
+    val parserCount: Int,
+)
 
 class AccountsScreenModel(
     private val accountRepository: AccountRepository = inject(),
@@ -48,6 +57,22 @@ class AccountsScreenModel(
 
     /** Parsers currently loaded — what an assignment's `parserId` points at. */
     val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
+
+    /**
+     * What the screen draws.
+     *
+     * The count is worked out here rather than in the composition so the list is
+     * data the screen only has to render.
+     */
+    val rows: StateFlow<List<AccountRow>> =
+        combine(accounts, disabledByAccount, parsers) { accounts, disabled, parsers ->
+            accounts.map { account ->
+                val off = disabled[account.id].orEmpty()
+                // Counted off the installed parsers, not off the rows: a parser with
+                // no row of its own is one this account reads with.
+                AccountRow(account = account, parserCount = parsers.count { it.id !in off })
+            }
+        }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     /** The browser flow to launch for result; hand the result back to [addAccount]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
