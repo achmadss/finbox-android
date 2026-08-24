@@ -120,6 +120,7 @@
     <string name="onboarding_parsers_select_all">Select all</string>
     <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
     <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
+    <string name="onboarding_parsers_load_failed">%1$s installed but could not be loaded. It was probably built against a different parser API.</string>
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
     <string name="onboarding_exit_confirm">Exit</string>

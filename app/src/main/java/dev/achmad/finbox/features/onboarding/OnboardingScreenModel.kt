@@ -111,20 +111,34 @@ class OnboardingScreenModel(
             // leaving mid-download does not cancel one. This step only waits
             // for each to land: loaded, or failed with a reason on the row.
             requested.forEach { parserManager.install(it) }
-            combine(
-                parserManager.installedInfo,
-                parserManager.installSteps,
-            ) { installed, steps ->
-                requested.filter { it.pkg !in installed && steps[it.pkg] != InstallStep.Error }
-            }.first { it.isEmpty() }
+            // Wait on the install jobs alone, never on the registry agreeing.
+            // install() marks every package Pending before this runs, and each
+            // one leaves that map when its job ends — removed once installed,
+            // kept as Error when it failed. An APK that installs and then fails
+            // to load never reaches the registry at all, so waiting for it there
+            // waits forever, which is what left this step stuck on "Installing".
+            parserManager.installSteps.first { steps ->
+                requested.all { steps[it.pkg].let { step -> step == null || step == InstallStep.Error } }
+            }
 
             val steps = parserManager.installSteps.value
             requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
                 toastHelper.show(R.string.onboarding_parsers_install_failed, parser.name)
             }
-            // An APK can install and still not load — an unsupported lib
-            // version, a missing parser class. Without this the step just
-            // stays put, with the reason sitting unread in loadErrors.
+            // An APK can install and still not load: a lib version this build
+            // does not support, a missing parser class, or an API it was built
+            // against that has since changed under it. Say so — the install
+            // itself succeeded, so nothing else on this screen would.
+            val loaded = parserManager.installedInfo.value
+            requested.filter { steps[it.pkg] != InstallStep.Error && it.pkg !in loaded }
+                .forEach { parser ->
+                    Log.e("Onboarding", "${parser.pkg} installed but did not load")
+                    toastHelper.show(
+                        R.string.onboarding_parsers_load_failed,
+                        parser.name,
+                        duration = Toast.LENGTH_LONG,
+                    )
+                }
             parserManager.loadErrors.value.forEach { (file, reason) ->
                 Log.e("Onboarding", "$file did not load: $reason")
             }
