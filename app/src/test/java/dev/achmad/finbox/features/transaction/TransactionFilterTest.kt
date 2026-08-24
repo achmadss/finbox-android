@@ -33,11 +33,13 @@ class TransactionFilterTest {
         currency = "IDR",
         direction = direction,
         method = null,
-        category = null,
+        categoryName = null,
+        categorySource = null,
         description = description,
         merchant = null,
         createdAt = date,
         updatedAt = date,
+        editedAt = null,
         deleted = false,
     )
 

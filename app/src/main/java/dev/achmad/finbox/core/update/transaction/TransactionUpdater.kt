@@ -612,11 +612,17 @@ class TransactionUpdater(
                         TransactionDirection.valueOf(transaction.method.direction.name)
                     }.getOrNull(),
                     method = transaction.method.key,
-                    category = null,
+                    // Import never classifies. A row lands uncategorized and the
+                    // classify pass picks it up later, so a classifier being
+                    // unavailable, slow or wrong can never fail an import — the
+                    // ledger is the product.
+                    categoryName = null,
+                    categorySource = null,
                     description = transaction.description,
                     merchant = transaction.merchant,
                     createdAt = now,
                     updatedAt = now,
+                    editedAt = null,
                     deleted = false,
                 )
             }

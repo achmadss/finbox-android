@@ -22,11 +22,13 @@ class TransactionDraftTest {
         currency = "IDR",
         direction = TransactionDirection.OUTGOING,
         method = "QRIS",
-        category = "Coffee",
+        categoryName = "FOOD",
+        categorySource = null,
         description = "Kopi Kenangan",
         merchant = "Kopi Kenangan",
         createdAt = 1L,
         updatedAt = 2L,
+        editedAt = null,
         deleted = false,
     )
 

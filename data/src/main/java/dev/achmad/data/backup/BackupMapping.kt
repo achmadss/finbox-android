@@ -1,6 +1,7 @@
 package dev.achmad.data.backup
 
 import dev.achmad.data.model.AccountParser
+import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.model.StoredEmail
@@ -74,11 +75,13 @@ internal fun Transaction.toBackup() = BackupTransaction(
     currency = currency,
     direction = direction?.name,
     method = method,
-    category = category,
+    category = categoryName,
+    categorySource = categorySource?.name,
     description = description,
     merchant = merchant,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    editedAt = editedAt,
     deleted = deleted,
 )
 
@@ -96,10 +99,12 @@ internal fun BackupTransaction.toModel() = Transaction(
     currency = currency,
     direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
     method = method,
-    category = category,
+    categoryName = category,
+    categorySource = CategorySource.fromStringOrNull(categorySource),
     description = description,
     merchant = merchant,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    editedAt = editedAt,
     deleted = deleted,
 )

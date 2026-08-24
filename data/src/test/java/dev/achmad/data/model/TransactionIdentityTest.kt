@@ -18,11 +18,13 @@ class TransactionIdentityTest {
         currency = null,
         direction = null,
         method = null,
-        category = null,
+        categoryName = null,
+        categorySource = null,
         description = null,
         merchant = null,
         createdAt = 0L,
         updatedAt = 0L,
+        editedAt = null,
         deleted = false,
     )
 

@@ -79,10 +79,12 @@ data class BackupTransaction(
     val direction: String? = null,
     val method: String? = null,
     val category: String? = null,
+    val categorySource: String? = null,
     val description: String? = null,
     val merchant: String? = null,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
+    val editedAt: Long? = null,
     val deleted: Boolean = false,
 )
 

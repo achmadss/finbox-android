@@ -1,0 +1,57 @@
+package dev.achmad.data.model
+
+/**
+ * The part of a transaction a classifier actually sees.
+ *
+ * Forty GRABFOOD rows are one classification problem presented forty times. If
+ * two transactions produce identical input, classifying them separately cannot
+ * produce a better answer, only a more expensive and less consistent one — so
+ * this, not the transaction, is the unit of classification and the key of the
+ * cache.
+ *
+ * **The key has to be exactly the input.** Anything sent to a classifier that
+ * is not in here means the cache keyed on less than the answer was conditioned
+ * on, and the cache is then wrong rather than merely cold.
+ *
+ * `amount` is left out for the same reason: raw amounts are near-unique per
+ * row, so including one collapses every group back to a single member and loses
+ * the entire point. If amount ever turns out to matter, bucket it coarsely and
+ * put the bucket in here — never the value.
+ */
+data class Signature(
+    val merchant: String?,
+    val description: String?,
+    val direction: TransactionDirection?,
+    val method: String?,
+) {
+    /**
+     * Whether there is anything here to classify with.
+     *
+     * Direction and method alone cannot say what money was *for*: every QRIS
+     * payment shares them. A signature that fails this goes straight to
+     * [TransactionCategory.UNKNOWN] without troubling a model, which is the
+     * cheapest accuracy win available — those rows could only ever have come
+     * back as a guess dressed up as an answer.
+     */
+    val isComplete: Boolean get() = merchant != null || description != null
+}
+
+/**
+ * Trims, collapses runs of whitespace, and uppercases; blank becomes null.
+ *
+ * One function so that the cache key, the SQL and whatever gets sent to a
+ * classifier cannot drift apart. Two rows differing only in spacing are the
+ * same row as far as classification goes.
+ */
+fun normalizeForSignature(value: String?): String? =
+    value?.trim()?.replace(WHITESPACE, " ")?.uppercase()?.takeIf { it.isNotEmpty() }
+
+private val WHITESPACE = Regex("\\s+")
+
+/** This transaction's [Signature], normalized. */
+fun Transaction.signature() = Signature(
+    merchant = normalizeForSignature(merchant),
+    description = normalizeForSignature(description),
+    direction = direction,
+    method = normalizeForSignature(method),
+)

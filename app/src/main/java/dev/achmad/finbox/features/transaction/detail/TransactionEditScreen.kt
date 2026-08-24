@@ -45,6 +45,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
@@ -448,7 +449,7 @@ internal fun Transaction.toDraft() = Draft(
     amount = amount?.toString().orEmpty(),
     direction = direction,
     method = method,
-    category = category.orEmpty(),
+    category = categoryName.orEmpty(),
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
 )
@@ -462,7 +463,7 @@ internal fun Draft.applyTo(transaction: Transaction) = transaction.copy(
     amount = amount.trim().toLongOrNull(),
     direction = direction,
     method = method,
-    category = category.blankToNull(),
+    categoryName = category.blankToNull(),
     description = description.blankToNull(),
     merchant = merchant.blankToNull(),
 )
@@ -486,11 +487,13 @@ private fun TransactionEditPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 method = "QRIS",
-                category = "Food",
+                categoryName = "FOOD",
+                categorySource = CategorySource.AI,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,
                 updatedAt = 1_700_000_000_000L,
+                editedAt = null,
                 deleted = false,
             ).toDraft(),
             methods = emptyList(),

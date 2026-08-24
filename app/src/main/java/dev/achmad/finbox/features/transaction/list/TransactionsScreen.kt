@@ -778,11 +778,13 @@ private fun TransactionsScreenPreview() {
         currency = "IDR",
         direction = direction,
         method = null,
-        category = null,
+        categoryName = null,
+        categorySource = null,
         description = merchant,
         merchant = merchant,
         createdAt = at,
         updatedAt = at,
+        editedAt = null,
         deleted = false,
     )
     AppTheme {

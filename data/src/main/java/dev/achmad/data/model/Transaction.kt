@@ -33,13 +33,42 @@ data class Transaction(
      * hand-entered row, which no parser claimed.
      */
     val method: String?,
-    val category: String?,
+    /**
+     * A [TransactionCategory] name, or null when nothing has decided yet.
+     *
+     * Free-form in the column and validated on the way out, via [category] —
+     * changing the taxonomy then costs a reclassification instead of corrupting
+     * every row filed under a name that no longer exists.
+     */
+    val categoryName: String?,
+    /** Who decided [categoryName]. Null means nobody has. */
+    val categorySource: CategorySource?,
     val description: String?,
     val merchant: String?,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * When the user last hand-edited any field, or null if they never have.
+     *
+     * Separate from [categorySource] because the two are genuinely independent:
+     * correcting a merchant and leaving the category to a model is a real case,
+     * and so is accepting every parsed field but filing it yourself.
+     */
+    val editedAt: Long?,
     val deleted: Boolean,
 ) {
+    /** [categoryName] as a category this build knows, or null. */
+    val category: TransactionCategory? get() = TransactionCategory.fromStringOrNull(categoryName)
+
+    /**
+     * Whether the user has touched this row.
+     *
+     * What the marker in the list means, and what makes a re-parse leave the
+     * row alone — their version is the better one, so a parser must not
+     * overwrite it.
+     */
+    val edited: Boolean get() = editedAt != null
+
     /**
      * A stable identity that does not change when the parser version changes.
      *

@@ -16,10 +16,21 @@ CREATE TABLE transactions (
     -- switches these on and off, so a row has to say which it was parsed under.
     method TEXT,
     category TEXT,
+    -- Who decided the category: USER or AI. Null when nobody did — a row not
+    -- classified yet, or one code folded to UNKNOWN because its signature had
+    -- nothing in it to classify with. That null is what lets UNKNOWN be
+    -- re-evaluated later without a fourth state.
+    category_source TEXT,
     description TEXT,
     merchant TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
+    -- When the user last hand-edited any field. Null means never.
+    --
+    -- Separate from updated_at on purpose: a re-parse stamps that one too, so
+    -- it cannot tell a hand-edit from a machine write. A timestamp rather than
+    -- a flag costs the same and lets the detail screen say when.
+    edited_at INTEGER,
     deleted INTEGER NOT NULL DEFAULT 0
 );
 
@@ -48,11 +59,17 @@ WHERE deleted = 0
   AND (description LIKE '%' || :query || '%' OR merchant LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%')
 ORDER BY COALESCE(date, created_at) DESC;
 
+-- Every row carrying a category worth reusing, for the signature cache. UNKNOWN
+-- is excluded because it says the opposite: there was nothing to classify with.
+SELECTCategorized:
+SELECT * FROM transactions
+WHERE deleted = 0 AND category IS NOT NULL AND category != 'UNKNOWN';
+
 -- Ids derive from the Gmail message, so re-reading one overwrites instead of
 -- duplicating.
 INSERTOrReplace:
-INSERT OR REPLACE INTO transactions(id, account_id, parser_id, email_message_id, thread_id, reference, date, amount, currency, direction, method, category, description, merchant, created_at, updated_at, deleted)
-VALUES (:id, :account_id, :parser_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :direction, :method, :category, :description, :merchant, :created_at, :updated_at, :deleted);
+INSERT OR REPLACE INTO transactions(id, account_id, parser_id, email_message_id, thread_id, reference, date, amount, currency, direction, method, category, category_source, description, merchant, created_at, updated_at, edited_at, deleted)
+VALUES (:id, :account_id, :parser_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :direction, :method, :category, :category_source, :description, :merchant, :created_at, :updated_at, :edited_at, :deleted);
 
 UPDATEParsedById:
 UPDATE transactions SET
@@ -70,6 +87,8 @@ UPDATE transactions SET
     updated_at = :updated_at
 WHERE id = :id;
 
+-- The hand-edit path. Stamps edited_at, which is what puts the marker on the
+-- row and what makes a later re-parse leave it alone.
 UPDATEById:
 UPDATE transactions SET
     reference = :reference,
@@ -79,8 +98,30 @@ UPDATE transactions SET
     direction = :direction,
     method = :method,
     category = :category,
+    category_source = :category_source,
     description = :description,
     merchant = :merchant,
+    updated_at = :updated_at,
+    edited_at = :edited_at
+WHERE id = :id;
+
+-- Setting a category by hand, one row or a whole selection. Counts as an edit:
+-- the user decided this, and a re-parse must not undo it.
+UPDATECategoryByUser:
+UPDATE transactions SET
+    category = :category,
+    category_source = 'USER',
+    updated_at = :updated_at,
+    edited_at = :updated_at
+WHERE id = :id;
+
+-- The classify pass writing its own answer. Deliberately leaves edited_at
+-- alone: the marker means the user edited the transaction, which stays true
+-- even when a run replaces the category.
+UPDATECategoryById:
+UPDATE transactions SET
+    category = :category,
+    category_source = :category_source,
     updated_at = :updated_at
 WHERE id = :id;
 

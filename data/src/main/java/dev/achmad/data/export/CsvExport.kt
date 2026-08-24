@@ -57,7 +57,7 @@ class CsvExport(
 
     private fun Transaction.fields() = listOf(
         id, accountId, parserId.toString(), emailMessageId, threadId, reference,
-        date?.toString(), amount?.toString(), currency, direction?.name, category,
+        date?.toString(), amount?.toString(), currency, direction?.name, categoryName,
         description, merchant, createdAt.toString(), updatedAt.toString(),
     )
 

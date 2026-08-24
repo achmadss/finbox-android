@@ -34,6 +34,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
@@ -175,7 +176,7 @@ private fun TransactionView(
     // The parser's own word for the method, falling back to the stored key when its
     // parser is gone or dropped it.
     Field(stringResource(R.string.method), methods.nameOf(transaction.method) ?: transaction.method)
-    Field(stringResource(R.string.category), transaction.category)
+    Field(stringResource(R.string.category), transaction.categoryName)
     Field(stringResource(R.string.description), transaction.description)
     Field(stringResource(R.string.merchant), transaction.merchant)
     HorizontalDivider()
@@ -213,11 +214,13 @@ private fun TransactionDetailPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 method = "QRIS",
-                category = "Food",
+                categoryName = "FOOD",
+                categorySource = CategorySource.AI,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,
                 updatedAt = 1_700_000_000_000L,
+                editedAt = null,
                 deleted = false,
             ),
             methods = emptyList(),

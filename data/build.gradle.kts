@@ -43,6 +43,10 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
+    // A real SQLite in the unit tests: the rules that matter here — a re-parse
+    // leaving a hand-edited row alone, a signature finding its cached answer —
+    // live in the queries, and a fake would only test the fake.
+    testImplementation(libs.sqldelight.sqlite.driver)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
