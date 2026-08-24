@@ -834,12 +834,31 @@ private fun SelectionAppBar(
     )
 }
 
+/**
+ * A month with nothing in it, and still something to pull on.
+ *
+ * The list is what hands PullToRefreshBox its drag, so a plain Column here left
+ * the gesture dead in exactly the state where someone most wants to reach for
+ * it: no transactions yet, and no way to ask for another look.
+ */
 @Composable
 private fun EmptyTransactions(filtered: Boolean) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            EmptyTransactionsContent(
+                filtered = filtered,
+                // The viewport's height, not the content's: the message stays
+                // centred, which wrapping to its own height would not do.
+                modifier = Modifier.fillParentMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyTransactionsContent(filtered: Boolean, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+        modifier = modifier.padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

@@ -129,12 +129,19 @@ fun ParsersScreenContent(
                 state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(
-                        stringResource(R.string.parsers_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                // A list, not a Box: the gesture needs something scrollable to
+                // pull on, and an empty index is exactly when someone reaches
+                // for a refresh.
+                state.isEmpty -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    item {
+                        Box(Modifier.fillParentMaxSize(), Alignment.Center) {
+                            Text(
+                                stringResource(R.string.parsers_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
                 else -> ParserContent(
                     state = state,
