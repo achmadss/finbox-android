@@ -14,7 +14,7 @@ enum class InstallStep {
 }
 
 sealed class LoadResult {
-    data class Success(val parser: InstalledParserInfo, val source: LoadedSource) : LoadResult()
+    data class Success(val info: InstalledParserInfo, val parser: LoadedParser) : LoadResult()
     data class Error(val file: String, val reason: String) : LoadResult()
 }
 

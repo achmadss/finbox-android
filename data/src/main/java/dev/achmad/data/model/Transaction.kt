@@ -1,27 +1,19 @@
 package dev.achmad.data.model
 
 /**
- * Which way the money went — all the app itself knows.
- *
- * What the provider calls it (QRIS, a top up, a BI-Fast transfer) is the
- * parser's vocabulary and lives in [Transaction.kind]; every one of those is
- * one of these two underneath.
+ * Which way the money went — all the app itself knows. What the provider calls
+ * it (QRIS, a top up) is the parser's vocabulary and lives in [Transaction.type].
  */
-enum class TransactionType {
-    INCOME,
-    EXPENSE,
+enum class TransactionDirection {
+    INCOMING,
+    OUTGOING,
 }
 
-/**
- * One transaction a parser read out of an email.
- *
- * [emailMessageId] points back at the [Email] it came from, and [sourceId] says
- * which parser produced it.
- */
+/** One transaction a parser read out of an email. */
 data class Transaction(
     val accountId: String,
-    val sourceId: Long,
-    /** Gmail's message id of the email this was parsed from. */
+    val parserId: Long,
+    /** The [StoredEmail] this was parsed from. */
     val emailMessageId: String,
     /**
      * Which of the transactions this email yielded, counted in the order the
@@ -29,15 +21,18 @@ data class Transaction(
      * transaction the user switched off is skipped without renumbering the rest.
      */
     val index: Int,
-    /** Gmail's conversation id, used to collapse duplicate messages in a thread. */
+    /** Collapses duplicate messages in a thread. */
     val threadId: String?,
     val reference: String?,
     val date: Long?,
     val amount: Long?,
     val currency: String?,
-    val type: TransactionType?,
-    /** The source's own name for it, e.g. `QRIS`. Null for mail parsed before kinds. */
-    val kind: String?,
+    val direction: TransactionDirection?,
+    /**
+     * The key of one of the parser's declared types, e.g. `QRIS`. Null on a
+     * hand-entered row, which no parser claimed.
+     */
+    val type: String?,
     val category: String?,
     val description: String?,
     val merchant: String?,
@@ -54,14 +49,14 @@ data class Transaction(
      * provider reference — see
      * [dev.achmad.data.repository.TransactionRepository.upsertAll].
      */
-    val id: String get() = "$accountId:message:$emailMessageId:$sourceId:$index"
+    val id: String get() = "$accountId:message:$emailMessageId:$parserId:$index"
 
-    /** When it happened — the parsed date, or when we stored it if the parser found none. */
+    /** When it happened, falling back to when it was stored. */
     val timestamp: Long get() = date ?: createdAt
 
     /** Money leaving the account counts as negative. */
     val signedAmount: Long?
-        get() = amount?.let { if (type == TransactionType.EXPENSE) -it else it }
+        get() = amount?.let { if (direction == TransactionDirection.OUTGOING) -it else it }
 }
 
 /**

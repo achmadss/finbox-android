@@ -5,7 +5,7 @@ import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.util.network.get
 import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
-import dev.achmad.finbox.parser.EmailMessage
+import dev.achmad.finbox.parser.Email
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.MessageListResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
@@ -77,8 +77,8 @@ class GmailApiImpl(
         return getWithRetry(accountId, url, token, GmailQuota.MESSAGES_GET)
     }
 
-    override suspend fun getEmail(accountId: String, messageId: String): EmailMessage =
-        GmailApi.toEmailMessage(getMessage(accountId, messageId))
+    override suspend fun getEmail(accountId: String, messageId: String): Email =
+        GmailApi.toEmail(getMessage(accountId, messageId))
 
     override suspend fun getProfile(accountId: String): ProfileResponse {
         val token = tokens.getAccessToken(accountId) ?: error("No token")

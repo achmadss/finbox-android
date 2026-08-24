@@ -1,7 +1,7 @@
 package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
-import dev.achmad.finbox.parser.EmailMessage
+import dev.achmad.finbox.parser.Email
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
 import dev.achmad.finbox.core.gmail.model.MessageRef
@@ -13,7 +13,7 @@ import dev.achmad.finbox.core.gmail.model.Payload
  *
  * An interface so a debug build can run the whole import offline against
  * `GmailApiMockImpl`; [GmailApiImpl] is the one that talks to Gmail. Which one is
- * bound is a build-type decision — see `di/GmailModule.kt` under `src/debug`
+ * bound is a build-direction decision — see `di/GmailModule.kt` under `src/debug`
  * and `src/release`.
  *
  * The window is passed as timestamps rather than a Gmail query string: what
@@ -29,7 +29,7 @@ interface GmailApi {
      * Ids of the messages in [after]..[before], newest first, [narrow]ed by a
      * Gmail search term.
      *
-     * Capped at [maxMessages] rather than left unbounded — a source with a
+     * Capped at [maxMessages] rather than left unbounded — a parser with a
      * too-wide query would otherwise walk the entire mailbox.
      */
     suspend fun listMessages(
@@ -54,57 +54,48 @@ interface GmailApi {
     ): HistoryResponse
 
     /** The full message, normalized for parsers. */
-    suspend fun getEmail(accountId: String, messageId: String): EmailMessage
+    suspend fun getEmail(accountId: String, messageId: String): Email
 
     companion object {
         /** Safety net against walking an entire mailbox. */
         const val MAX_MESSAGES = 5_000
 
-        /** Builds a normalized [EmailMessage] for parsers. */
-        fun toEmailMessage(response: MessageResponse): EmailMessage {
+        fun toEmail(response: MessageResponse): Email {
             val headers = response.payload?.headers.orEmpty()
             fun header(name: String): String? = headers.firstOrNull { it.name.equals(name, true) }?.value
 
-            val (text, html) = collectBodies(response.payload)
-            return EmailMessage(
-                id = response.id.hashCode().toLong(),
+            return Email(
                 messageId = header("Message-ID") ?: response.id,
                 threadId = response.threadId,
                 subject = header("Subject") ?: "",
                 from = header("From") ?: "",
-                to = header("To") ?: "",
                 date = response.internalDate?.toLongOrNull() ?: 0L,
-                bodyText = text,
-                bodyHtml = html,
+                body = collectBody(response.payload),
             )
         }
 
         /**
-         * The text and html parts as the message carried them.
+         * The body as the message carried it, html preferred and plain text the
+         * fallback for providers that send none.
          *
-         * A bank receipt is often html and nothing else, and it is left that
-         * way: turning markup into the lines a parser reads is a parser's
-         * decision, and it belongs to whoever knows the bank. Parsers do it
-         * with the receipt library in finbox-parser.
+         * Markup is left alone: turning it into readable lines belongs to
+         * whoever knows the bank, which is the parser.
          */
-        private fun collectBodies(payload: Payload?): Pair<String, String> {
-            if (payload == null) return "" to ""
+        private fun collectBody(payload: Payload?): String {
+            if (payload == null) return ""
             val data = payload.body.data ?: ""
-            if (payload.mimeType == "text/plain" && data.isNotEmpty()) {
-                return decodeBase64(data) to ""
-            }
-            if (payload.mimeType == "text/html" && data.isNotEmpty()) {
-                return "" to decodeBase64(data)
-            }
+            if (data.isNotEmpty() && payload.mimeType in BODY_TYPES) return decodeBase64(data)
             var text = ""
-            var html = ""
             for (part in payload.parts) {
-                val (t, h) = collectBodies(part)
-                if (t.isNotEmpty() && text.isEmpty()) text = t
-                if (h.isNotEmpty() && html.isEmpty()) html = h
+                val body = collectBody(part)
+                if (body.isEmpty()) continue
+                if (part.mimeType == "text/html") return body
+                if (text.isEmpty()) text = body
             }
-            return text to html
+            return text
         }
+
+        private val BODY_TYPES = setOf("text/html", "text/plain")
 
         private fun decodeBase64(data: String): String = try {
             Base64.decode(data, Base64.URL_SAFE).decodeToString()

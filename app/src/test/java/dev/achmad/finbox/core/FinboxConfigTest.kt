@@ -19,13 +19,13 @@ class FinboxConfigTest {
     @Test
     fun `a parser built for a newer API is refused`() {
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION + 0.1))
-        assertFalse(FinboxConfig.supportsLibVersion(2.0))
+        assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION + 1.0))
     }
 
     @Test
     fun `a parser below the floor is refused`() {
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION - 0.1))
-        assertFalse(FinboxConfig.supportsLibVersion(1.0))
+        assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION - 1.0))
     }
 
     @Test

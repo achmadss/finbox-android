@@ -73,8 +73,8 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.data.model.TransactionDirection
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.features.account.list.AccountsScreen
 import dev.achmad.finbox.features.parser.list.ParsersScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
@@ -124,7 +124,7 @@ object TransactionsScreen : Screen {
         val loading by model.loading.collectAsState()
         val filter by model.filter.collectAsState()
         val accounts by model.accounts.collectAsState()
-        val sources by model.sources.collectAsState()
+        val parsers by model.parsers.collectAsState()
         val parserUpdates by model.parserUpdates.collectAsState()
 
         TransactionsScreenContent(
@@ -135,7 +135,7 @@ object TransactionsScreen : Screen {
             loading = loading,
             filter = filter,
             accounts = accounts,
-            sources = sources,
+            parsers = parsers,
             parserUpdates = parserUpdates,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
@@ -159,7 +159,7 @@ private fun TransactionsScreenContent(
     loading: Boolean,
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    sources: List<LoadedSource>,
+    parsers: List<LoadedParser>,
     /** Parsers with a newer build in the repo index. */
     parserUpdates: Int = 0,
     onRefresh: () -> Unit,
@@ -173,17 +173,17 @@ private fun TransactionsScreenContent(
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
 
-    // Keyed on the kind alone, not on the source it was parsed by: a source id carries the
+    // Keyed on the type alone, not on the parser it was parsed by: a parser id carries the
     // parser's version, so rows written by an older build would otherwise lose their name.
-    // ponytail: two parsers declaring the same key show one name — per-source if that lands.
-    // Empty until the registry loads, and empty for a kind a parser dropped, so the rows
+    // ponytail: two parsers declaring the same key show one name — per-parser if that lands.
+    // Empty until the registry loads, and empty for a type a parser dropped, so the rows
     // fall through to the description as before.
-    val kindNames = remember(sources) {
-        sources.flatMap { it.kinds }.associate { it.key to it.name }
+    val typeNames = remember(parsers) {
+        parsers.flatMap { it.types() }.associate { it.key to it.name }
     }
     // By id here, because that is all a transaction stores. A row parsed by an earlier build of
-    // a parser is filed under that build's source id and so goes unnamed, same as the filter.
-    val sourceNames = remember(sources) { sources.associate { it.id to it.name } }
+    // a parser is filed under that build's parser id and so goes unnamed, same as the filter.
+    val parserNames = remember(parsers) { parsers.associate { it.id to it.name } }
 
     if (showMonthPicker) {
         MonthYearPickerSheet(
@@ -202,7 +202,7 @@ private fun TransactionsScreenContent(
         TransactionsFilterSheet(
             filter = filter,
             accounts = accounts,
-            sources = sources,
+            parsers = parsers,
             onFilterChange = onFilterChange,
             onDismiss = { showFilterBottomSheet = false },
         )
@@ -356,8 +356,8 @@ private fun TransactionsScreenContent(
                         filtered = filter.isActive,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
-                        kindNames = kindNames,
-                        sourceNames = sourceNames,
+                        typeNames = typeNames,
+                        parserNames = parserNames,
                         onOpenTransaction = onOpenTransaction,
                     )
                 }
@@ -371,8 +371,8 @@ private fun MonthPage(
     transactions: List<Transaction>,
     filtered: Boolean,
     grouped: Boolean,
-    kindNames: Map<String, String>,
-    sourceNames: Map<Long, String>,
+    typeNames: Map<String, String>,
+    parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
     // Both directions, because a month is not only what left: pay lands here too,
@@ -383,9 +383,9 @@ private fun MonthPage(
         transactions.forEach { transaction ->
             val amount = transaction.amount ?: 0L
             // Same rule the rows use for their sign: only an expense counts as
-            // money out, so a row whose parser left the type unset lands with
+            // money out, so a row whose parser left the direction unset lands with
             // income rather than silently against the wrong side of the total.
-            if (transaction.type == TransactionType.EXPENSE) out += amount else income += amount
+            if (transaction.direction == TransactionDirection.OUTGOING) out += amount else income += amount
         }
         out to income
     }
@@ -413,8 +413,8 @@ private fun MonthPage(
         HorizontalDivider()
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
-            grouped -> TransactionList(transactions, kindNames, sourceNames, onOpenTransaction)
-            else -> FlatTransactionList(transactions, kindNames, sourceNames, onOpenTransaction)
+            grouped -> TransactionList(transactions, typeNames, parserNames, onOpenTransaction)
+            else -> FlatTransactionList(transactions, typeNames, parserNames, onOpenTransaction)
         }
     }
 }
@@ -565,8 +565,8 @@ private fun RowScope.MonthStep(
 @Composable
 private fun TransactionList(
     transactions: List<Transaction>,
-    kindNames: Map<String, String>,
-    sourceNames: Map<Long, String>,
+    typeNames: Map<String, String>,
+    parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
     // groupBy keeps encounter order, so the model's sort survives the grouping.
@@ -601,9 +601,9 @@ private fun TransactionList(
                             .background(MaterialTheme.colorScheme.inverseOnSurface),
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
-                            val kind = kindNames[transaction.kind]
-                            val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
-                            TransactionRow(transaction, kind, source) { onOpenTransaction(transaction) }
+                            val type = typeNames[transaction.type]
+                            val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
+                            TransactionRow(transaction, type, parser) { onOpenTransaction(transaction) }
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
                             }
@@ -619,8 +619,8 @@ private fun TransactionList(
 @Composable
 private fun FlatTransactionList(
     transactions: List<Transaction>,
-    kindNames: Map<String, String>,
-    sourceNames: Map<Long, String>,
+    typeNames: Map<String, String>,
+    parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -637,9 +637,9 @@ private fun FlatTransactionList(
         ) {
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
-                    val kind = kindNames[transaction.kind]
-                    val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
-                    TransactionRow(transaction, kind, source, showDay = true) {
+                    val type = typeNames[transaction.type]
+                    val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
+                    TransactionRow(transaction, type, parser, showDay = true) {
                         onOpenTransaction(transaction)
                     }
                     if (index != transactions.lastIndex) {
@@ -654,8 +654,8 @@ private fun FlatTransactionList(
 @Composable
 private fun TransactionRow(
     transaction: Transaction,
-    kind: String?,
-    source: String,
+    type: String?,
+    parser: String,
     showDay: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -670,7 +670,7 @@ private fun TransactionRow(
             Text(
                 // The parser's own word for it — "QRIS Payment", not the `QRIS` key stored
                 // with the row.
-                text = kind
+                text = type
                     ?: transaction.description
                     ?: transaction.merchant
                     ?: transaction.reference
@@ -679,7 +679,7 @@ private fun TransactionRow(
                 overflow = TextOverflow.Ellipsis,
             )
             val subtitle = buildList {
-                add(source)
+                add(parser)
             }
             Text(
                 text = subtitle.joinToString(" • "),
@@ -742,20 +742,20 @@ private fun EmptyTransactions(filtered: Boolean) {
 }
 
 @get:StringRes
-internal val TransactionType.labelRes: Int
+internal val TransactionDirection.labelRes: Int
     get() = when (this) {
-        TransactionType.EXPENSE -> R.string.type_expense
-        TransactionType.INCOME -> R.string.type_income
+        TransactionDirection.OUTGOING -> R.string.direction_outgoing
+        TransactionDirection.INCOMING -> R.string.direction_incoming
     }
 
 @Preview
 @Composable
 private fun TransactionsScreenPreview() {
     val now = System.currentTimeMillis()
-    fun sample(id: String, description: String, amount: Long, type: TransactionType, at: Long) =
+    fun sample(id: String, description: String, amount: Long, direction: TransactionDirection, at: Long) =
         Transaction(
             accountId = "a",
-            sourceId = 1L,
+            parserId = 1L,
             emailMessageId = "m$id",
             index = 0,
             threadId = null,
@@ -763,8 +763,8 @@ private fun TransactionsScreenPreview() {
             date = at,
             amount = amount,
             currency = "IDR",
-            type = type,
-            kind = null,
+            direction = direction,
+            type = null,
             category = null,
             description = description,
             merchant = description,
@@ -773,10 +773,10 @@ private fun TransactionsScreenPreview() {
             deleted = false,
         )
     val transactions = listOf(
-        sample("1", "Kopi Kenangan", 24_000, TransactionType.EXPENSE, now),
-        sample("2", "Tokopedia", 315_000, TransactionType.EXPENSE, now),
-        sample("3", "Payroll", 12_500_000, TransactionType.INCOME, now - 86_400_000L),
-        sample("4", "Transfer to savings", 1_000_000, TransactionType.EXPENSE, now - 86_400_000L),
+        sample("1", "Kopi Kenangan", 24_000, TransactionDirection.OUTGOING, now),
+        sample("2", "Tokopedia", 315_000, TransactionDirection.OUTGOING, now),
+        sample("3", "Payroll", 12_500_000, TransactionDirection.INCOMING, now - 86_400_000L),
+        sample("4", "Transfer to savings", 1_000_000, TransactionDirection.OUTGOING, now - 86_400_000L),
     )
     val month = YearMonth.now()
     AppTheme {
@@ -788,7 +788,7 @@ private fun TransactionsScreenPreview() {
             loading = false,
             filter = TransactionFilter(),
             accounts = emptyList(),
-            sources = emptyList(),
+            parsers = emptyList(),
             onRefresh = {},
             onMonthChange = {},
             onFilterChange = {},

@@ -1,7 +1,7 @@
 package dev.achmad.finbox.features.transaction
 
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.TransactionFilter
 import dev.achmad.finbox.features.transaction.list.TransactionSort
 import dev.achmad.finbox.features.transaction.list.monthRange
@@ -15,15 +15,15 @@ class TransactionFilterTest {
 
     private fun transaction(
         id: String,
-        type: TransactionType = TransactionType.EXPENSE,
+        direction: TransactionDirection = TransactionDirection.OUTGOING,
         amount: Long? = 1_000,
         date: Long = 0,
         accountId: String = "account",
-        sourceId: Long = 1,
+        parserId: Long = 1,
         description: String? = null,
     ) = Transaction(
         accountId = accountId,
-        sourceId = sourceId,
+        parserId = parserId,
         emailMessageId = "m$id",
         index = 0,
         threadId = null,
@@ -31,8 +31,8 @@ class TransactionFilterTest {
         date = date,
         amount = amount,
         currency = "IDR",
-        type = type,
-        kind = null,
+        direction = direction,
+        type = null,
         category = null,
         description = description,
         merchant = null,
@@ -46,8 +46,8 @@ class TransactionFilterTest {
 
     private val transactions = listOf(
         transaction("a", amount = 300, date = 100, description = "Bakso"),
-        transaction("b", amount = null, date = 300, description = "Cendol", type = TransactionType.INCOME),
-        transaction("c", amount = 200, date = 200, description = "Ayam", sourceId = 2, accountId = "other"),
+        transaction("b", amount = null, date = 300, description = "Cendol", direction = TransactionDirection.INCOMING),
+        transaction("c", amount = 200, date = 200, description = "Ayam", parserId = 2, accountId = "other"),
     )
 
     @Test
@@ -59,14 +59,14 @@ class TransactionFilterTest {
 
     @Test
     fun `an empty set means no restriction, a populated one restricts`() {
-        assertEquals(3, TransactionFilter(types = emptySet()).applyTo(transactions).size)
+        assertEquals(3, TransactionFilter(directions = emptySet()).applyTo(transactions).size)
         assertEquals(
             listOf("b"),
-            TransactionFilter(types = setOf(TransactionType.INCOME)).applyTo(transactions).map { it.label },
+            TransactionFilter(directions = setOf(TransactionDirection.INCOMING)).applyTo(transactions).map { it.label },
         )
         assertEquals(
             listOf("c"),
-            TransactionFilter(sourceIds = setOf(2)).applyTo(transactions).map { it.label },
+            TransactionFilter(parserIds = setOf(2)).applyTo(transactions).map { it.label },
         )
         assertEquals(
             listOf("c"),
@@ -77,7 +77,7 @@ class TransactionFilterTest {
     @Test
     fun `the restrictions stack instead of widening each other`() {
         val filter = TransactionFilter(
-            types = setOf(TransactionType.EXPENSE),
+            directions = setOf(TransactionDirection.OUTGOING),
             accountIds = setOf("other"),
         )
         assertEquals(listOf("c"), filter.applyTo(transactions).map { it.label })

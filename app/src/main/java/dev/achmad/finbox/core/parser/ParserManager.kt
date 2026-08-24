@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import dev.achmad.finbox.core.preference.ParserKindPreference
+import dev.achmad.finbox.core.preference.ParserTypePreference
 
 /**
  * Orchestrates installed parsers:
@@ -41,17 +41,17 @@ class ParserManager(
     private val installer: ParserInstaller,
     private val index: ParserIndex,
     private val repository: InstalledParserRepository,
-    private val kindPreference: ParserKindPreference,
+    private val typePreference: ParserTypePreference,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val mutex = Mutex()
 
-    /** pkg -> parser metadata for successfully loaded parsers. */
+    /** pkg -> metadata, for the APKs that loaded. */
     val installedInfo: MutableStateFlow<Map<String, InstalledParserInfo>> = MutableStateFlow(emptyMap())
 
-    /** Load failures by file name, surfaced in the UI. */
+    /** Load failures by file name, shown in the UI. */
     val loadErrors: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap())
 
     /** Repo index entries fetched from finbox-parser. */
@@ -65,7 +65,7 @@ class ParserManager(
         installed.count { inst -> available.hasUpdateFor(inst) }
     }.stateIn(scope, SharingStarted.Eagerly, 0)
 
-    /** pkg -> how far its install or update has got, for whichever screen is showing it. */
+    /** pkg -> how far its install has got, for whichever screen is showing it. */
     private val _installSteps = MutableStateFlow<Map<String, InstallStep>>(emptyMap())
     val installSteps: StateFlow<Map<String, InstallStep>> = _installSteps.asStateFlow()
 
@@ -75,15 +75,15 @@ class ParserManager(
     /** Set by an install that landed, cleared by whichever one asks for the re-read. */
     private val reparseWanted = AtomicBoolean(false)
 
-    /** sourceId -> loaded LoadedSource for enabled parsers. */
-    private val knownSources: LinkedHashMap<Long, LoadedSource> = LinkedHashMap()
+    /** The enabled parsers, by id. */
+    private val knownParsers: LinkedHashMap<Long, LoadedParser> = LinkedHashMap()
 
     /** Observable, so a screen built before the registry was loaded still sees the parsers. */
-    private val _sourcesFlow = MutableStateFlow<List<LoadedSource>>(emptyList())
-    val sourcesFlow: StateFlow<List<LoadedSource>> = _sourcesFlow.asStateFlow()
+    private val _parsersFlow = MutableStateFlow<List<LoadedParser>>(emptyList())
+    val parsersFlow: StateFlow<List<LoadedParser>> = _parsersFlow.asStateFlow()
 
-    val sources: List<LoadedSource>
-        get() = _sourcesFlow.value
+    val parsers: List<LoadedParser>
+        get() = _parsersFlow.value
 
     suspend fun refreshIndex() {
         available.value = index.fetch()
@@ -91,10 +91,10 @@ class ParserManager(
 
     /**
      * The install as a flow of steps, ending in [InstallStep.Installed] once the
-     * new APK is loaded and the registry has caught up.
+     * APK is loaded and the registry has caught up.
      *
-     * Dropping the collector cancels the install, which is exactly why [install]
-     * collects it somewhere longer-lived than a screen.
+     * Dropping the collector cancels the install, which is why [install] collects
+     * it somewhere longer-lived than a screen.
      */
     private fun installParser(parser: AvailableParser): Flow<InstallStep> =
         installer.downloadAndInstall(parser)
@@ -103,9 +103,8 @@ class ParserManager(
     /**
      * Downloads and installs [parser], reporting progress through [installSteps].
      *
-     * Run here rather than from the screen that asked: an install outlives the row
-     * it started from, and leaving that screen must not cancel a download halfway.
-     * Only [cancelInstall] stops one.
+     * Run here rather than on the screen that asked: leaving that screen must not
+     * cancel a download halfway. Only [cancelInstall] stops one.
      */
     fun install(parser: AvailableParser) {
         val pkg = parser.pkg
@@ -151,9 +150,8 @@ class ParserManager(
     /**
      * A parser that wasn't there before reads the mail it hasn't tried yet.
      *
-     * Handed to a job: it downloads a body per untried email, which takes longer
-     * than any screen is guaranteed to live. On the main thread because enqueuing
-     * one may raise a toast.
+     * Handed to a job: it downloads a body per untried email, which outlives any
+     * screen. On the main thread because enqueuing may raise a toast.
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
         // The app asked, not the user: a request turned down here is not worth a toast.
@@ -167,9 +165,9 @@ class ParserManager(
     suspend fun remove(pkg: String) {
         installer.remove(pkg)
         repository.delete(pkg)
-        // The switches are keyed by package and would otherwise outlive it,
-        // quietly suppressing kinds if the same parser is installed again.
-        kindPreference.clear(pkg)
+        // Keyed by package, so they would otherwise outlive it and quietly
+        // suppress types if the same parser were installed again.
+        typePreference.clear(pkg)
         reload()
     }
 
@@ -178,15 +176,15 @@ class ParserManager(
         reload()
     }
 
-    /** Reloads APKs from disk and resyncs the DB + in-memory source registry. */
+    /** Reloads the APKs and resyncs the database and the in-memory registry. */
     suspend fun reload() = mutex.withLock {
         val results = withContext(Dispatchers.IO) { loader.loadParsers() }
 
-        val infos = mutableMapOf<InstalledParserInfo, LoadedSource>()
+        val infos = mutableMapOf<InstalledParserInfo, LoadedParser>()
         val errors = mutableMapOf<String, String>()
         for (result in results) {
             when (result) {
-                is LoadResult.Success -> infos[result.parser] = result.source
+                is LoadResult.Success -> infos[result.info] = result.parser
                 is LoadResult.Error -> errors[result.file] = result.reason
             }
         }
@@ -197,7 +195,7 @@ class ParserManager(
         val dbByPkg = dbParsers.associateBy { it.pkg }
 
         withContext(Dispatchers.IO) {
-            for ((info, source) in infos) {
+            for ((info, parser) in infos) {
                 val existing = dbByPkg[info.pkg]
                 val row = InstalledParser(
                     pkg = info.pkg,
@@ -212,7 +210,7 @@ class ParserManager(
                     versionName = info.versionName,
                     libVersion = info.libVersion.toString(),
                     sha256 = "",
-                    sourceIds = listOf(source.id),
+                    parserIds = listOf(parser.id),
                     // The APK is the truth about everything except this.
                     enabled = existing?.enabled != false,
                 )
@@ -222,16 +220,16 @@ class ParserManager(
             dbParsers.filter { it.pkg !in loadedPkgs }.forEach { repository.delete(it.pkg) }
         }
 
-        knownSources.clear()
+        knownParsers.clear()
         val fresh = repository.parsers().first().filter { it.enabled }
-        val sourcesByPkg = infos.entries.associate { it.key.pkg to it.value }
+        val parsersByPkg = infos.entries.associate { it.key.pkg to it.value }
         for (ext in fresh) {
-            sourcesByPkg[ext.pkg]?.let { knownSources[it.id] = it }
+            parsersByPkg[ext.pkg]?.let { knownParsers[it.id] = it }
         }
-        _sourcesFlow.value = knownSources.values.toList()
+        _parsersFlow.value = knownParsers.values.toList()
     }
 
-    fun getById(sourceId: Long): LoadedSource? = knownSources[sourceId]
+    fun getById(parserId: Long): LoadedParser? = knownParsers[parserId]
 }
 
 /** The one rule for "there is an update": the index has a higher version code. */

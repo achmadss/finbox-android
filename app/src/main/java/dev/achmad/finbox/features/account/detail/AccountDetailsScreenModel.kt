@@ -6,7 +6,7 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,24 +34,24 @@ class AccountDetailsScreenModel(
     /**
      * Which parsers this account has switched **off**, not which it has switched on.
      *
-     * That is what an assignment means to the update: a source with no row runs, and an
-     * account with no rows at all runs everything installed (`TransactionUpdater.sourcesFor`).
+     * That is what an assignment means to the update: a parser with no row runs, and an
+     * account with no rows at all runs everything installed (`TransactionUpdater.parsersFor`).
      * Reading the rows the other way round showed every switch off on an account nobody had
      * configured yet — while it was in fact reading with all of them.
      */
     val disabled: StateFlow<Set<Long>> = accountParserRepository.forAccount(id)
-        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.sourceId } }
+        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.parserId } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
-    /** Parsers currently loaded — what an assignment's `sourceId` points at. */
-    val sources: StateFlow<List<LoadedSource>> = parserManager.sourcesFlow
+    /** Parsers currently loaded — what an assignment's `parserId` points at. */
+    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
 
     fun setSyncEnabled(enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }
     }
 
-    fun setParserEnabled(sourceId: Long, enabled: Boolean) {
-        screenModelScope.launch { accountParserRepository.setEnabled(id, sourceId, enabled) }
+    fun setParserEnabled(parserId: Long, enabled: Boolean) {
+        screenModelScope.launch { accountParserRepository.setEnabled(id, parserId, enabled) }
     }
 
     /**

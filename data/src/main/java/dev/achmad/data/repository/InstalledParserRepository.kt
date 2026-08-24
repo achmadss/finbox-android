@@ -40,7 +40,7 @@ class InstalledParserRepository(
             version_name = parser.versionName,
             lib_version = parser.libVersion,
             sha256 = parser.sha256,
-            source_ids = Json.encodeToString(parser.sourceIds),
+            parser_ids = Json.encodeToString(parser.parserIds),
             enabled = if (parser.enabled) 1L else 0L,
         )
 
@@ -75,7 +75,7 @@ class InstalledParserRepository(
         versionName = version_name,
         libVersion = lib_version,
         sha256 = sha256,
-        sourceIds = Json.decodeFromString<List<Long>>(source_ids),
+        parserIds = Json.decodeFromString<List<Long>>(parser_ids),
         enabled = enabled != 0L,
     )
 }

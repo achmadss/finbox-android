@@ -36,7 +36,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionKind
+import dev.achmad.finbox.parser.TransactionType
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
@@ -51,7 +51,7 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val kinds by model.kinds.collectAsState()
+        val types by model.types.collectAsState()
         var confirmDelete by remember { mutableStateOf(false) }
 
         // Same rule as the account details screen: gone *after* it was here means deleted,
@@ -98,7 +98,7 @@ data class TransactionDetailScreen(private val id: String) : Screen {
                     .padding(padding)
                     .verticalScroll(rememberScrollState()),
             ) {
-                TransactionView(transaction = current, kinds = kinds)
+                TransactionView(transaction = current, types = types)
             }
         }
 
@@ -124,7 +124,7 @@ data class TransactionDetailScreen(private val id: String) : Screen {
 }
 
 @Composable
-private fun TransactionView(transaction: Transaction, kinds: List<TransactionKind>) {
+private fun TransactionView(transaction: Transaction, types: List<TransactionType>) {
     val use24Hour = rememberUse24HourClock()
     Column(
         modifier = Modifier
@@ -145,10 +145,10 @@ private fun TransactionView(transaction: Transaction, kinds: List<TransactionKin
         )
     }
     HorizontalDivider()
-    Field(stringResource(R.string.type), transaction.type?.let { stringResource(it.labelRes) })
-    // The parser's own word for the kind, falling back to the stored key when its
+    Field(stringResource(R.string.direction), transaction.direction?.let { stringResource(it.labelRes) })
+    // The parser's own word for the type, falling back to the stored key when its
     // parser is gone or dropped it.
-    Field(stringResource(R.string.kind), kinds.nameOf(transaction.kind) ?: transaction.kind)
+    Field(stringResource(R.string.type), types.nameOf(transaction.type) ?: transaction.type)
     Field(stringResource(R.string.category), transaction.category)
     Field(stringResource(R.string.description), transaction.description)
     Field(stringResource(R.string.merchant), transaction.merchant)

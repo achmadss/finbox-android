@@ -5,11 +5,11 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -28,23 +28,23 @@ enum class TransactionSort { DATE, AMOUNT }
 
 /** An empty set means "no restriction", so the default filter lets everything through. */
 data class TransactionFilter(
-    val types: Set<TransactionType> = emptySet(),
-    val sourceIds: Set<Long> = emptySet(),
+    val directions: Set<TransactionDirection> = emptySet(),
+    val parserIds: Set<Long> = emptySet(),
     val accountIds: Set<String> = emptySet(),
     val sort: TransactionSort = TransactionSort.DATE,
     val descending: Boolean = true,
 ) {
     val isActive: Boolean
-        get() = types.isNotEmpty() ||
-            sourceIds.isNotEmpty() ||
+        get() = directions.isNotEmpty() ||
+            parserIds.isNotEmpty() ||
             accountIds.isNotEmpty() ||
             sort != TransactionSort.DATE ||
             !descending
 
     fun applyTo(transactions: List<Transaction>): List<Transaction> {
         val kept = transactions.filter {
-            (types.isEmpty() || it.type in types) &&
-                (sourceIds.isEmpty() || it.sourceId in sourceIds) &&
+            (directions.isEmpty() || it.direction in directions) &&
+                (parserIds.isEmpty() || it.parserId in parserIds) &&
                 (accountIds.isEmpty() || it.accountId in accountIds)
         }
         val sorted = when (sort) {
@@ -78,8 +78,8 @@ class TransactionsScreenModel(
     private val context: Context = injectAndroidContext()
 ) : ScreenModel {
 
-    /** Parsers currently loaded — what a transaction's `sourceId` points at. */
-    val sources: StateFlow<List<LoadedSource>> = parserManager.sourcesFlow
+    /** Parsers currently loaded — what a transaction's `parserId` points at. */
+    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
 
     /** Badge on the Parsers menu item. */
     val parserUpdates: StateFlow<Int> = parserManager.updatesCount

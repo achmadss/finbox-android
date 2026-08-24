@@ -46,9 +46,9 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionKind
+import dev.achmad.finbox.parser.TransactionType
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
@@ -74,7 +74,7 @@ data class TransactionEditScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val kinds by model.kinds.collectAsState()
+        val types by model.types.collectAsState()
 
         // Seeded once, from the row as it was when this screen opened. Re-seeding on every
         // emission would throw away what is being typed the moment anything else writes.
@@ -132,7 +132,7 @@ data class TransactionEditScreen(private val id: String) : Screen {
             ) {
                 TransactionEditor(
                     draft = edited,
-                    kinds = kinds,
+                    types = types,
                     onChange = { draft = it },
                 )
             }
@@ -162,25 +162,25 @@ data class TransactionEditScreen(private val id: String) : Screen {
 @Composable
 private fun TransactionEditor(
     draft: Draft,
-    kinds: List<TransactionKind>,
+    types: List<TransactionType>,
     onChange: (Draft) -> Unit,
 ) {
     val use24Hour = rememberUse24HourClock()
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
-    var pickKind by remember { mutableStateOf(false) }
+    var pickType by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TransactionType.entries.forEach { type ->
+            TransactionDirection.entries.forEach { direction ->
                 FilterChip(
-                    selected = draft.type == type,
-                    // Tapping the selected one clears it, which is what an unparsed type looks like.
-                    onClick = { onChange(draft.copy(type = type.takeIf { it != draft.type })) },
-                    label = { Text(stringResource(type.labelRes)) },
+                    selected = draft.direction == direction,
+                    // Tapping the selected one clears it, which is what an unparsed direction looks like.
+                    onClick = { onChange(draft.copy(direction = direction.takeIf { it != draft.direction })) },
+                    label = { Text(stringResource(direction.labelRes)) },
                 )
             }
         }
@@ -188,7 +188,7 @@ private fun TransactionEditor(
             value = draft.amount,
             onValueChange = { onChange(draft.copy(amount = it.filter(Char::isDigit))) },
             label = { Text(stringResource(R.string.amount)) },
-            // Unsigned: the type decides which way the money went.
+            // Unsigned: the direction decides which way the money went.
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -210,10 +210,10 @@ private fun TransactionEditor(
             )
         }
         PickerField(
-            label = stringResource(R.string.kind),
-            value = kinds.nameOf(draft.kind) ?: draft.kind ?: stringResource(R.string.none),
+            label = stringResource(R.string.type),
+            value = types.nameOf(draft.type) ?: draft.type ?: stringResource(R.string.none),
             modifier = Modifier.fillMaxWidth(),
-            onClick = { pickKind = true },
+            onClick = { pickType = true },
         )
         OutlinedTextField(
             value = draft.category,
@@ -254,12 +254,12 @@ private fun TransactionEditor(
         )
     }
 
-    if (pickKind) {
-        KindPickerDialog(
-            selected = draft.kind,
-            kinds = kinds,
-            onDismiss = { pickKind = false },
-            onSelect = { onChange(draft.copy(kind = it)) },
+    if (pickType) {
+        TypePickerDialog(
+            selected = draft.type,
+            types = types,
+            onDismiss = { pickType = false },
+            onSelect = { onChange(draft.copy(type = it)) },
         )
     }
 }
@@ -356,25 +356,25 @@ private fun TimePickerDialog(
 }
 
 /**
- * The kinds the row's parser declares, plus None. A kind the parser dropped stays in the
+ * The types the row's parser declares, plus None. A type the parser dropped stays in the
  * list while it is the one selected, so opening the picker cannot quietly discard it.
  */
 @Composable
-private fun KindPickerDialog(
+private fun TypePickerDialog(
     selected: String?,
-    kinds: List<TransactionKind>,
+    types: List<TransactionType>,
     onDismiss: () -> Unit,
     onSelect: (String?) -> Unit,
 ) {
     val none = stringResource(R.string.none)
     val options = buildList<Pair<String?, String>> {
         add(null to none)
-        kinds.forEach { add(it.key to it.name) }
-        if (selected != null && kinds.none { it.key == selected }) add(selected to selected)
+        types.forEach { add(it.key to it.name) }
+        if (selected != null && types.none { it.key == selected }) add(selected to selected)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.kind)) },
+        title = { Text(stringResource(R.string.type)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 options.forEach { (key, name) ->
@@ -406,16 +406,16 @@ private fun Long.toLocalDate(): LocalDate =
 private fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-/** The parser's name for a stored kind key, or null when nothing declares it. */
-internal fun List<TransactionKind>.nameOf(key: String?): String? =
+/** The parser's name for a stored type key, or null when nothing declares it. */
+internal fun List<TransactionType>.nameOf(key: String?): String? =
     key?.let { stored -> firstOrNull { it.key == stored }?.name }
 
 /** The form's state: text while it is being typed, parsed back into a [Transaction] on save. */
 internal data class Draft(
     val date: Long?,
     val amount: String,
-    val type: TransactionType?,
-    val kind: String?,
+    val direction: TransactionDirection?,
+    val type: String?,
     val category: String,
     val description: String,
     val merchant: String,
@@ -424,8 +424,8 @@ internal data class Draft(
 internal fun Transaction.toDraft() = Draft(
     date = date,
     amount = amount?.toString().orEmpty(),
+    direction = direction,
     type = type,
-    kind = kind,
     category = category.orEmpty(),
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
@@ -438,8 +438,8 @@ internal fun Transaction.toDraft() = Draft(
 internal fun Draft.applyTo(transaction: Transaction) = transaction.copy(
     date = date,
     amount = amount.trim().toLongOrNull(),
+    direction = direction,
     type = type,
-    kind = kind,
     category = category.blankToNull(),
     description = description.blankToNull(),
     merchant = merchant.blankToNull(),

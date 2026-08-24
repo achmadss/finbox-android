@@ -19,7 +19,7 @@ class ParserGroupingTest {
         versionName = "1.0",
         libVersion = "1.0",
         sha256 = "",
-        sourceIds = listOf(1),
+        parserIds = listOf(1),
         enabled = true,
     )
 

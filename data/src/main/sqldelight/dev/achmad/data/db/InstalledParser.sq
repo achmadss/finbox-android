@@ -7,7 +7,7 @@ CREATE TABLE installed_parser (
     version_name TEXT NOT NULL,
     lib_version TEXT NOT NULL,
     sha256 TEXT NOT NULL,
-    source_ids TEXT NOT NULL,
+    parser_ids TEXT NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1
 );
 
@@ -18,8 +18,8 @@ SELECTByPkg:
 SELECT * FROM installed_parser WHERE pkg = :pkg;
 
 INSERTOrReplace:
-INSERT OR REPLACE INTO installed_parser(pkg, provider, name, file, version_code, version_name, lib_version, sha256, source_ids, enabled)
-VALUES (:pkg, :provider, :name, :file, :version_code, :version_name, :lib_version, :sha256, :source_ids, :enabled);
+INSERT OR REPLACE INTO installed_parser(pkg, provider, name, file, version_code, version_name, lib_version, sha256, parser_ids, enabled)
+VALUES (:pkg, :provider, :name, :file, :version_code, :version_name, :lib_version, :sha256, :parser_ids, :enabled);
 
 DELETEByPkg:
 DELETE FROM installed_parser WHERE pkg = :pkg;

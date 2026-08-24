@@ -8,7 +8,7 @@ import dev.achmad.finbox.util.preference.PreferenceStore
 import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.core.parser.ParserIndex
 import dev.achmad.finbox.core.parser.ParserInstaller
-import dev.achmad.finbox.core.preference.ParserKindPreference
+import dev.achmad.finbox.core.preference.ParserTypePreference
 import dev.achmad.finbox.core.parser.ParserLoader
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.ParserUpdateChecker
@@ -75,7 +75,7 @@ val appModule = module {
             loader = get()
         )
     }
-    single<ParserKindPreference> { ParserKindPreference(preferenceStore = get()) }
+    single<ParserTypePreference> { ParserTypePreference(preferenceStore = get()) }
     single<ParserManager> {
         ParserManager(
             context = androidContext(),
@@ -83,7 +83,7 @@ val appModule = module {
             installer = get(),
             index = get(),
             repository = get(),
-            kindPreference = get()
+            typePreference = get()
         )
     }
     single<ParserUpdateChecker> {
@@ -107,13 +107,13 @@ val appModule = module {
     single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
     single<TransactionUpdater> {
         TransactionUpdater(
-            sources = { get<ParserManager>().sources },
+            parsers = { get<ParserManager>().parsers },
             accountRepository = get(),
             accountParserRepository = get(),
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),
-            kindPreference = get()
+            typePreference = get()
         )
     }
 }

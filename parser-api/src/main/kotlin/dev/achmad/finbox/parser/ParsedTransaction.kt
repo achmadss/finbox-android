@@ -1,57 +1,47 @@
 package dev.achmad.finbox.parser
 
-/**
- * Which way the money went. The app knows only these two — everything a
- * provider calls a transaction is one or the other, and the provider's own
- * vocabulary lives in [TransactionKind].
- */
-enum class TransactionType { INCOME, EXPENSE }
+/** Which way the money went — all the app itself knows. */
+enum class TransactionDirection { INCOMING, OUTGOING }
 
 /**
- * One kind of transaction a source can read: a QRIS payment, a top up, a
+ * One type of transaction a parser can read: a QRIS payment, a top up, a
  * BI-Fast transfer.
  *
- * A source declares these up front ([TransactionSource.kinds]) so the app can
- * list them and let the user switch individual ones off, and tags each parsed
- * transaction with the one it came from. The app stores [key] and [type]; [name]
- * is only ever shown.
+ * The app stores [key] and [direction] and only ever shows [name], so renaming
+ * a key loses both the transactions filed under it and the user's switch.
  */
-data class TransactionKind(
-    /**
-     * Stable id, e.g. `QRIS`. Stored with every transaction parsed under it and
-     * with the user's on/off choice, so renaming one loses both — rename [name]
-     * instead, which is what the user actually reads.
-     */
+data class TransactionType(
+    /** Stable id, e.g. `QRIS`. */
     val key: String,
-    /** What the user sees in the parser's kind list, e.g. "QRIS Payment". */
+    /** What the user sees, e.g. "QRIS Payment". */
     val name: String,
-    /** Whether money came in or went out. */
-    val type: TransactionType,
+    val direction: TransactionDirection,
 )
 
 /**
- * A parsed transaction in a provider-neutral form. All fields are nullable: a
- * parser should return as much as it reliably extracted and leave the rest,
- * rather than guess; the app falls back quietly. `amount` is in whole units of
- * [currency] (e.g. rupiah for IDR).
+ * A parsed transaction in a provider-neutral form.
  *
- * `kind` must be one of the source's own [TransactionSource.kinds] — the app
- * drops a transaction whose kind the user has switched off, and one it does not
- * recognise. A source that can't tell what it read should declare a catch-all
- * kind and use that, so the transaction stays visible and switchable rather
- * than vanishing.
+ * The required fields are the ones a transaction is worthless without: a parser
+ * that cannot read them should return nothing rather than a hollow row. The
+ * rest are optional because providers genuinely differ — some send no
+ * reference, and a card purchase names no merchant.
  *
- * `reference` is the provider's own transaction reference, shown and exported
- * when there is one. The app uses it for identity when present, then falls back
- * to the Gmail thread or message it was parsed from, so a provider that sends
- * no reference (Jago sends none at all) still imports cleanly.
+ * [type] must be one of the parser's own [EmailParser.types]; the app drops a
+ * transaction whose type the user switched off, and one it does not recognise.
  */
 data class ParsedTransaction(
-    val date: Long?,
-    val amount: Long?,
-    val currency: String?,
-    val kind: TransactionKind?,
-    val merchant: String?,
-    val description: String?,
-    val reference: String?,
+    /** Whole units of [currency], always positive — direction comes from [type]. */
+    val amount: Long,
+    /** ISO 4217, e.g. `IDR`. */
+    val currency: String,
+    /** Unix epoch millis. Pass [Email.date] when the receipt states no time. */
+    val date: Long,
+    val type: TransactionType,
+    val merchant: String? = null,
+    val description: String? = null,
+    /**
+     * The provider's own transaction reference. The app uses it for identity
+     * when there is one, then falls back to the Gmail thread or message.
+     */
+    val reference: String? = null,
 )

@@ -5,7 +5,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.parser.TransactionKind
+import dev.achmad.finbox.parser.TransactionType
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,13 +30,13 @@ class TransactionDetailScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
 
     /**
-     * What the kind picker offers: the kinds declared by the parser that read this row.
+     * What the type picker offers: the types declared by the parser that read this row.
      * Empty while the registry loads, and empty for a row whose parser is gone — the
      * picker then only offers what the row already has.
      */
-    val kinds: StateFlow<List<TransactionKind>> =
-        combine(transaction, parserManager.sourcesFlow) { transaction, sources ->
-            sources.firstOrNull { it.id == transaction?.sourceId }?.kinds.orEmpty()
+    val types: StateFlow<List<TransactionType>> =
+        combine(transaction, parserManager.parsersFlow) { transaction, parsers ->
+            parsers.firstOrNull { it.id == transaction?.parserId }?.types().orEmpty()
         }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     fun save(edited: Transaction) {

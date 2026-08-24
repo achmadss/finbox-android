@@ -10,7 +10,7 @@ class GmailApiTest {
 
     @Test
     fun `uses the canonical gmail thread id over a header with the same name`() {
-        val email = GmailApi.toEmailMessage(
+        val email = GmailApi.toEmail(
             MessageResponse(
                 id = "message",
                 threadId = "api-thread",

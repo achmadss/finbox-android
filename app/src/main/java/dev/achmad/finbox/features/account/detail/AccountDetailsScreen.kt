@@ -57,7 +57,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
         val model = rememberScreenModel(tag = id) { AccountDetailsScreenModel(id) }
         val account by model.account.collectAsState()
         val disabled by model.disabled.collectAsState()
-        val sources by model.sources.collectAsState()
+        val parsers by model.parsers.collectAsState()
         var confirmRemove by remember { mutableStateOf(false) }
 
         // Gone once it has been here means removed, here or anywhere else. Only once it has been
@@ -95,8 +95,8 @@ data class AccountDetailsScreen(private val id: String) : Screen {
             ) {
                 DetailsHeader(
                     account = current,
-                    parsers = sources.count { it.id !in disabled },
-                    totalParsers = sources.size,
+                    parsers = parsers.count { it.id !in disabled },
+                    totalParsers = parsers.size,
                     onClickRemove = { confirmRemove = true },
                 )
                 HorizontalDivider()
@@ -113,7 +113,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
                 )
-                if (sources.isEmpty()) {
+                if (parsers.isEmpty()) {
                     Text(
                         text = stringResource(R.string.account_no_parsers),
                         style = MaterialTheme.typography.bodyMedium,
@@ -121,11 +121,11 @@ data class AccountDetailsScreen(private val id: String) : Screen {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
                 }
-                sources.forEach { source ->
+                parsers.forEach { parser ->
                     SwitchRow(
-                        title = source.name,
-                        checked = source.id !in disabled,
-                        onCheckedChange = { model.setParserEnabled(source.id, it) },
+                        title = parser.name,
+                        checked = parser.id !in disabled,
+                        onCheckedChange = { model.setParserEnabled(parser.id, it) },
                     )
                 }
                 HorizontalDivider()

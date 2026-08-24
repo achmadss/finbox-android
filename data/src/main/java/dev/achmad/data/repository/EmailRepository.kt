@@ -1,7 +1,7 @@
 package dev.achmad.data.repository
 
 import dev.achmad.data.db.FinboxDatabase
-import dev.achmad.data.model.Email
+import dev.achmad.data.model.StoredEmail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import dev.achmad.data.db.Email as EmailRow
@@ -10,23 +10,23 @@ class EmailRepository(
     private val db: FinboxDatabase,
 ) {
 
-    suspend fun all(): List<Email> = withContext(Dispatchers.IO) {
+    suspend fun all(): List<StoredEmail> = withContext(Dispatchers.IO) {
         db.emailQueries.SELECTAllEmails().executeAsList().map { it.toModel() }
     }
 
-    suspend fun forAccount(accountId: String): List<Email> = withContext(Dispatchers.IO) {
+    suspend fun forAccount(accountId: String): List<StoredEmail> = withContext(Dispatchers.IO) {
         db.emailQueries.SELECTForAccount(accountId).executeAsList().map { it.toModel() }
     }
 
     /** Emails no parser has claimed yet. */
-    suspend fun unparsed(): List<Email> = withContext(Dispatchers.IO) {
+    suspend fun unparsed(): List<StoredEmail> = withContext(Dispatchers.IO) {
         db.emailQueries.SELECTUnparsed().executeAsList().map { it.toModel() }
     }
 
-    /** Emails one of [sourceIds] claimed — what a change to that source re-reads. */
-    suspend fun parsedBy(sourceIds: Collection<Long>): List<Email> = withContext(Dispatchers.IO) {
-        if (sourceIds.isEmpty()) return@withContext emptyList()
-        db.emailQueries.SELECTBySource(sourceIds).executeAsList().map { it.toModel() }
+    /** Emails one of [parserIds] claimed — what a change to it re-reads. */
+    suspend fun parsedBy(parserIds: Collection<Long>): List<StoredEmail> = withContext(Dispatchers.IO) {
+        if (parserIds.isEmpty()) return@withContext emptyList()
+        db.emailQueries.SELECTByParser(parserIds).executeAsList().map { it.toModel() }
     }
 
     /**
@@ -34,7 +34,7 @@ class EmailRepository(
      *
      * @return how many were new.
      */
-    suspend fun insertNew(emails: List<Email>): Int = withContext(Dispatchers.IO) {
+    suspend fun insertNew(emails: List<StoredEmail>): Int = withContext(Dispatchers.IO) {
         if (emails.isEmpty()) return@withContext 0
         var added = 0
         db.transaction {
@@ -50,9 +50,9 @@ class EmailRepository(
                     sender = email.from,
                     subject = email.subject,
                     date = email.date,
-                    body_html = email.bodyHtml,
-                    tried_source_ids = email.triedSourceIds.joinToString(" "),
-                    parsed_by_source_id = email.parsedBySourceId,
+                    body = email.body,
+                    tried_parser_ids = email.triedParserIds.joinToString(" "),
+                    parsed_by_parser_id = email.parsedByParserId,
                     fetched_at = email.fetchedAt,
                 )
             }
@@ -63,14 +63,14 @@ class EmailRepository(
     }
 
     /** Writes back parse state for several emails at once. */
-    suspend fun updateAll(emails: List<Email>) = withContext(Dispatchers.IO) {
+    suspend fun updateAll(emails: List<StoredEmail>) = withContext(Dispatchers.IO) {
         db.transaction {
             for (email in emails) {
                 db.emailQueries.SETParseState(
                     thread_id = email.threadId,
-                    body_html = email.bodyHtml,
-                    tried_source_ids = email.triedSourceIds.joinToString(" "),
-                    parsed_by_source_id = email.parsedBySourceId,
+                    body = email.body,
+                    tried_parser_ids = email.triedParserIds.joinToString(" "),
+                    parsed_by_parser_id = email.parsedByParserId,
                     account_id = email.accountId,
                     message_id = email.messageId,
                 )
@@ -79,7 +79,7 @@ class EmailRepository(
     }
 
     /** Restore path: replaces everything. */
-    suspend fun replaceAll(emails: List<Email>) = withContext(Dispatchers.IO) {
+    suspend fun replaceAll(emails: List<StoredEmail>) = withContext(Dispatchers.IO) {
         db.transaction {
             db.emailQueries.DELETEAllEmails()
             for (email in emails) {
@@ -90,9 +90,9 @@ class EmailRepository(
                     sender = email.from,
                     subject = email.subject,
                     date = email.date,
-                    body_html = email.bodyHtml,
-                    tried_source_ids = email.triedSourceIds.joinToString(" "),
-                    parsed_by_source_id = email.parsedBySourceId,
+                    body = email.body,
+                    tried_parser_ids = email.triedParserIds.joinToString(" "),
+                    parsed_by_parser_id = email.parsedByParserId,
                     fetched_at = email.fetchedAt,
                 )
             }
@@ -104,16 +104,16 @@ class EmailRepository(
         Unit
     }
 
-    private fun EmailRow.toModel() = Email(
+    private fun EmailRow.toModel() = StoredEmail(
         messageId = message_id,
         threadId = thread_id,
         accountId = account_id,
         from = sender,
         subject = subject,
         date = date,
-        bodyHtml = body_html,
-        triedSourceIds = tried_source_ids.split(" ").mapNotNull(String::toLongOrNull),
-        parsedBySourceId = parsed_by_source_id,
+        body = body,
+        triedParserIds = tried_parser_ids.split(" ").mapNotNull(String::toLongOrNull),
+        parsedByParserId = parsed_by_parser_id,
         fetchedAt = fetched_at,
     )
 }

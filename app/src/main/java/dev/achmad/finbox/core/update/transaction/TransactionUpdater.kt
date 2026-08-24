@@ -1,21 +1,21 @@
 package dev.achmad.finbox.core.update.transaction
 
-import dev.achmad.data.model.Email
+import dev.achmad.data.model.StoredEmail
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.normalizedThreadId
 import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.preference.ParserKindPreference
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.finbox.core.preference.ParserTypePreference
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.gmail.GmailApi
-import dev.achmad.finbox.core.gmail.combineSourceQueries
+import dev.achmad.finbox.core.gmail.combineParserQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
 import dev.achmad.finbox.util.network.HttpException
-import dev.achmad.finbox.parser.EmailMessage
+import dev.achmad.finbox.parser.Email
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -34,9 +34,9 @@ import kotlinx.coroutines.withContext
  * Keeps the ledger of transactions up to date from Gmail.
  *
  * An update runs in two halves. Fetching stores what identifies each selected
- * email; parsing hands the ones no parser has claimed to the installed sources,
+ * email; parsing hands the ones no parser has claimed to the installed parsers,
  * and the first that claims an email turns it into transactions. The two are
- * separate because parsers come and go: an email remembers which sources have
+ * separate because parsers come and go: an email remembers which parsers have
  * already seen it, so installing a parser re-reads the mail it hasn't tried
  * and nothing else.
  *
@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
  * Gmail is rate limited and a mailbox import is thousands of messages.
  *
  * Keeping the body is what makes re-parsing cheap: a new parser, an updated
- * one, or a transaction kind switched back on all re-read what is already
+ * one, or a transaction type switched back on all re-read what is already
  * stored, so a refresh can afford to try every unparsed email before it asks
  * Gmail for anything new.
  *
@@ -56,14 +56,14 @@ import kotlinx.coroutines.withContext
  * one `history.list` call.
  */
 class TransactionUpdater(
-    /** The installed sources, read at update time so an install takes effect at once. */
-    private val sources: () -> List<LoadedSource>,
+    /** The installed parsers, read at update time so an install takes effect at once. */
+    private val parsers: () -> List<LoadedParser>,
     private val accountRepository: AccountRepository,
     private val accountParserRepository: AccountParserRepository,
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
-    private val kindPreference: ParserKindPreference,
+    private val typePreference: ParserTypePreference,
 ) {
 
     /** One update at a time per account, so two refreshes can't race the cursor. */
@@ -141,21 +141,21 @@ class TransactionUpdater(
     private class Counts(val parsed: Int)
 
     /**
-     * The sources this account parses with, in the order it wants them tried.
+     * The parsers this account parses with, in the order it wants them tried.
      *
      * An account that has never been configured uses everything installed. Once
-     * it has, a source turned off there is skipped — and skipped without being
+     * it has, a parser turned off there is skipped — and skipped without being
      * marked tried, so turning it back on re-reads the mail it missed. A parser
      * installed since then has no assignment yet and goes last rather than
      * being ignored.
      */
-    private suspend fun sourcesFor(account: EmailAccount): List<LoadedSource> {
-        val installed = sources()
+    private suspend fun parsersFor(account: EmailAccount): List<LoadedParser> {
+        val installed = parsers()
         val assignments = accountParserRepository.forAccount(account.id).first()
         if (assignments.isEmpty()) return installed
 
-        val position = assignments.associate { it.sourceId to it.position }
-        val disabled = assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.sourceId }
+        val position = assignments.associate { it.parserId to it.position }
+        val disabled = assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.parserId }
         return installed
             .filterNot { it.id in disabled }
             .sortedBy { position[it.id] ?: Int.MAX_VALUE }
@@ -165,11 +165,11 @@ class TransactionUpdater(
      * The Gmail search for this account: what its parsers ask for, plus any
      * narrowing set on the account itself.
      *
-     * A source that names no sender wants everything, and then nothing can be
+     * A parser that names no sender wants everything, and then nothing can be
      * excluded — filtering the list would silently skip that parser's mail.
      */
     private suspend fun narrowFor(account: EmailAccount): String? {
-        val fromSources = combineSourceQueries(sourcesFor(account).map { it.emailQuery.value })
+        val fromSources = combineParserQueries(parsersFor(account).map { it.emailQuery().value })
             ?: return account.syncQuery
         return listOfNotNull(account.syncQuery?.takeIf { it.isNotBlank() }, fromSources)
             .joinToString(" ")
@@ -316,7 +316,7 @@ class TransactionUpdater(
     /**
      * Downloads, parses and writes a batch of messages at a time.
      *
-     * A message already stored and already seen by every installed source costs
+     * A message already stored and already seen by every installed parser costs
      * nothing — it is skipped before it is downloaded. Everything else is read:
      * a thread can hold unrelated mail, so a second message in a known thread
      * may well be a second transaction. Duplicates are settled after parsing,
@@ -329,12 +329,12 @@ class TransactionUpdater(
         before: Long?,
         onBatchParsed: suspend (Int) -> Unit = {},
     ): Counts {
-        val sources = sourcesFor(account)
+        val parsers = parsersFor(account)
         val stored = emailRepository.forAccount(account.id).associateBy { it.messageId }
 
         val todo = messageRefs.distinctBy { it.id }.filter { ref ->
             val email = stored[ref.id] ?: return@filter true
-            !email.parsed && sources.any { it.id !in email.triedSourceIds }
+            !email.parsed && parsers.any { it.id !in email.triedParserIds }
         }
         if (todo.isEmpty()) return Counts(0)
 
@@ -374,9 +374,9 @@ class TransactionUpdater(
                                 ?: storedEmail?.threadId.normalizedThreadId()
                             // Downloaded anyway, so keep the body: whatever
                             // re-reads this email later does it for free.
-                            val bodyHtml = message.bodyHtml.ifBlank { null }
-                            val email = storedEmail?.copy(threadId = threadId, bodyHtml = bodyHtml)
-                                ?: Email(
+                            val body = message.body.ifBlank { null }
+                            val email = storedEmail?.copy(threadId = threadId, body = body)
+                                ?: StoredEmail(
                                     // Gmail's own id, not the RFC Message-ID header:
                                     // this is what history.list reports, so it is
                                     // what dedup has to key on.
@@ -386,12 +386,12 @@ class TransactionUpdater(
                                     from = message.from,
                                     subject = message.subject,
                                     date = message.date,
-                                    bodyHtml = bodyHtml,
-                                    triedSourceIds = emptyList(),
-                                    parsedBySourceId = null,
+                                    body = body,
+                                    triedParserIds = emptyList(),
+                                    parsedByParserId = null,
                                     fetchedAt = System.currentTimeMillis(),
                                 )
-                            parse(email, message, sources)
+                            parse(email, message, parsers)
                         }
                     }.awaitAll()
                 }
@@ -414,7 +414,7 @@ class TransactionUpdater(
     }
 
     /**
-     * Re-reads the mail the installed sources haven't all tried — what a newly
+     * Re-reads the mail the installed parsers haven't all tried — what a newly
      * installed or updated parser needs.
      *
      * Nearly free now that bodies are stored: an email is parsed again from
@@ -425,51 +425,51 @@ class TransactionUpdater(
      * @return how many transactions were written.
      */
     suspend fun parseUnparsed(onProgress: suspend (Progress) -> Unit = {}): Int {
-        if (sources().isEmpty()) return 0
+        if (parsers().isEmpty()) return 0
 
         var parsed = 0
         for ((accountId, emails) in emailRepository.unparsed().groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
-            val sources = sourcesFor(account)
+            val parsers = parsersFor(account)
             val pending = emails.filter { email ->
-                sources.any { it.id !in email.triedSourceIds }
+                parsers.any { it.id !in email.triedParserIds }
             }
             if (pending.isEmpty()) continue
             parsed += lockFor(accountId).withLock {
-                reread(account, pending, sources, force = false, onProgress)
+                reread(account, pending, parsers, force = false, onProgress)
             }
         }
         return parsed
     }
 
     /**
-     * Re-reads mail one of [sourceIds] already claimed.
+     * Re-reads mail one of [parserIds] already claimed.
      *
-     * Switching a transaction kind back on needs this: those emails are parsed,
-     * so nothing above would look at them again, and the transactions the kind
+     * Switching a transaction type back on needs this: those emails are parsed,
+     * so nothing above would look at them again, and the transactions the type
      * covers were never written.
      *
      * @return how many transactions were written.
      */
-    suspend fun reparseSource(
-        sourceIds: Set<Long>,
+    suspend fun reparseParsers(
+        parserIds: Set<Long>,
         onProgress: suspend (Progress) -> Unit = {},
     ): Int {
-        if (sourceIds.isEmpty()) return 0
+        if (parserIds.isEmpty()) return 0
 
         var parsed = 0
-        for ((accountId, emails) in emailRepository.parsedBy(sourceIds).groupBy { it.accountId }) {
+        for ((accountId, emails) in emailRepository.parsedBy(parserIds).groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
-            val sources = sourcesFor(account).filter { it.id in sourceIds }
-            if (sources.isEmpty()) continue
+            val parsers = parsersFor(account).filter { it.id in parserIds }
+            if (parsers.isEmpty()) continue
 
-            val (stored, bodiless) = emails.partition { !it.bodyHtml.isNullOrBlank() }
+            val (stored, bodiless) = emails.partition { !it.body.isNullOrBlank() }
             parsed += lockFor(accountId).withLock {
-                // No thread filter and forced past triedSourceIds: these emails
-                // are the ones that made those threads, and the source that
+                // No thread filter and forced past triedParserIds: these emails
+                // are the ones that made those threads, and the parser that
                 // claimed them is exactly the one meant to read them again.
-                parseStored(account, stored, sources, force = true, onProgress) +
-                    releaseBodiless(bodiless, sourceIds)
+                parseStored(account, stored, parsers, force = true, onProgress) +
+                    releaseBodiless(bodiless, parserIds)
             }
         }
         return parsed
@@ -485,13 +485,13 @@ class TransactionUpdater(
      *
      * @return 0 — nothing is parsed here, the next refresh does it.
      */
-    private suspend fun releaseBodiless(emails: List<Email>, sourceIds: Set<Long>): Int {
+    private suspend fun releaseBodiless(emails: List<StoredEmail>, parserIds: Set<Long>): Int {
         if (emails.isEmpty()) return 0
         emailRepository.updateAll(
             emails.map {
                 it.copy(
-                    triedSourceIds = it.triedSourceIds - sourceIds,
-                    parsedBySourceId = null,
+                    triedParserIds = it.triedParserIds - parserIds,
+                    parsedByParserId = null,
                 )
             },
         )
@@ -501,13 +501,13 @@ class TransactionUpdater(
     /** Parses what has a stored body and downloads the rest. */
     private suspend fun reread(
         account: EmailAccount,
-        emails: List<Email>,
-        sources: List<LoadedSource>,
+        emails: List<StoredEmail>,
+        parsers: List<LoadedParser>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
-        val (stored, missing) = emails.partition { !it.bodyHtml.isNullOrBlank() }
-        return parseStored(account, stored, sources, force, onProgress) +
+        val (stored, missing) = emails.partition { !it.body.isNullOrBlank() }
+        return parseStored(account, stored, parsers, force, onProgress) +
             ingest(
                 account,
                 missing.sortedByDescending { it.date }
@@ -527,8 +527,8 @@ class TransactionUpdater(
      */
     private suspend fun parseStored(
         account: EmailAccount,
-        emails: List<Email>,
-        sources: List<LoadedSource>,
+        emails: List<StoredEmail>,
+        parsers: List<LoadedParser>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -540,7 +540,7 @@ class TransactionUpdater(
             val results = withContext(Dispatchers.Default) {
                 coroutineScope {
                     batch.map { email ->
-                        async { parse(email, email.asMessage(account), sources, force) }
+                        async { parse(email, email.asParserEmail(), parsers, force) }
                     }.awaitAll()
                 }
             }
@@ -553,64 +553,51 @@ class TransactionUpdater(
         return parsed
     }
 
-    /**
-     * A stored email as a parser sees one.
-     *
-     * `bodyText` is empty because only the html was kept — it is what a receipt
-     * is, and the flattening a parser wants is the parser's own. `to` is the
-     * account rather than the header, which was never stored and which no
-     * parser has a use for beyond knowing whose mailbox this is.
-     */
-    private fun Email.asMessage(account: EmailAccount) = EmailMessage(
-        id = messageId.hashCode().toLong(),
+    /** A stored email as a parser sees one. */
+    private fun StoredEmail.asParserEmail() = Email(
         messageId = messageId,
         threadId = threadId.orEmpty(),
         subject = subject,
         from = from,
-        to = account.email,
         date = date,
-        bodyText = "",
-        bodyHtml = bodyHtml.orEmpty(),
+        body = body.orEmpty(),
     )
 
-    private class Parsed(val email: Email, val transactions: List<Transaction>)
+    private class Parsed(val email: StoredEmail, val transactions: List<Transaction>)
 
     /**
-     * Runs [message] past the sources that haven't tried it, first claim wins.
+     * Runs [message] past the parsers that haven't tried it, first claim wins.
      *
-     * [force] runs it past all of them regardless, for a deliberate re-read —
-     * a transaction kind switched back on has to reach the source that already
-     * claimed this email.
+     * [force] runs it past all of them regardless: a type switched back on has
+     * to reach the parser that already claimed this email.
      */
     private suspend fun parse(
-        email: Email,
-        message: EmailMessage,
-        sources: List<LoadedSource>,
+        email: StoredEmail,
+        message: Email,
+        parsers: List<LoadedParser>,
         force: Boolean = false,
     ): Parsed {
-        val candidates = if (force) sources else sources.filter { it.id !in email.triedSourceIds }
-        val tried = (email.triedSourceIds + candidates.map { it.id }).distinct()
+        val candidates = if (force) parsers else parsers.filter { it.id !in email.triedParserIds }
+        val tried = (email.triedParserIds + candidates.map { it.id }).distinct()
         val now = System.currentTimeMillis()
 
-        for (source in candidates) {
-            val claims = runCatching { source.isEmailForProvider(message) }.getOrDefault(false)
-            if (!claims) continue
-            val parsed = runCatching { source.parseEmail(message) }.getOrNull()
+        for (parser in candidates) {
+            // Empty is how a parser disowns an email.
+            val parsed = runCatching { parser.parse(message) }.getOrNull()
                 ?.takeIf { it.isNotEmpty() }
                 ?: continue
 
-            val disabled = kindPreference.disabled(source.pkg).get()
+            val disabled = typePreference.disabled(parser.pkg).get()
             // mapIndexedNotNull, not filter-then-map: the index is part of a
             // transaction's id, so dropping one must not renumber the rest and
             // give every transaction after it a new identity.
             val transactions = parsed.mapIndexedNotNull { index, transaction ->
-                // A kind the user switched off is not written. The email still
-                // counts as claimed — the source did read it — and switching
-                // the kind on re-reads it from the body stored here.
-                if (transaction.kind?.key in disabled) return@mapIndexedNotNull null
+                // Still claimed — the parser did read it — so switching the
+                // type back on re-reads it from the body stored here.
+                if (transaction.type.key in disabled) return@mapIndexedNotNull null
                 Transaction(
                     accountId = email.accountId,
-                    sourceId = source.id,
+                    parserId = parser.id,
                     emailMessageId = email.messageId,
                     index = index,
                     threadId = email.threadId,
@@ -618,13 +605,13 @@ class TransactionUpdater(
                     date = transaction.date,
                     amount = transaction.amount,
                     currency = transaction.currency,
-                    // A kind the source never declared still counts: the user
-                    // cannot switch it off, but dropping it would lose money
-                    // silently, which is worse than an unswitchable row.
-                    type = transaction.kind?.type?.let {
-                        runCatching { TransactionType.valueOf(it.name) }.getOrNull()
-                    },
-                    kind = transaction.kind?.key,
+                    // By name, not mapped: a parser built against a later API
+                    // could name a direction this build has never heard of, and
+                    // an unsigned row beats a crash.
+                    direction = runCatching {
+                        TransactionDirection.valueOf(transaction.type.direction.name)
+                    }.getOrNull(),
+                    type = transaction.type.key,
                     category = null,
                     description = transaction.description,
                     merchant = transaction.merchant,
@@ -634,13 +621,12 @@ class TransactionUpdater(
                 )
             }
             return Parsed(
-                email.copy(triedSourceIds = tried, parsedBySourceId = source.id),
+                email.copy(triedParserIds = tried, parsedByParserId = parser.id),
                 transactions,
             )
         }
-        // Nothing claimed it: remember who looked, so only a new or updated
-        // parser reads this email again.
-        return Parsed(email.copy(triedSourceIds = tried), emptyList())
+        // Remember who looked, so only a new or updated parser tries again.
+        return Parsed(email.copy(triedParserIds = tried), emptyList())
     }
 
     /** Advances the cursor. Only reached once the work above succeeded. */

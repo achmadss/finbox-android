@@ -18,8 +18,8 @@
     <string name="transactions">Transactions</string>
     <string name="accounts">Accounts</string>
     <string name="parsers">Parsers</string>
+    <string name="direction">Direction</string>
     <string name="type">Type</string>
-    <string name="kind">Kind</string>
     <string name="amount">Amount</string>
     <string name="date">Date</string>
     <string name="time">Time</string>
@@ -30,8 +30,8 @@
     <string name="size">Size</string>
     <string name="language">Language</string>
     <string name="sync">Sync</string>
-    <string name="type_expense">Expense</string>
-    <string name="type_income">Income</string>
+    <string name="direction_outgoing">Expense</string>
+    <string name="direction_incoming">Income</string>
 
     <!-- Screen titles -->
     <string name="label_settings">Settings</string>

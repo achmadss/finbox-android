@@ -5,7 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.db.Transactions
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.transactionIndexOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -49,7 +49,7 @@ class TransactionRepository(
      * An id is derived from the email, so re-parsing a message refreshes the rows
      * it already wrote instead of adding more. Two different messages reporting
      * one transaction — an alert and a receipt, say — are caught by the
-     * provider reference: the same reference from the same source is the same
+     * provider reference: the same reference from the same parser is the same
      * transaction, and the row already stored wins, so user-owned fields such as
      * the category survive.
      */
@@ -59,7 +59,7 @@ class TransactionRepository(
                 val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
                     ?: transaction.reference?.let { reference ->
                         db.transactionQueries
-                            .SELECTByReference(transaction.accountId, transaction.sourceId, reference)
+                            .SELECTByReference(transaction.accountId, transaction.parserId, reference)
                             .executeAsOneOrNull()
                     }
                 when {
@@ -82,8 +82,8 @@ class TransactionRepository(
             date = transaction.date,
             amount = transaction.amount,
             currency = transaction.currency,
-            type = transaction.type?.name,
-            kind = transaction.kind,
+            direction = transaction.direction?.name,
+            type = transaction.type,
             category = transaction.category,
             description = transaction.description,
             merchant = transaction.merchant,
@@ -94,12 +94,12 @@ class TransactionRepository(
     }
 
     /**
-     * Drops everything a source parsed under one kind — what switching that kind
+     * Drops everything a parser parsed under one type — what switching that type
      * off means, since a re-parse will not write them back.
      */
-    suspend fun deleteByKind(sourceIds: Collection<Long>, kind: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteByType(parserIds: Collection<Long>, type: String) = withContext(Dispatchers.IO) {
         db.transaction {
-            sourceIds.forEach { db.transactionQueries.DELETEByKind(it, kind) }
+            parserIds.forEach { db.transactionQueries.DELETEByType(it, type) }
         }
     }
 
@@ -119,15 +119,15 @@ class TransactionRepository(
     private fun insert(transaction: Transaction) = db.transactionQueries.INSERTOrReplace(
         id = transaction.id,
         account_id = transaction.accountId,
-        source_id = transaction.sourceId,
+        parser_id = transaction.parserId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
         date = transaction.date,
         amount = transaction.amount,
         currency = transaction.currency,
-        type = transaction.type?.name,
-        kind = transaction.kind,
+        direction = transaction.direction?.name,
+        type = transaction.type,
         category = transaction.category,
         description = transaction.description,
         merchant = transaction.merchant,
@@ -137,15 +137,15 @@ class TransactionRepository(
     )
 
     private fun updateParsed(transaction: Transaction, id: String) = db.transactionQueries.UPDATEParsedById(
-        source_id = transaction.sourceId,
+        parser_id = transaction.parserId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
         date = transaction.date,
         amount = transaction.amount,
         currency = transaction.currency,
-        type = transaction.type?.name,
-        kind = transaction.kind,
+        direction = transaction.direction?.name,
+        type = transaction.type,
         description = transaction.description,
         merchant = transaction.merchant,
         updated_at = transaction.updatedAt,
@@ -154,7 +154,7 @@ class TransactionRepository(
 
     private fun Transactions.toModel() = Transaction(
         accountId = account_id,
-        sourceId = source_id,
+        parserId = parser_id,
         emailMessageId = email_message_id,
         // The model derives its id from these four, so the number has to come back
         // out of the stored one — nothing else records it.
@@ -164,8 +164,8 @@ class TransactionRepository(
         date = date,
         amount = amount,
         currency = currency,
-        type = type?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() },
-        kind = kind,
+        direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
+        type = type,
         category = category,
         description = description,
         merchant = merchant,

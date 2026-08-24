@@ -9,6 +9,6 @@ data class InstalledParser(
     val versionName: String,
     val libVersion: String,
     val sha256: String,
-    val sourceIds: List<Long>,
+    val parserIds: List<Long>,
     val enabled: Boolean,
 )

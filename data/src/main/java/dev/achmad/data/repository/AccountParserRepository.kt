@@ -37,7 +37,7 @@ class AccountParserRepository(
             for (assignment in assignments) {
                 db.accountParserQueries.INSERTOrReplace(
                     accountId = assignment.accountId,
-                    sourceId = assignment.sourceId,
+                    parserId = assignment.parserId,
                     enabled = if (assignment.enabled) 1L else 0L,
                     position = assignment.position.toLong(),
                 )
@@ -50,17 +50,17 @@ class AccountParserRepository(
         Unit
     }
 
-    suspend fun setEnabled(accountId: String, sourceId: Long, enabled: Boolean) =
+    suspend fun setEnabled(accountId: String, parserId: Long, enabled: Boolean) =
         withContext(Dispatchers.IO) {
             val existing = db.accountParserQueries
-                .SELECTForAccountAndSource(accountId, sourceId)
+                .SELECTForAccountAndParser(accountId, parserId)
                 .executeAsOneOrNull()
             if (existing != null) {
-                db.accountParserQueries.SETEnabled(if (enabled) 1L else 0L, accountId, sourceId)
+                db.accountParserQueries.SETEnabled(if (enabled) 1L else 0L, accountId, parserId)
             } else {
                 db.accountParserQueries.INSERTOrReplace(
                     accountId = accountId,
-                    sourceId = sourceId,
+                    parserId = parserId,
                     enabled = if (enabled) 1L else 0L,
                     position = 0L,
                 )
@@ -68,13 +68,13 @@ class AccountParserRepository(
             Unit
         }
 
-    suspend fun reorder(accountId: String, sourceIds: List<Long>) =
+    suspend fun reorder(accountId: String, parserIds: List<Long>) =
         withContext(Dispatchers.IO) {
             db.accountParserQueries.DELETEForAccount(accountId)
-            sourceIds.forEachIndexed { index, sourceId ->
+            parserIds.forEachIndexed { index, parserId ->
                 db.accountParserQueries.INSERTOrReplace(
                     accountId = accountId,
-                    sourceId = sourceId,
+                    parserId = parserId,
                     enabled = 1L,
                     position = index.toLong(),
                 )
@@ -83,7 +83,7 @@ class AccountParserRepository(
 
     private fun Account_parser.toModel() = AccountParser(
         accountId = account_id,
-        sourceId = source_id,
+        parserId = parser_id,
         enabled = enabled != 0L,
         position = position.toInt(),
     )

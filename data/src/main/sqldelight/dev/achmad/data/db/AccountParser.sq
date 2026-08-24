@@ -1,29 +1,29 @@
 CREATE TABLE account_parser (
     account_id TEXT NOT NULL,
-    source_id INTEGER NOT NULL,
+    parser_id INTEGER NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1,
     position INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (account_id, source_id)
+    PRIMARY KEY (account_id, parser_id)
 );
 
 SELECTForAccount:
 SELECT * FROM account_parser WHERE account_id = :accountId ORDER BY position;
 
-SELECTForAccountAndSource:
-SELECT * FROM account_parser WHERE account_id = :accountId AND source_id = :sourceId;
+SELECTForAccountAndParser:
+SELECT * FROM account_parser WHERE account_id = :accountId AND parser_id = :parserId;
 
 SELECTAll:
 SELECT * FROM account_parser ORDER BY position;
 
 INSERTOrReplace:
-INSERT OR REPLACE INTO account_parser(account_id, source_id, enabled, position)
-VALUES (:accountId, :sourceId, :enabled, :position);
+INSERT OR REPLACE INTO account_parser(account_id, parser_id, enabled, position)
+VALUES (:accountId, :parserId, :enabled, :position);
 
 DELETEForAccount:
 DELETE FROM account_parser WHERE account_id = :accountId;
 
 SETEnabled:
-UPDATE account_parser SET enabled = :enabled WHERE account_id = :accountId AND source_id = :sourceId;
+UPDATE account_parser SET enabled = :enabled WHERE account_id = :accountId AND parser_id = :parserId;
 
 DELETEAllAssignments:
 DELETE FROM account_parser;

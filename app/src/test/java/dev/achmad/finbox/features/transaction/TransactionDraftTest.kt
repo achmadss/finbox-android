@@ -1,7 +1,7 @@
 package dev.achmad.finbox.features.transaction
 
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.detail.applyTo
 import dev.achmad.finbox.features.transaction.detail.toDraft
 import org.junit.Assert.assertEquals
@@ -12,7 +12,7 @@ class TransactionDraftTest {
 
     private val transaction = Transaction(
         accountId = "a1",
-        sourceId = 1L,
+        parserId = 1L,
         emailMessageId = "m1",
         index = 0,
         threadId = "th1",
@@ -20,8 +20,8 @@ class TransactionDraftTest {
         date = 1_700_000_000_000L,
         amount = 24_000L,
         currency = "IDR",
-        type = TransactionType.EXPENSE,
-        kind = "QRIS",
+        direction = TransactionDirection.OUTGOING,
+        type = "QRIS",
         category = "Coffee",
         description = "Kopi Kenangan",
         merchant = "Kopi Kenangan",
@@ -55,9 +55,9 @@ class TransactionDraftTest {
     }
 
     @Test
-    fun `amount stays unsigned, the type carries the direction`() {
+    fun `amount stays unsigned, the direction carries the direction`() {
         val edited = transaction.toDraft()
-            .copy(amount = "500", type = TransactionType.EXPENSE)
+            .copy(amount = "500", direction = TransactionDirection.OUTGOING)
             .applyTo(transaction)
 
         assertEquals(500L, edited.amount)

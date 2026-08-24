@@ -40,33 +40,26 @@ object FinboxConfig {
     /**
      * The parser API this app ships. A parser declares the one it was built
      * against via `finbox.parser.lib`, or by the leading components of its
-     * versionName ("1.3.5" -> 1.3).
+     * versionName ("1.0.5" -> 1.0).
      */
-    const val LIB_VERSION = 1.6
+    const val LIB_VERSION = 1.0
 
     /**
      * The oldest parser API still loadable.
      *
      * Adding to the API raises [LIB_VERSION] and leaves this alone, so every
-     * parser already published keeps working — it simply never uses what it
-     * doesn't know about. Only a change that breaks an existing parser
-     * raises this, and that is meant to hurt: it orphans every APK below it
-     * until each is rebuilt.
-     *
-     * At 1.6 because the API moved from `dev.achmad.finbox.extension` to
-     * `dev.achmad.finbox.parser`: a parser built against 1.5 asks its
-     * classloader for types under the old package, which the app no longer
-     * has, so every published APK has to be rebuilt.
+     * published parser keeps working. Only a breaking change raises this, and
+     * that is meant to hurt: it orphans every APK below it until each is
+     * rebuilt.
      */
-    const val MIN_LIB_VERSION = 1.6
+    const val MIN_LIB_VERSION = 1.0
 
     /**
      * Whether a parser API version is one this app can load.
      *
-     * Bounded rather than matched exactly, and with a tolerance at each end: an
-     * APK's version comes out of the binary manifest as a float, and 1.2f
-     * widens to 1.2000000476837158, which no Double literal here will ever
-     * equal.
+     * The tolerance is not slack: an APK's version comes out of the binary
+     * manifest as a float, and 1.2f widens to 1.2000000476837158, which no
+     * Double literal here will ever equal.
      *
      * ponytail: version as a Double, so 1.10 sorts below 1.9. Fine while minor
      * versions stay single-digit; past that this needs a real comparison.

@@ -4,19 +4,15 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.parser.TransactionSource
+import dev.achmad.finbox.parser.EmailParser
 import java.io.File
 
 /**
- * Loads parsers from private APK files in `filesDir/parsers/`.
+ * Loads parsers from the APK files in `filesDir/parsers/`.
  *
- * For each APK:
- * 1. Parses its manifest via [PackageManager.getPackageArchiveInfo]
- * 2. Validates the `finbox.parser` feature and `finbox.parser.lib`
- *    against [FinboxConfig.supportsLibVersion]
- * 3. Instantiates the [TransactionSource] named by `finbox.parser.class`
- *    via a [ChildFirstPathClassLoader] and pairs it with the identity from
- *    the manifest
+ * Each APK's manifest supplies the identity and the `finbox.parser.lib` version
+ * checked against [FinboxConfig.supportsLibVersion]; the [EmailParser] itself
+ * is instantiated through a [ChildFirstPathClassLoader].
  */
 class ParserLoader(
     private val context: Context,
@@ -51,13 +47,12 @@ class ParserLoader(
         }
         val versionCode = PackageInfoCompat.getLongVersionCode(pkgInfo)
 
-        // aapt stores "1.0" as a float in the binary manifest, so getString returns
-        // null; 0f means the metadata is absent, in which case the versionName
-        // prefix carries it ("1.0.3" -> 1.0).
+        // aapt stores "1.0" as a float, so getString returns null. 0f means the
+        // metadata is absent, and the versionName prefix carries it ("1.0.3" -> 1.0).
         val libVersion = meta.getFloat("finbox.parser.lib")
             .takeUnless { it == 0f }
-            // Via the string: widening the float straight to double reads 1.4 as
-            // 1.3999999761581421, which is what the parser info screen then shows.
+            // Via the string: widening the float direct to double reads 1.4 as
+            // 1.3999999761581421, which is what the parser screen would show.
             ?.toString()
             ?.toDouble()
             ?: versionName.substringBeforeLast('.').toDoubleOrNull()
@@ -92,16 +87,16 @@ class ParserLoader(
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
             val clazz = Class.forName(className, false, classLoader)
-            val source = clazz.getDeclaredConstructor().newInstance() as? TransactionSource
-                ?: return LoadResult.Error(apk.name, "Class $className is not a TransactionSource")
+            val parser = clazz.getDeclaredConstructor().newInstance() as? EmailParser
+                ?: return LoadResult.Error(apk.name, "Class $className is not an EmailParser")
             LoadResult.Success(
                 info,
-                LoadedSource(
-                    id = sourceIdOf(info.name, info.versionCode),
+                LoadedParser(
+                    id = parserIdOf(info.name, info.versionCode),
                     pkg = info.pkg,
                     provider = info.provider,
                     name = info.name,
-                    source = source,
+                    parser = parser,
                 ),
             )
         } catch (e: Throwable) {

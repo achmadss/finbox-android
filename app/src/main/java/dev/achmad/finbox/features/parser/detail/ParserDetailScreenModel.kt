@@ -6,12 +6,12 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.preference.ParserKindPreference
+import dev.achmad.finbox.core.preference.ParserTypePreference
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import dev.achmad.finbox.features.parser.list.ParserUiModel
-import dev.achmad.finbox.parser.TransactionType
+import dev.achmad.finbox.parser.TransactionDirection
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.koin.injectAndroidContext
 import java.io.File
@@ -23,7 +23,7 @@ import kotlin.collections.orEmpty
 class ParserDetailScreenModel(
     private val pkg: String,
     private val manager: ParserManager = inject(),
-    private val kindPreference: ParserKindPreference = inject(),
+    private val typePreference: ParserTypePreference = inject(),
     private val transactionRepository: TransactionRepository = inject(),
 ) : StateScreenModel<ParserDetailScreenModel.State>(State()) {
 
@@ -32,8 +32,8 @@ class ParserDetailScreenModel(
             combine(
                 manager.installed,
                 manager.available,
-                manager.sourcesFlow,
-                kindPreference.disabled(pkg).changes(),
+                manager.parsersFlow,
+                typePreference.disabled(pkg).changes(),
                 manager.installSteps,
             ) { installed, available, _, disabled, steps ->
                 installed.firstOrNull { it.pkg == pkg }?.let { parser ->
@@ -45,13 +45,13 @@ class ParserDetailScreenModel(
                         // The manager runs the install, so its progress is the
                         // truth here — including one started from the other screen.
                         installStep = steps[pkg] ?: InstallStep.Idle,
-                    ) to kinds(parser.sourceIds, disabled)
+                    ) to types(parser.parserIds, disabled)
                 }
             }.collect { item ->
                 mutableState.update {
                     it.copy(
                         parser = item?.first,
-                        kinds = item?.second.orEmpty(),
+                        types = item?.second.orEmpty(),
                         sizeBytes = item?.first?.parser?.file
                             ?.let { path -> File(path).length().takeIf { size -> size > 0 } },
                     )
@@ -61,18 +61,18 @@ class ParserDetailScreenModel(
     }
 
     /**
-     * The transaction kinds this parser's sources declare, in the order they
-     * declared them, each with the user's switch.
+     * The types this parser declares, in its own order, each with the user's
+     * switch.
      *
-     * Empty until the source registry has loaded — the kinds live in the APK,
-     * not the database, so nothing else knows them.
+     * Empty until the registry has loaded — the types live in the APK, not the
+     * database, so nothing else knows them.
      */
-    private fun kinds(sourceIds: List<Long>, disabled: Set<String>): List<KindUiModel> =
-        sourceIds
+    private fun types(parserIds: List<Long>, disabled: Set<String>): List<TypeUiModel> =
+        parserIds
             .mapNotNull { manager.getById(it) }
-            .flatMap { it.kinds }
+            .flatMap { it.types() }
             .distinctBy { it.key }
-            .map { KindUiModel(it.key, it.name, it.type, enabled = it.key !in disabled) }
+            .map { TypeUiModel(it.key, it.name, it.direction, enabled = it.key !in disabled) }
 
     fun setEnabled(enabled: Boolean) {
         screenModelScope.launch {
@@ -82,17 +82,17 @@ class ParserDetailScreenModel(
     }
 
     /**
-     * Switching a kind off drops what it already parsed; switching it on re-reads
-     * the mail those sources claimed, which is where those transactions come back
-     * from. Neither touches Gmail — the bodies are stored.
+     * Off drops what the type already parsed; on re-reads the mail this parser
+     * claimed, which is where those transactions come back from. Neither touches
+     * Gmail — the bodies are stored.
      */
-    fun toggleKind(key: String) {
+    fun toggleType(key: String) {
         screenModelScope.launch {
-            val sourceIds = state.value.parser?.parser?.sourceIds.orEmpty().toSet()
-            if (kindPreference.toggle(pkg, key)) {
-                TransactionUpdateJob.reparseSourcesNow(injectAndroidContext(), sourceIds)
+            val parserIds = state.value.parser?.parser?.parserIds.orEmpty().toSet()
+            if (typePreference.toggle(pkg, key)) {
+                TransactionUpdateJob.reparseParsersNow(injectAndroidContext(), parserIds)
             } else {
-                transactionRepository.deleteByKind(sourceIds, key)
+                transactionRepository.deleteByType(parserIds, key)
             }
         }
     }
@@ -112,17 +112,17 @@ class ParserDetailScreenModel(
     }
 
     @Immutable
-    data class KindUiModel(
+    data class TypeUiModel(
         val key: String,
         val name: String,
-        val type: TransactionType,
+        val direction: TransactionDirection,
         val enabled: Boolean,
     )
 
     @Immutable
     data class State(
         val parser: ParserUiModel.Installed? = null,
-        val kinds: List<KindUiModel> = emptyList(),
+        val types: List<TypeUiModel> = emptyList(),
         /** The APK on disk. Null while the row has no file recorded yet. */
         val sizeBytes: Long? = null,
         val uninstalled: Boolean = false,
@@ -130,16 +130,16 @@ class ParserDetailScreenModel(
         /**
          * What the parser deals in, for the line under the version.
          *
-         * Unknown rather than assumed while [kinds] is empty: the registry loads
+         * Unknown rather than assumed while [types] is empty: the registry loads
          * after the database does, and "Expense only" flickering into "Multi
          * type" reads as a bug.
          */
         @get:StringRes
         val summary: Int
             get() = when {
-                kinds.isEmpty() -> R.string.unknown
-                kinds.all { it.type == TransactionType.EXPENSE } -> R.string.parser_summary_expense_only
-                kinds.all { it.type == TransactionType.INCOME } -> R.string.parser_summary_income_only
+                types.isEmpty() -> R.string.unknown
+                types.all { it.direction == TransactionDirection.OUTGOING } -> R.string.parser_summary_expense_only
+                types.all { it.direction == TransactionDirection.INCOMING } -> R.string.parser_summary_income_only
                 else -> R.string.parser_summary_multi_type
             }
     }

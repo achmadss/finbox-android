@@ -9,7 +9,7 @@ import java.util.TimeZone
  *
  * Narrowing matters: listing ids costs 5 quota units per 500, while fetching
  * one message costs 20, so anything excluded here is the cheapest saving
- * available. What to exclude comes from the parsers (see [combineSourceQueries]).
+ * available. What to exclude comes from the parsers (see [combineParserQueries]).
  *
  * Gmail's date terms are whole days in the local timezone and `before:` is
  * exclusive, so the range is widened by a day at each end and the exact bounds
@@ -30,10 +30,10 @@ fun buildWindowQuery(
 /**
  * ORs what each parser asks for into one search.
  *
- * Null when any source names no sender: that one wants the whole mailbox, and a
+ * Null when any parser names no sender: that one wants the whole mailbox, and a
  * filter built from the others would silently skip the mail it came for.
  */
-fun combineSourceQueries(queries: List<String>): String? {
+fun combineParserQueries(queries: List<String>): String? {
     val trimmed = queries.map { it.trim() }
     if (trimmed.isEmpty() || trimmed.any { it.isEmpty() }) return null
     return trimmed.distinct().joinToString(" OR ") { "($it)" }

@@ -51,7 +51,7 @@ class TransactionUpdateJob(
         parserManager.reload()
 
         val parseOnly = inputData.getBoolean(PARSE_ONLY, false)
-        val reparseSourceIds = inputData.getLongArray(REPARSE_SOURCES)?.toSet().orEmpty()
+        val reparseParserIds = inputData.getLongArray(REPARSE_PARSERS)?.toSet().orEmpty()
         val needsForeground = parseOnly || updater.isImporting()
         // An import is minutes to hours of paced fetching; a plain worker is
         // stopped after ten. Both long paths run in the foreground so the system
@@ -75,8 +75,8 @@ class TransactionUpdateJob(
         // them again costs nothing now that their bodies are stored — so there
         // is no reason for a refresh to ask Gmail for new mail while old mail
         // nothing could parse is still lying unparsed.
-        var imported = if (reparseSourceIds.isNotEmpty()) {
-            updater.reparseSource(reparseSourceIds, onProgress)
+        var imported = if (reparseParserIds.isNotEmpty()) {
+            updater.reparseParsers(reparseParserIds, onProgress)
         } else {
             updater.parseUnparsed(onProgress)
         }
@@ -130,8 +130,8 @@ class TransactionUpdateJob(
         /** Skip the Gmail sync and only re-read stored mail. */
         private const val PARSE_ONLY = "parse_only"
 
-        /** Source ids whose already-claimed mail is to be read again. */
-        private const val REPARSE_SOURCES = "reparse_sources"
+        /** Parser ids whose already-claimed mail is to be read again. */
+        private const val REPARSE_PARSERS = "reparse_parsers"
 
         /** On a request that only re-reads stored mail — what a full update may supersede. */
         private const val PARSE_ONLY_TAG = "parse_only_request"
@@ -199,23 +199,23 @@ class TransactionUpdateJob(
             enqueueOneTime(context, parseOnly = true, userInitiated = userInitiated)
 
         /**
-         * Re-reads the mail these sources already claimed, after one of their
-         * transaction kinds was switched back on. Those emails are parsed, so
+         * Re-reads the mail these parsers already claimed, after one of their
+         * transaction types was switched back on. Those emails are parsed, so
          * [reparseNow] would not look at them.
          */
-        suspend fun reparseSourcesNow(
+        suspend fun reparseParsersNow(
             context: Context,
-            sourceIds: Set<Long>,
+            parserIds: Set<Long>,
             userInitiated: Boolean = true,
         ) {
-            if (sourceIds.isEmpty()) return
-            enqueueOneTime(context, parseOnly = true, sourceIds = sourceIds, userInitiated = userInitiated)
+            if (parserIds.isEmpty()) return
+            enqueueOneTime(context, parseOnly = true, parserIds = parserIds, userInitiated = userInitiated)
         }
 
         private suspend fun enqueueOneTime(
             context: Context,
             parseOnly: Boolean,
-            sourceIds: Set<Long> = emptySet(),
+            parserIds: Set<Long> = emptySet(),
             userInitiated: Boolean = true,
         ) {
             requestMutex.withLock {
@@ -238,11 +238,11 @@ class TransactionUpdateJob(
                     .setConstraints(constraints)
                     .apply {
                         if (parseOnly) addTag(PARSE_ONLY_TAG)
-                        if (parseOnly || sourceIds.isNotEmpty()) {
+                        if (parseOnly || parserIds.isNotEmpty()) {
                             setInputData(
                                 workDataOf(
                                     PARSE_ONLY to parseOnly,
-                                    REPARSE_SOURCES to sourceIds.toLongArray(),
+                                    REPARSE_PARSERS to parserIds.toLongArray(),
                                 ),
                             )
                         }

@@ -69,7 +69,7 @@ object AccountsScreen : Screen {
         val model = rememberScreenModel { AccountsScreenModel() }
         val accounts by model.accounts.collectAsState()
         val disabledByAccount by model.disabledByAccount.collectAsState()
-        val sources by model.sources.collectAsState()
+        val parsers by model.parsers.collectAsState()
         var confirmRemove by remember { mutableStateOf<EmailAccount?>(null) }
         val addAccount = rememberLauncherForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -115,7 +115,7 @@ object AccountsScreen : Screen {
                         account = account,
                         // Counted off the installed parsers, not off the rows: a parser with
                         // no row of its own is one this account reads with.
-                        parsers = sources.count { it.id !in disabled },
+                        parsers = parsers.count { it.id !in disabled },
                         onClickItem = { navigator.push(AccountDetailsScreen(account.id)) },
                         onLongClickItem = { confirmRemove = account },
                     )

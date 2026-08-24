@@ -9,7 +9,7 @@ import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,8 +32,8 @@ class AccountsScreenModel(
     /**
      * Which parsers each account has switched **off**, not which it has switched on.
      *
-     * That is what an assignment means to the update: a source with no row runs, and an
-     * account with no rows at all runs everything installed (`TransactionUpdater.sourcesFor`).
+     * That is what an assignment means to the update: a parser with no row runs, and an
+     * account with no rows at all runs everything installed (`TransactionUpdater.parsersFor`).
      * Reading the rows the other way round showed every switch off on an account nobody had
      * configured yet — while it was in fact reading with all of them.
      */
@@ -41,13 +41,13 @@ class AccountsScreenModel(
         accountParserRepository.allAssignments()
             .map { list ->
                 list.filterNot { it.enabled }
-                    .groupBy({ it.accountId }, { it.sourceId })
+                    .groupBy({ it.accountId }, { it.parserId })
                     .mapValues { it.value.toSet() }
             }
             .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** Parsers currently loaded — what an assignment's `sourceId` points at. */
-    val sources: StateFlow<List<LoadedSource>> = parserManager.sourcesFlow
+    /** Parsers currently loaded — what an assignment's `parserId` points at. */
+    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
 
     /** The browser flow to launch for result; hand the result back to [addAccount]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()

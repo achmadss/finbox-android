@@ -19,8 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.model.TransactionType
-import dev.achmad.finbox.core.parser.LoadedSource
+import dev.achmad.data.model.TransactionDirection
+import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.theme.components.CheckboxItem
 import dev.achmad.finbox.theme.components.CollapsibleBox
 import dev.achmad.finbox.theme.components.SettingsItemsPaddings
@@ -34,7 +34,7 @@ import dev.achmad.finbox.R
 fun TransactionsFilterSheet(
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    sources: List<LoadedSource>,
+    parsers: List<LoadedParser>,
     onFilterChange: (TransactionFilter) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -67,13 +67,13 @@ fun TransactionsFilterSheet(
                 }
             }
 
-            CollapsibleBox(heading = headingOf(R.string.type, filter.types.size)) {
-                TransactionType.entries.forEach { type ->
+            CollapsibleBox(heading = headingOf(R.string.direction, filter.directions.size)) {
+                TransactionDirection.entries.forEach { direction ->
                     CheckboxItem(
-                        label = stringResource(type.labelRes),
-                        checked = type in filter.types,
+                        label = stringResource(direction.labelRes),
+                        checked = direction in filter.directions,
                         onClick = {
-                            onFilterChange(filter.copy(types = filter.types.toggle(type)))
+                            onFilterChange(filter.copy(directions = filter.directions.toggle(direction)))
                         },
                     )
                 }
@@ -81,17 +81,17 @@ fun TransactionsFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = headingOf(R.string.parsers, filter.sourceIds.size)) {
-                if (sources.isEmpty()) {
+            CollapsibleBox(heading = headingOf(R.string.parsers, filter.parserIds.size)) {
+                if (parsers.isEmpty()) {
                     EmptySectionHint(stringResource(R.string.filter_no_parsers))
                 }
-                sources.forEach { source ->
+                parsers.forEach { parser ->
                     CheckboxItem(
-                        label = source.name,
-                        checked = source.id in filter.sourceIds,
+                        label = parser.name,
+                        checked = parser.id in filter.parserIds,
                         onClick = {
                             onFilterChange(
-                                filter.copy(sourceIds = filter.sourceIds.toggle(source.id)),
+                                filter.copy(parserIds = filter.parserIds.toggle(parser.id)),
                             )
                         },
                     )

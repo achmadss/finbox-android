@@ -49,7 +49,7 @@ import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.features.parser.list.ParserIcon
 import dev.achmad.finbox.features.parser.list.ParserUiModel
 import dev.achmad.finbox.features.parser.list.UninstallConfirmation
-import dev.achmad.finbox.parser.TransactionType
+import dev.achmad.finbox.parser.TransactionDirection
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import dev.achmad.finbox.R
@@ -110,24 +110,24 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
                     onCheckedChange = model::setEnabled,
                 )
                 HorizontalDivider()
-                if (state.kinds.isNotEmpty()) {
+                if (state.types.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.parser_transaction_types),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
                     )
-                    state.kinds.forEach { kind ->
+                    state.types.forEach { type ->
                         SwitchRow(
-                            title = kind.name,
+                            title = type.name,
                             subtitle = stringResource(
-                                when (kind.type) {
-                                    TransactionType.EXPENSE -> R.string.type_expense
-                                    TransactionType.INCOME -> R.string.type_income
+                                when (type.direction) {
+                                    TransactionDirection.OUTGOING -> R.string.direction_outgoing
+                                    TransactionDirection.INCOMING -> R.string.direction_incoming
                                 },
                             ),
-                            checked = kind.enabled,
-                            onCheckedChange = { model.toggleKind(kind.key) },
+                            checked = type.enabled,
+                            onCheckedChange = { model.toggleType(type.key) },
                         )
                     }
                     HorizontalDivider()

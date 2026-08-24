@@ -1,11 +1,11 @@
 package dev.achmad.data.backup
 
 import dev.achmad.data.model.AccountParser
-import dev.achmad.data.model.Email
+import dev.achmad.data.model.StoredEmail
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.model.Transaction
-import dev.achmad.data.model.TransactionType
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.transactionIndexOf
 import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
@@ -52,7 +52,7 @@ data class BackupAccount(
 @Serializable
 data class BackupAssignment(
     val accountId: String,
-    val sourceId: Long,
+    val parserId: Long,
     val enabled: Boolean = true,
     val position: Int = 0,
 )
@@ -67,7 +67,7 @@ data class BackupParser(
     val versionName: String,
     val libVersion: String,
     val sha256: String,
-    val sourceIds: List<Long> = emptyList(),
+    val parserIds: List<Long> = emptyList(),
     val enabled: Boolean = true,
 )
 
@@ -79,8 +79,8 @@ data class BackupEmail(
     val from: String = "",
     val subject: String = "",
     val date: Long = 0L,
-    val triedSourceIds: List<Long> = emptyList(),
-    val parsedBySourceId: Long? = null,
+    val triedParserIds: List<Long> = emptyList(),
+    val parsedByParserId: Long? = null,
     val fetchedAt: Long = 0L,
 )
 
@@ -88,15 +88,15 @@ data class BackupEmail(
 data class BackupTransaction(
     val id: String,
     val accountId: String,
-    val sourceId: Long,
+    val parserId: Long,
     val emailMessageId: String,
     val threadId: String? = null,
     val reference: String? = null,
     val date: Long? = null,
     val amount: Long? = null,
     val currency: String? = null,
+    val direction: String? = null,
     val type: String? = null,
-    val kind: String? = null,
     val category: String? = null,
     val description: String? = null,
     val merchant: String? = null,
@@ -117,7 +117,7 @@ const val FORMAT_VERSION = 1
  * The file is gzipped JSON so a future version can still read an old one:
  * unknown fields are ignored and missing ones fall back to defaults. CSV is
  * for handing data to a spreadsheet, not for this — it can't carry the whole
- * shape without losing types.
+ * shape without losing directions.
  *
  * Restore replaces everything. OAuth tokens are not in here: they live in
  * Keystore-backed storage, so a restored account has its settings and history
@@ -179,31 +179,31 @@ private fun BackupAccount.toModel() = EmailAccount(
     lastSyncAt, lastHistoryId, syncQuery, importCursor, importedBackTo,
 )
 
-private fun AccountParser.toBackup() = BackupAssignment(accountId, sourceId, enabled, position)
+private fun AccountParser.toBackup() = BackupAssignment(accountId, parserId, enabled, position)
 
-private fun BackupAssignment.toModel() = AccountParser(accountId, sourceId, enabled, position)
+private fun BackupAssignment.toModel() = AccountParser(accountId, parserId, enabled, position)
 
 private fun InstalledParser.toBackup() = BackupParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, sourceIds, enabled,
+    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
 )
 
 private fun BackupParser.toModel() = InstalledParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, sourceIds, enabled,
+    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
 )
 
-private fun Email.toBackup() = BackupEmail(
+private fun StoredEmail.toBackup() = BackupEmail(
     messageId = messageId,
     threadId = threadId,
     accountId = accountId,
     from = from,
     subject = subject,
     date = date,
-    triedSourceIds = triedSourceIds,
-    parsedBySourceId = parsedBySourceId,
+    triedParserIds = triedParserIds,
+    parsedByParserId = parsedByParserId,
     fetchedAt = fetchedAt,
 )
 
-private fun BackupEmail.toModel() = Email(
+private fun BackupEmail.toModel() = StoredEmail(
     messageId = messageId,
     threadId = threadId,
     accountId = accountId,
@@ -213,24 +213,24 @@ private fun BackupEmail.toModel() = Email(
     // Bodies are deliberately not in a backup — they are most of the database,
     // and a restored email only needs one again if a parser change re-reads it,
     // which fetches and stores it then.
-    bodyHtml = null,
-    triedSourceIds = triedSourceIds,
-    parsedBySourceId = parsedBySourceId,
+    body = null,
+    triedParserIds = triedParserIds,
+    parsedByParserId = parsedByParserId,
     fetchedAt = fetchedAt,
 )
 
 private fun Transaction.toBackup() = BackupTransaction(
     id = id,
     accountId = accountId,
-    sourceId = sourceId,
+    parserId = parserId,
     emailMessageId = emailMessageId,
     threadId = threadId,
     reference = reference,
     date = date,
     amount = amount,
     currency = currency,
-    type = type?.name,
-    kind = kind,
+    direction = direction?.name,
+    type = type,
     category = category,
     description = description,
     merchant = merchant,
@@ -241,7 +241,7 @@ private fun Transaction.toBackup() = BackupTransaction(
 
 private fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
-    sourceId = sourceId,
+    parserId = parserId,
     emailMessageId = emailMessageId,
     // The backup still carries the whole id, so a file written by an older build
     // restores under the identity it had.
@@ -251,8 +251,8 @@ private fun BackupTransaction.toModel() = Transaction(
     date = date,
     amount = amount,
     currency = currency,
-    type = type?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() },
-    kind = kind,
+    direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
+    type = type,
     category = category,
     description = description,
     merchant = merchant,
