@@ -39,6 +39,8 @@ class TransactionUpdateNotifier(private val context: Context) {
         text = context.getString(R.string.transaction_update_importing_progress, imported),
         ongoing = true,
         indeterminate = true,
+        // Without this, tapping the only notification an import shows does nothing.
+        contentIntent = openTransactionsIntent(),
     )
 
     /**
@@ -88,7 +90,13 @@ class TransactionUpdateNotifier(private val context: Context) {
     private fun openTransactionsIntent(): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(ACTION_OPEN_TRANSACTIONS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    // SINGLE_TOP so a running app is brought forward and told through
+                    // onNewIntent, rather than torn down and built again.
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
         return PendingIntent.getActivity(
             context,
             DONE_NOTIFICATION_ID,

@@ -174,8 +174,8 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun HandleNewIntent(context: Context, navigator: Navigator) {
         LaunchedEffect(Unit) {
-            // MainActivity is launched standard, so a notification tap recreates it and
-            // the intent arrives here rather than through addOnNewIntentListener.
+            // A cold tap starts the activity, so its intent arrives here; a tap while
+            // the app is already up comes through addOnNewIntentListener below.
             handleIntentAction(intent, navigator)
 
             callbackFlow {
@@ -215,7 +215,7 @@ class MainActivity : AppCompatActivity() {
                 // Background first, so the colour reaches under the status bar and only the
                 // content is pushed below it.
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.secondary)
+                    .background(MaterialTheme.colorScheme.primary)
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(horizontal = 16.dp, vertical = 8.dp),

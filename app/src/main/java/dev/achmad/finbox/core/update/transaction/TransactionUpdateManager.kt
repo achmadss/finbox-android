@@ -10,6 +10,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import dev.achmad.finbox.R
+import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.util.ui.ToastHelper
 import kotlinx.coroutines.flow.first
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit
 class TransactionUpdateManager(
     private val workManager: WorkManager,
     private val preferences: SyncPreferences,
+    private val onboardingPreference: OnboardingPreference,
     private val toastHelper: ToastHelper,
 ) {
 
@@ -42,7 +44,9 @@ class TransactionUpdateManager(
      */
     fun schedule() {
         val hours = preferences.autoFetchIntervalHours().get()
-        if (hours <= 0) {
+        // Before onboarding finishes there is no account to fetch from, so a schedule
+        // would only run empty. Onboarding calls this itself on its way out.
+        if (hours <= 0 || !onboardingPreference.onboardingComplete().get()) {
             workManager.cancelUniqueWork(TransactionUpdateWork.WORK_NAME)
             return
         }
@@ -61,6 +65,10 @@ class TransactionUpdateManager(
 
         val request = PeriodicWorkRequestBuilder<TransactionUpdateJob>(hours.toLong(), TimeUnit.HOURS)
             .setConstraints(scheduleConstraints)
+            // A periodic request runs its first period straight away, so without this a
+            // fresh install syncs before it has an account to sync — and flashes the
+            // banner on the very first launch.
+            .setInitialDelay(hours.toLong(), TimeUnit.HOURS)
             .build()
         workManager.enqueueUniquePeriodicWork(
             TransactionUpdateWork.WORK_NAME,

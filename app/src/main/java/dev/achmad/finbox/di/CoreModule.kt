@@ -97,6 +97,7 @@ val coreModule = module {
         TransactionUpdateManager(
             workManager = get(),
             preferences = get(),
+            onboardingPreference = get(),
             toastHelper = get()
         )
     }

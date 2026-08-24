@@ -11,9 +11,11 @@ import dev.achmad.finbox.core.parser.ParserUpdateNotifier
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.koin.inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 class ParsersScreenModel(
     private val manager: ParserManager = inject(),
@@ -54,6 +56,9 @@ class ParsersScreenModel(
     fun refresh() {
         screenModelScope.launch {
             mutableState.update { it.copy(isRefreshing = true) }
+            // The index is one small fetch, so the indicator would otherwise blink in
+            // and straight back out with nothing read from it.
+            delay(1.seconds)
             runCatching {
                 manager.refreshIndex()
                 manager.reload()

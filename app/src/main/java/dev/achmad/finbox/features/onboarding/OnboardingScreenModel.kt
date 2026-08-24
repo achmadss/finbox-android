@@ -16,9 +16,12 @@ import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.util.koin.inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.util.permission.PermissionHelper
 
@@ -97,7 +100,7 @@ class OnboardingScreenModel(
         }
     }
 
-    fun onRefreshParsers() = refreshIndex()
+    fun onRefreshParsers() = refreshIndex(settle = 1.seconds)
 
     fun onInstallParsers(requested: List<AvailableParser>) {
         screenModelScope.launch {
@@ -147,6 +150,9 @@ class OnboardingScreenModel(
         // Nothing left to ask: remember that, and start the first import on the
         // way out so the ledger is filling before Home is drawn.
         preferences.onboardingComplete().set(true)
+        // The schedule turns itself away until that flag is set, so it is asked for here
+        // rather than waiting for the next app start.
+        transactionUpdateManager.schedule()
         // Nobody pressed refresh — this is the way out of onboarding, and a parser
         // install a moment earlier may still have its own re-read running.
         transactionUpdateManager.runNow(userInitiated = false)
@@ -162,9 +168,12 @@ class OnboardingScreenModel(
     }
 
     /** Refetches the published index, leaving the step's other flags alone. */
-    private fun refreshIndex() {
+    private fun refreshIndex(settle: Duration = Duration.ZERO) {
         screenModelScope.launch {
             setLoading(true)
+            // A pull passes a settle time: the fetch is one small request, and without
+            // it the indicator blinks in and back out before it reads as a refresh.
+            delay(settle)
             runCatching { parserManager.refreshIndex() }
                 .onFailure { Log.e("Onboarding", "Parser index fetch failed", it) }
             setLoading(false)

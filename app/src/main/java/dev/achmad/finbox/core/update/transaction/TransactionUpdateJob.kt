@@ -11,6 +11,8 @@ import androidx.work.workDataOf
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Brings every enabled account's transactions up to date, on a schedule or on
@@ -30,6 +32,9 @@ class TransactionUpdateJob(
     private val notifier by lazy { TransactionUpdateNotifier(applicationContext) }
 
     override suspend fun doWork(): Result = try {
+        // A run with nothing to do finishes faster than the banner takes to appear.
+        // Held here so a refresh or a re-index is always visibly acknowledged.
+        delay(1.seconds)
         // The registry only fills on reload, and a worker often runs in a process
         // where no screen has done that. Without it the update would download
         // mail no parser is there to read, and pay for it again next time.
@@ -41,11 +46,13 @@ class TransactionUpdateJob(
             ?.toSet()
             .orEmpty()
         val needsForeground = parseOnly || updater.isImporting()
+        // Every run can end in a "done" notification, so the channel is made
+        // whichever path this is.
+        notifier.createChannel()
         // An import is minutes to hours of paced fetching; a plain worker is
         // stopped after ten. Both long paths run in the foreground so the system
         // lets them finish, and so the user can see why the phone is busy.
         if (needsForeground) {
-            notifier.createChannel()
             runCatching { setForeground(foregroundInfo(imported = 0)) }
         }
 
@@ -73,10 +80,10 @@ class TransactionUpdateJob(
         if (!parseOnly) {
             imported += updater.updateAll(onProgress).getOrThrow()
         }
-        if (needsForeground) {
-            notifier.showDone(imported)
-        }
         if (imported > 0) {
+            // A pull-to-refresh imports without ever going foreground, and it is
+            // just as worth announcing as a re-index is.
+            notifier.showDone(imported)
             Result.success(workDataOf("imported" to imported))
         } else {
             Result.success()
