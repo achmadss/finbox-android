@@ -10,15 +10,16 @@ package dev.achmad.finbox.parser
 interface EmailParser {
 
     /**
-     * Every type this parser can produce, in the order the user should see them.
+     * Every method this parser can produce, in the order the user should see
+     * them.
      *
-     * The app puts a switch against each and skips a transaction whose type is
-     * off, so a type missing from here can never be turned off, and one that
-     * never comes back from [parse] is a dead switch. Declare a catch-all: a
-     * provider adds types without warning, and the alternative is dropping them
-     * silently.
+     * The app puts a switch against each and skips a transaction whose method
+     * is off, so a method missing from here can never be turned off, and one
+     * that never comes back from [parse] is a dead switch. Declare a catch-all:
+     * a provider adds ways to move money without warning, and the alternative
+     * is dropping them silently.
      */
-    fun types(): List<TransactionType>
+    fun methods(): List<TransactionMethod>
 
     /**
      * Which mail is worth fetching, e.g. `EmailQuery.from("BankBRI@bri.co.id")`.

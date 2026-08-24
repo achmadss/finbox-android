@@ -97,7 +97,7 @@ class TransactionUpdateManager(
 
     /**
      * Re-reads the mail these parsers already claimed, after one of their
-     * transaction types was switched back on. Those emails are parsed, so
+     * transaction methods was switched back on. Those emails are parsed, so
      * [reparseNow] would not look at them.
      */
     suspend fun reparseParsersNow(

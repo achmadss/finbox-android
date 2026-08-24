@@ -21,7 +21,7 @@ class TransactionDraftTest {
         amount = 24_000L,
         currency = "IDR",
         direction = TransactionDirection.OUTGOING,
-        type = "QRIS",
+        method = "QRIS",
         category = "Coffee",
         description = "Kopi Kenangan",
         merchant = "Kopi Kenangan",

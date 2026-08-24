@@ -77,7 +77,7 @@ data class BackupTransaction(
     val amount: Long? = null,
     val currency: String? = null,
     val direction: String? = null,
-    val type: String? = null,
+    val method: String? = null,
     val category: String? = null,
     val description: String? = null,
     val merchant: String? = null,

@@ -75,7 +75,7 @@ data class ParserDetailScreen(private val pkg: String) : Screen {
             onBack = navigator::pop,
             onClickUpdate = model::update,
             onEnabledChange = model::setEnabled,
-            onToggleType = model::toggleType,
+            onToggleMethod = model::toggleMethod,
             onUninstall = model::uninstall,
         )
     }
@@ -89,7 +89,7 @@ fun ParserDetailScreenContent(
     onBack: () -> Unit = {},
     onClickUpdate: () -> Unit = {},
     onEnabledChange: (Boolean) -> Unit = {},
-    onToggleType: (String) -> Unit = {},
+    onToggleMethod: (String) -> Unit = {},
     onUninstall: () -> Unit = {},
 ) {
     var confirmUninstall by remember { mutableStateOf(false) }
@@ -135,24 +135,24 @@ fun ParserDetailScreenContent(
                 onCheckedChange = onEnabledChange,
             )
             HorizontalDivider()
-            if (state.types.isNotEmpty()) {
+            if (state.methods.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.parser_transaction_types),
+                    text = stringResource(R.string.parser_transaction_methods),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
                 )
-                state.types.forEach { type ->
+                state.methods.forEach { method ->
                     SwitchRow(
-                        title = type.name,
+                        title = method.name,
                         subtitle = stringResource(
-                            when (type.direction) {
+                            when (method.direction) {
                                 TransactionDirection.OUTGOING -> R.string.direction_outgoing
                                 TransactionDirection.INCOMING -> R.string.direction_incoming
                             },
                         ),
-                        checked = type.enabled,
-                        onCheckedChange = { onToggleType(type.key) },
+                        checked = method.enabled,
+                        onCheckedChange = { onToggleMethod(method.key) },
                     )
                 }
                 HorizontalDivider()
@@ -329,14 +329,14 @@ private fun ParserDetailPreview() {
                     update = null,
                     installStep = InstallStep.Idle,
                 ),
-                types = listOf(
-                    ParserDetailScreenModel.TypeUiModel(
+                methods = listOf(
+                    ParserDetailScreenModel.MethodUiModel(
                         key = "QRIS",
                         name = "QRIS payment",
                         direction = TransactionDirection.OUTGOING,
                         enabled = true,
                     ),
-                    ParserDetailScreenModel.TypeUiModel(
+                    ParserDetailScreenModel.MethodUiModel(
                         key = "TOPUP",
                         name = "Top up",
                         direction = TransactionDirection.INCOMING,

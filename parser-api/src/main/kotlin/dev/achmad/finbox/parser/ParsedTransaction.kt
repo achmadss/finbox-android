@@ -4,13 +4,16 @@ package dev.achmad.finbox.parser
 enum class TransactionDirection { INCOMING, OUTGOING }
 
 /**
- * One type of transaction a parser can read: a QRIS payment, a top up, a
+ * One way money moved, as the provider names it: a QRIS payment, a top up, a
  * BI-Fast transfer.
+ *
+ * This is the provider's vocabulary, not the app's. What the money was *for* is
+ * a category, which the app derives and no parser ever sets.
  *
  * The app stores [key] and [direction] and only ever shows [name], so renaming
  * a key loses both the transactions filed under it and the user's switch.
  */
-data class TransactionType(
+data class TransactionMethod(
     /** Stable id, e.g. `QRIS`. */
     val key: String,
     /** What the user sees, e.g. "QRIS Payment". */
@@ -26,17 +29,18 @@ data class TransactionType(
  * rest are optional because providers genuinely differ — some send no
  * reference, and a card purchase names no merchant.
  *
- * [type] must be one of the parser's own [EmailParser.types]; the app drops a
- * transaction whose type the user switched off, and one it does not recognise.
+ * [method] must be one of the parser's own [EmailParser.methods]; the app drops
+ * a transaction whose method the user switched off, and one it does not
+ * recognise.
  */
 data class ParsedTransaction(
-    /** Whole units of [currency], always positive — direction comes from [type]. */
+    /** Whole units of [currency], always positive — direction comes from [method]. */
     val amount: Long,
     /** ISO 4217, e.g. `IDR`. */
     val currency: String,
     /** Unix epoch millis. Pass [Email.date] when the receipt states no time. */
     val date: Long,
-    val type: TransactionType,
+    val method: TransactionMethod,
     val merchant: String? = null,
     val description: String? = null,
     /**

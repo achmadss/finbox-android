@@ -83,7 +83,7 @@ class TransactionRepository(
             amount = transaction.amount,
             currency = transaction.currency,
             direction = transaction.direction?.name,
-            type = transaction.type,
+            method = transaction.method,
             category = transaction.category,
             description = transaction.description,
             merchant = transaction.merchant,
@@ -94,12 +94,12 @@ class TransactionRepository(
     }
 
     /**
-     * Drops everything a parser parsed under one type — what switching that type
+     * Drops everything a parser parsed under one method — what switching that method
      * off means, since a re-parse will not write them back.
      */
-    suspend fun deleteByType(parserIds: Collection<Long>, type: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteByMethod(parserIds: Collection<Long>, method: String) = withContext(Dispatchers.IO) {
         db.transaction {
-            parserIds.forEach { db.transactionQueries.DELETEByType(it, type) }
+            parserIds.forEach { db.transactionQueries.DELETEByMethod(it, method) }
         }
     }
 
@@ -127,7 +127,7 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         direction = transaction.direction?.name,
-        type = transaction.type,
+        method = transaction.method,
         category = transaction.category,
         description = transaction.description,
         merchant = transaction.merchant,
@@ -145,7 +145,7 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         direction = transaction.direction?.name,
-        type = transaction.type,
+        method = transaction.method,
         description = transaction.description,
         merchant = transaction.merchant,
         updated_at = transaction.updatedAt,
@@ -165,7 +165,7 @@ class TransactionRepository(
         amount = amount,
         currency = currency,
         direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
-        type = type,
+        method = method,
         category = category,
         description = description,
         merchant = merchant,

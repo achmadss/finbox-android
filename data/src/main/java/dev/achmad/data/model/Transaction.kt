@@ -2,7 +2,7 @@ package dev.achmad.data.model
 
 /**
  * Which way the money went — all the app itself knows. What the provider calls
- * it (QRIS, a top up) is the parser's vocabulary and lives in [Transaction.type].
+ * it (QRIS, a top up) is the parser's vocabulary and lives in [Transaction.method].
  */
 enum class TransactionDirection {
     INCOMING,
@@ -29,10 +29,10 @@ data class Transaction(
     val currency: String?,
     val direction: TransactionDirection?,
     /**
-     * The key of one of the parser's declared types, e.g. `QRIS`. Null on a
+     * The key of one of the parser's declared methods, e.g. `QRIS`. Null on a
      * hand-entered row, which no parser claimed.
      */
-    val type: String?,
+    val method: String?,
     val category: String?,
     val description: String?,
     val merchant: String?,

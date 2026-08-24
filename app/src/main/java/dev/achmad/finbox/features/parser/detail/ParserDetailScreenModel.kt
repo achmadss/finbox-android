@@ -6,7 +6,7 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.preference.ParserTypePreference
+import dev.achmad.finbox.core.preference.ParserMethodPreference
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
@@ -22,7 +22,7 @@ import kotlin.collections.orEmpty
 class ParserDetailScreenModel(
     private val pkg: String,
     private val manager: ParserManager = inject(),
-    private val typePreference: ParserTypePreference = inject(),
+    private val methodPreference: ParserMethodPreference = inject(),
     private val transactionRepository: TransactionRepository = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
 ) : StateScreenModel<ParserDetailScreenModel.State>(State()) {
@@ -33,7 +33,7 @@ class ParserDetailScreenModel(
                 manager.installed,
                 manager.available,
                 manager.parsersFlow,
-                typePreference.disabled(pkg).changes(),
+                methodPreference.disabled(pkg).changes(),
                 manager.installSteps,
             ) { installed, available, _, disabled, steps ->
                 installed.firstOrNull { it.pkg == pkg }?.let { parser ->
@@ -45,13 +45,13 @@ class ParserDetailScreenModel(
                         // The manager runs the install, so its progress is the
                         // truth here — including one started from the other screen.
                         installStep = steps[pkg] ?: InstallStep.Idle,
-                    ) to types(parser.parserIds, disabled)
+                    ) to methods(parser.parserIds, disabled)
                 }
             }.collect { item ->
                 mutableState.update {
                     it.copy(
                         parser = item?.first,
-                        types = item?.second.orEmpty(),
+                        methods = item?.second.orEmpty(),
                         sizeBytes = item?.first?.parser?.file
                             ?.let { path -> File(path).length().takeIf { size -> size > 0 } },
                     )
@@ -61,18 +61,18 @@ class ParserDetailScreenModel(
     }
 
     /**
-     * The types this parser declares, in its own order, each with the user's
+     * The methods this parser declares, in its own order, each with the user's
      * switch.
      *
-     * Empty until the registry has loaded — the types live in the APK, not the
+     * Empty until the registry has loaded — the methods live in the APK, not the
      * database, so nothing else knows them.
      */
-    private fun types(parserIds: List<Long>, disabled: Set<String>): List<TypeUiModel> =
+    private fun methods(parserIds: List<Long>, disabled: Set<String>): List<MethodUiModel> =
         parserIds
             .mapNotNull { manager.getById(it) }
-            .flatMap { it.types() }
+            .flatMap { it.methods() }
             .distinctBy { it.key }
-            .map { TypeUiModel(it.key, it.name, it.direction, enabled = it.key !in disabled) }
+            .map { MethodUiModel(it.key, it.name, it.direction, enabled = it.key !in disabled) }
 
     fun setEnabled(enabled: Boolean) {
         screenModelScope.launch {
@@ -82,17 +82,17 @@ class ParserDetailScreenModel(
     }
 
     /**
-     * Off drops what the type already parsed; on re-reads the mail this parser
+     * Off drops what the method already parsed; on re-reads the mail this parser
      * claimed, which is where those transactions come back from. Neither touches
      * Gmail — the bodies are stored.
      */
-    fun toggleType(key: String) {
+    fun toggleMethod(key: String) {
         screenModelScope.launch {
             val parserIds = state.value.parser?.parser?.parserIds.orEmpty().toSet()
-            if (typePreference.toggle(pkg, key)) {
+            if (methodPreference.toggle(pkg, key)) {
                 transactionUpdateManager.reparseParsersNow(parserIds)
             } else {
-                transactionRepository.deleteByType(parserIds, key)
+                transactionRepository.deleteByMethod(parserIds, key)
             }
         }
     }
@@ -112,7 +112,7 @@ class ParserDetailScreenModel(
     }
 
     @Immutable
-    data class TypeUiModel(
+    data class MethodUiModel(
         val key: String,
         val name: String,
         val direction: TransactionDirection,
@@ -122,7 +122,7 @@ class ParserDetailScreenModel(
     @Immutable
     data class State(
         val parser: ParserUiModel.Installed? = null,
-        val types: List<TypeUiModel> = emptyList(),
+        val methods: List<MethodUiModel> = emptyList(),
         /** The APK on disk. Null while the row has no file recorded yet. */
         val sizeBytes: Long? = null,
         val uninstalled: Boolean = false,
@@ -130,17 +130,17 @@ class ParserDetailScreenModel(
         /**
          * What the parser deals in, for the line under the version.
          *
-         * Unknown rather than assumed while [types] is empty: the registry loads
+         * Unknown rather than assumed while [methods] is empty: the registry loads
          * after the database does, and "Expense only" flickering into "Multi
-         * type" reads as a bug.
+         * method" reads as a bug.
          */
         @get:StringRes
         val summary: Int
             get() = when {
-                types.isEmpty() -> R.string.unknown
-                types.all { it.direction == TransactionDirection.OUTGOING } -> R.string.parser_summary_expense_only
-                types.all { it.direction == TransactionDirection.INCOMING } -> R.string.parser_summary_income_only
-                else -> R.string.parser_summary_multi_type
+                methods.isEmpty() -> R.string.unknown
+                methods.all { it.direction == TransactionDirection.OUTGOING } -> R.string.parser_summary_expense_only
+                methods.all { it.direction == TransactionDirection.INCOMING } -> R.string.parser_summary_income_only
+                else -> R.string.parser_summary_multi_method
             }
     }
 }

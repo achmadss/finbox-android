@@ -48,7 +48,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionType
+import dev.achmad.finbox.parser.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
@@ -76,7 +76,7 @@ data class TransactionEditScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val types by model.types.collectAsState()
+        val methods by model.methods.collectAsState()
 
         // Seeded once, from the row as it was when this screen opened. Re-seeding on every
         // emission would throw away what is being typed the moment anything else writes.
@@ -92,7 +92,7 @@ data class TransactionEditScreen(private val id: String) : Screen {
 
         TransactionEditScreenContent(
             draft = draft,
-            types = types,
+            methods = methods,
             use24Hour = rememberUse24HourClock(),
             // What is on screen against what is stored: the only thing worth warning about.
             dirty = draft != null && draft != transaction?.toDraft(),
@@ -107,7 +107,7 @@ data class TransactionEditScreen(private val id: String) : Screen {
 @Composable
 internal fun TransactionEditScreenContent(
     draft: Draft?,
-    types: List<TransactionType>,
+    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     dirty: Boolean = false,
     onDraftChange: (Draft) -> Unit = {},
@@ -154,7 +154,7 @@ internal fun TransactionEditScreenContent(
         ) {
             TransactionEditor(
                 draft = draft,
-                types = types,
+                methods = methods,
                 use24Hour = use24Hour,
                 onChange = onDraftChange,
             )
@@ -184,13 +184,13 @@ internal fun TransactionEditScreenContent(
 @Composable
 private fun TransactionEditor(
     draft: Draft,
-    types: List<TransactionType>,
+    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     onChange: (Draft) -> Unit,
 ) {
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
-    var pickType by remember { mutableStateOf(false) }
+    var pickMethod by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -232,10 +232,10 @@ private fun TransactionEditor(
             )
         }
         PickerField(
-            label = stringResource(R.string.type),
-            value = types.nameOf(draft.type) ?: draft.type ?: stringResource(R.string.none),
+            label = stringResource(R.string.method),
+            value = methods.nameOf(draft.method) ?: draft.method ?: stringResource(R.string.none),
             modifier = Modifier.fillMaxWidth(),
-            onClick = { pickType = true },
+            onClick = { pickMethod = true },
         )
         OutlinedTextField(
             value = draft.category,
@@ -276,12 +276,12 @@ private fun TransactionEditor(
         )
     }
 
-    if (pickType) {
-        TypePickerDialog(
-            selected = draft.type,
-            types = types,
-            onDismiss = { pickType = false },
-            onSelect = { onChange(draft.copy(type = it)) },
+    if (pickMethod) {
+        MethodPickerDialog(
+            selected = draft.method,
+            methods = methods,
+            onDismiss = { pickMethod = false },
+            onSelect = { onChange(draft.copy(method = it)) },
         )
     }
 }
@@ -378,25 +378,25 @@ private fun TimePickerDialog(
 }
 
 /**
- * The types the row's parser declares, plus None. A type the parser dropped stays in the
+ * The methods the row's parser declares, plus None. A method the parser dropped stays in the
  * list while it is the one selected, so opening the picker cannot quietly discard it.
  */
 @Composable
-private fun TypePickerDialog(
+private fun MethodPickerDialog(
     selected: String?,
-    types: List<TransactionType>,
+    methods: List<TransactionMethod>,
     onDismiss: () -> Unit,
     onSelect: (String?) -> Unit,
 ) {
     val none = stringResource(R.string.none)
     val options = buildList<Pair<String?, String>> {
         add(null to none)
-        types.forEach { add(it.key to it.name) }
-        if (selected != null && types.none { it.key == selected }) add(selected to selected)
+        methods.forEach { add(it.key to it.name) }
+        if (selected != null && methods.none { it.key == selected }) add(selected to selected)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.type)) },
+        title = { Text(stringResource(R.string.method)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 options.forEach { (key, name) ->
@@ -428,8 +428,8 @@ private fun Long.toLocalDate(): LocalDate =
 private fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-/** The parser's name for a stored type key, or null when nothing declares it. */
-internal fun List<TransactionType>.nameOf(key: String?): String? =
+/** The parser's name for a stored method key, or null when nothing declares it. */
+internal fun List<TransactionMethod>.nameOf(key: String?): String? =
     key?.let { stored -> firstOrNull { it.key == stored }?.name }
 
 /** The form's state: text while it is being typed, parsed back into a [Transaction] on save. */
@@ -437,7 +437,7 @@ internal data class Draft(
     val date: Long?,
     val amount: String,
     val direction: TransactionDirection?,
-    val type: String?,
+    val method: String?,
     val category: String,
     val description: String,
     val merchant: String,
@@ -447,7 +447,7 @@ internal fun Transaction.toDraft() = Draft(
     date = date,
     amount = amount?.toString().orEmpty(),
     direction = direction,
-    type = type,
+    method = method,
     category = category.orEmpty(),
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
@@ -461,7 +461,7 @@ internal fun Draft.applyTo(transaction: Transaction) = transaction.copy(
     date = date,
     amount = amount.trim().toLongOrNull(),
     direction = direction,
-    type = type,
+    method = method,
     category = category.blankToNull(),
     description = description.blankToNull(),
     merchant = merchant.blankToNull(),
@@ -485,7 +485,7 @@ private fun TransactionEditPreview() {
                 amount = 125_000,
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
-                type = "QRIS",
+                method = "QRIS",
                 category = "Food",
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
@@ -493,7 +493,7 @@ private fun TransactionEditPreview() {
                 updatedAt = 1_700_000_000_000L,
                 deleted = false,
             ).toDraft(),
-            types = emptyList(),
+            methods = emptyList(),
             use24Hour = true,
         )
     }

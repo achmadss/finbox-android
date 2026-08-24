@@ -4,25 +4,25 @@ import dev.achmad.finbox.util.preference.Preference
 import dev.achmad.finbox.util.preference.PreferenceStore
 
 /**
- * Which of a parser's transaction types the user has switched off.
+ * Which of a parser's transaction methods the user has switched off.
  *
- * Stored as the off ones rather than the on ones so a type a parser adds in
- * a later version arrives switched on — the alternative is a new type silently
+ * Stored as the off ones rather than the on ones so a method a parser adds in
+ * a later version arrives switched on — the alternative is a new method silently
  * doing nothing until the user goes looking for it.
  *
  * Keyed by package, not by parser id: a parser id has the version code in it,
  * so keying on that would reset every switch each time the parser updates.
  */
-class ParserTypePreference(
+class ParserMethodPreference(
     private val preferenceStore: PreferenceStore,
 ) {
 
     fun disabled(pkg: String): Preference<Set<String>> =
-        preferenceStore.getStringSet("parser_disabled_types_$pkg")
+        preferenceStore.getStringSet("parser_disabled_methods_$pkg")
 
     fun isEnabled(pkg: String, key: String): Boolean = key !in disabled(pkg).get()
 
-    /** @return true if the type is now on. */
+    /** @return true if the method is now on. */
     fun toggle(pkg: String, key: String): Boolean {
         val preference = disabled(pkg)
         val current = preference.get()

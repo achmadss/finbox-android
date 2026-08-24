@@ -9,7 +9,7 @@ import java.security.MessageDigest
  */
 class LoadedParser(
     val id: Long,
-    /** Survives an update, unlike [id] — so the type switches are filed under it. */
+    /** Survives an update, unlike [id] — so the method switches are filed under it. */
     val pkg: String,
     val provider: String,
     val name: String,

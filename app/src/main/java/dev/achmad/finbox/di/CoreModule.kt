@@ -2,7 +2,7 @@ package dev.achmad.finbox.di
 
 import dev.achmad.finbox.core.parser.ParserIndex
 import dev.achmad.finbox.core.parser.ParserInstaller
-import dev.achmad.finbox.core.preference.ParserTypePreference
+import dev.achmad.finbox.core.preference.ParserMethodPreference
 import dev.achmad.finbox.core.parser.ParserLoader
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.ParserUpdateChecker
@@ -51,7 +51,7 @@ val coreModule = module {
             loader = get()
         )
     }
-    single<ParserTypePreference> { ParserTypePreference(preferenceStore = get()) }
+    single<ParserMethodPreference> { ParserMethodPreference(preferenceStore = get()) }
     single<ParserManager> {
         ParserManager(
             transactionUpdateManager = get(),
@@ -59,7 +59,7 @@ val coreModule = module {
             installer = get(),
             index = get(),
             repository = get(),
-            typePreference = get()
+            methodPreference = get()
         )
     }
     single<ParserUpdateNotifier> { ParserUpdateNotifier(context = androidContext()) }
@@ -86,7 +86,7 @@ val coreModule = module {
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),
-            typePreference = get()
+            methodPreference = get()
         )
     }
 

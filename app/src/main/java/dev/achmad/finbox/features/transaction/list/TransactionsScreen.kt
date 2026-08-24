@@ -175,13 +175,13 @@ fun TransactionsScreenContent(
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
 
-    // Keyed on the type alone, not on the parser it was parsed by: a parser id carries the
+    // Keyed on the method alone, not on the parser it was parsed by: a parser id carries the
     // parser's version, so rows written by an older build would otherwise lose their name.
     // ponytail: two parsers declaring the same key show one name — per-parser if that lands.
-    // Empty until the registry loads, and empty for a type a parser dropped, so the rows
+    // Empty until the registry loads, and empty for a method a parser dropped, so the rows
     // fall through to the description as before.
-    val typeNames = remember(parsers) {
-        parsers.flatMap { it.types() }.associate { it.key to it.name }
+    val methodNames = remember(parsers) {
+        parsers.flatMap { it.methods() }.associate { it.key to it.name }
     }
     // By id here, because that is all a transaction stores. A row parsed by an earlier build of
     // a parser is filed under that build's parser id and so goes unnamed, same as the filter.
@@ -359,7 +359,7 @@ fun TransactionsScreenContent(
                         filtered = filter.isActive,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
-                        typeNames = typeNames,
+                        methodNames = methodNames,
                         parserNames = parserNames,
                         onOpenTransaction = onOpenTransaction,
                     )
@@ -375,7 +375,7 @@ private fun MonthPage(
     transactions: List<Transaction>,
     filtered: Boolean,
     grouped: Boolean,
-    typeNames: Map<String, String>,
+    methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
@@ -417,8 +417,8 @@ private fun MonthPage(
         HorizontalDivider()
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
-            grouped -> TransactionList(use24Hour, transactions, typeNames, parserNames, onOpenTransaction)
-            else -> FlatTransactionList(use24Hour, transactions, typeNames, parserNames, onOpenTransaction)
+            grouped -> TransactionList(use24Hour, transactions, methodNames, parserNames, onOpenTransaction)
+            else -> FlatTransactionList(use24Hour, transactions, methodNames, parserNames, onOpenTransaction)
         }
     }
 }
@@ -570,7 +570,7 @@ private fun RowScope.MonthStep(
 private fun TransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    typeNames: Map<String, String>,
+    methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
@@ -606,9 +606,9 @@ private fun TransactionList(
                             .background(MaterialTheme.colorScheme.inverseOnSurface),
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
-                            val type = typeNames[transaction.type]
+                            val method = methodNames[transaction.method]
                             val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                            TransactionRow(use24Hour, transaction, type, parser) { onOpenTransaction(transaction) }
+                            TransactionRow(use24Hour, transaction, method, parser) { onOpenTransaction(transaction) }
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
                             }
@@ -625,7 +625,7 @@ private fun TransactionList(
 private fun FlatTransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    typeNames: Map<String, String>,
+    methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
 ) {
@@ -643,9 +643,9 @@ private fun FlatTransactionList(
         ) {
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
-                    val type = typeNames[transaction.type]
+                    val method = methodNames[transaction.method]
                     val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                    TransactionRow(use24Hour, transaction, type, parser, showDay = true) {
+                    TransactionRow(use24Hour, transaction, method, parser, showDay = true) {
                         onOpenTransaction(transaction)
                     }
                     if (index != transactions.lastIndex) {
@@ -661,7 +661,7 @@ private fun FlatTransactionList(
 private fun TransactionRow(
     use24Hour: Boolean,
     transaction: Transaction,
-    type: String?,
+    method: String?,
     parser: String,
     showDay: Boolean = false,
     onClick: () -> Unit,
@@ -677,7 +677,7 @@ private fun TransactionRow(
             Text(
                 // The parser's own word for it — "QRIS Payment", not the `QRIS` key stored
                 // with the row.
-                text = type
+                text = method
                     ?: transaction.description
                     ?: transaction.merchant
                     ?: transaction.reference
@@ -777,7 +777,7 @@ private fun TransactionsScreenPreview() {
         amount = amount,
         currency = "IDR",
         direction = direction,
-        type = null,
+        method = null,
         category = null,
         description = merchant,
         merchant = merchant,

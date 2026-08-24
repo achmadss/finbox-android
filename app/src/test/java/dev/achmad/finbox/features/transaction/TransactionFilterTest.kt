@@ -32,7 +32,7 @@ class TransactionFilterTest {
         amount = amount,
         currency = "IDR",
         direction = direction,
-        type = null,
+        method = null,
         category = null,
         description = description,
         merchant = null,

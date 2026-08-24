@@ -17,7 +17,7 @@ class TransactionIdentityTest {
         amount = null,
         currency = null,
         direction = null,
-        type = null,
+        method = null,
         category = null,
         description = null,
         merchant = null,

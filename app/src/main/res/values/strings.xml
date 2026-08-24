@@ -19,7 +19,7 @@
     <string name="accounts">Accounts</string>
     <string name="parsers">Parsers</string>
     <string name="direction">Direction</string>
-    <string name="type">Type</string>
+    <string name="method">Method</string>
     <string name="amount">Amount</string>
     <string name="date">Date</string>
     <string name="time">Time</string>
@@ -207,12 +207,12 @@
     <string name="uninstall_parser_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
 
     <!-- Parser info screen -->
-    <string name="parser_transaction_types">Transaction types</string>
+    <string name="parser_transaction_methods">Transaction methods</string>
     <string name="parser_retry_update">Retry update</string>
     <string name="parser_update_to">Update to v%1$s</string>
     <string name="parser_summary_expense_only">Expense only</string>
     <string name="parser_summary_income_only">Income only</string>
-    <string name="parser_summary_multi_type">Multi type</string>
+    <string name="parser_summary_multi_method">Multi method</string>
 
     <!-- Accounts screen -->
     <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>

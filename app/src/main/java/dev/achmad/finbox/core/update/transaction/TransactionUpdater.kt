@@ -9,7 +9,7 @@ import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.preference.ParserTypePreference
+import dev.achmad.finbox.core.preference.ParserMethodPreference
 import dev.achmad.finbox.core.parser.LoadedParser
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineParserQueries
@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
  * Gmail is rate limited and a mailbox import is thousands of messages.
  *
  * Keeping the body is what makes re-parsing cheap: a new parser, an updated
- * one, or a transaction type switched back on all re-read what is already
+ * one, or a transaction method switched back on all re-read what is already
  * stored, so a refresh can afford to try every unparsed email before it asks
  * Gmail for anything new.
  *
@@ -63,7 +63,7 @@ class TransactionUpdater(
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
-    private val typePreference: ParserTypePreference,
+    private val methodPreference: ParserMethodPreference,
 ) {
 
     /** One update at a time per account, so two refreshes can't race the cursor. */
@@ -445,8 +445,8 @@ class TransactionUpdater(
     /**
      * Re-reads mail one of [parserIds] already claimed.
      *
-     * Switching a transaction type back on needs this: those emails are parsed,
-     * so nothing above would look at them again, and the transactions the type
+     * Switching a transaction method back on needs this: those emails are parsed,
+     * so nothing above would look at them again, and the transactions the method
      * covers were never written.
      *
      * @return how many transactions were written.
@@ -568,7 +568,7 @@ class TransactionUpdater(
     /**
      * Runs [message] past the parsers that haven't tried it, first claim wins.
      *
-     * [force] runs it past all of them regardless: a type switched back on has
+     * [force] runs it past all of them regardless: a method switched back on has
      * to reach the parser that already claimed this email.
      */
     private suspend fun parse(
@@ -587,14 +587,14 @@ class TransactionUpdater(
                 ?.takeIf { it.isNotEmpty() }
                 ?: continue
 
-            val disabled = typePreference.disabled(parser.pkg).get()
+            val disabled = methodPreference.disabled(parser.pkg).get()
             // mapIndexedNotNull, not filter-then-map: the index is part of a
             // transaction's id, so dropping one must not renumber the rest and
             // give every transaction after it a new identity.
             val transactions = parsed.mapIndexedNotNull { index, transaction ->
                 // Still claimed — the parser did read it — so switching the
-                // type back on re-reads it from the body stored here.
-                if (transaction.type.key in disabled) return@mapIndexedNotNull null
+                // method back on re-reads it from the body stored here.
+                if (transaction.method.key in disabled) return@mapIndexedNotNull null
                 Transaction(
                     accountId = email.accountId,
                     parserId = parser.id,
@@ -609,9 +609,9 @@ class TransactionUpdater(
                     // could name a direction this build has never heard of, and
                     // an unsigned row beats a crash.
                     direction = runCatching {
-                        TransactionDirection.valueOf(transaction.type.direction.name)
+                        TransactionDirection.valueOf(transaction.method.direction.name)
                     }.getOrNull(),
-                    type = transaction.type.key,
+                    method = transaction.method.key,
                     category = null,
                     description = transaction.description,
                     merchant = transaction.merchant,

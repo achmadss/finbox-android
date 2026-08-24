@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import dev.achmad.finbox.core.preference.ParserTypePreference
+import dev.achmad.finbox.core.preference.ParserMethodPreference
 
 /**
  * Orchestrates installed parsers:
@@ -40,7 +40,7 @@ class ParserManager(
     private val installer: ParserInstaller,
     private val index: ParserIndex,
     private val repository: InstalledParserRepository,
-    private val typePreference: ParserTypePreference,
+    private val methodPreference: ParserMethodPreference,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -165,8 +165,8 @@ class ParserManager(
         installer.remove(pkg)
         repository.delete(pkg)
         // Keyed by package, so they would otherwise outlive it and quietly
-        // suppress types if the same parser were installed again.
-        typePreference.clear(pkg)
+        // suppress methods if the same parser were installed again.
+        methodPreference.clear(pkg)
         reload()
     }
 
