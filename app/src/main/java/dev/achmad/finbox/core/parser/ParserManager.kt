@@ -153,8 +153,21 @@ class ParserManager(
      * screen. On the main thread because enqueuing may raise a toast.
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
-        // The app asked, not the user: a request turned down here is not worth a toast.
-        transactionUpdateManager.reparseNow(userInitiated = false)
+        // Including mail these parsers already claimed. A parser is published
+        // because it reads something differently, and the transactions it wrote
+        // last time are exactly the ones that are now wrong — leaving them alone
+        // means a fix only ever reaches mail that arrives after it.
+        //
+        // Safe because a parser keeps its id across versions, so the rows come
+        // back under the ids they already have: updated in place, categories
+        // kept, and anything hand-edited skipped outright.
+        transactionUpdateManager.reparseNow(
+            includeParsed = true,
+            parserIds = parsersFlow.value.mapTo(mutableSetOf()) { it.id },
+            // The app asked, not the user: a request turned down here is not
+            // worth a toast.
+            userInitiated = false,
+        )
     }
 
     /** Installed parsers the index has a newer build of. */

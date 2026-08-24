@@ -1,6 +1,7 @@
 package dev.achmad.finbox.core.llm
 
 import dev.achmad.finbox.util.network.get
+import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
 import dev.achmad.finbox.util.network.post
 import kotlinx.coroutines.Dispatchers
@@ -70,7 +71,7 @@ class LlmClient(
                 ResponseFormat(jsonSchema = JsonSchema(name = "categories", schema = it))
             },
         )
-        val body = dev.achmad.finbox.util.network.json
+        val body = json
             .encodeToString(request)
             .toRequestBody(JSON_MEDIA_TYPE)
         client.post(provider.chatUrl, body, headers = auth(apiKey))

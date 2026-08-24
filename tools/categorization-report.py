@@ -67,33 +67,50 @@ def signature(row) -> tuple:
     )
 
 
-def complete(sig) -> bool:
-    """Whether there is anything semantic in it. Direction and method are not."""
+def named(sig) -> bool:
+    """Whether the receipt named a counterparty or said anything about this one."""
     return sig[0] is not None or sig[1] is not None
+
+
+def sendable(sig) -> bool:
+    """Whether the app would send it, which is any text at all including a method.
+
+    Mirrors Signature.isComplete. Whether a method alone is enough to tell what
+    money was for is a question about the world, so the app does not answer it —
+    it asks, and the classifier may reply that the receipt does not say.
+    """
+    return named(sig) or sig[3] is not None
 
 
 def coverage(rows):
     groups = collections.Counter(signature(r) for r in rows)
-    unclassifiable = [s for s in groups if not complete(s)]
-    folded = sum(groups[s] for s in unclassifiable)
-    classifiable = [s for s in groups if complete(s)]
+    empty = [s for s in groups if not sendable(s)]
+    method_only = [s for s in groups if sendable(s) and not named(s)]
+    identified = [s for s in groups if named(s)]
+    rows_in = lambda sigs: sum(groups[s] for s in sigs)
 
     print(f"transactions            {len(rows)}")
     print(f"distinct signatures     {len(groups)}")
     print(f"rows per signature      {len(rows) / len(groups):.1f}x")
     print(f"classifier calls saved  {100 * (1 - len(groups) / len(rows)):.0f}%")
     print()
-    print(f"folded to UNKNOWN, never sent   {folded} rows in {len(unclassifiable)} signatures")
-    print(f"needing a classifier            {len(rows) - folded} rows in {len(classifiable)} signatures")
-    once = [s for s in classifiable if groups[s] == 1]
-    print(f"  seen exactly once             {len(once)} signatures")
+    print("What the classifier is being asked:")
+    print(f"  a counterparty or a note   {rows_in(identified):>4} rows in {len(identified):>3} signatures")
+    print(f"  only how the money moved   {rows_in(method_only):>4} rows in {len(method_only):>3} signatures")
+    print(f"  nothing at all, not sent   {rows_in(empty):>4} rows in {len(empty):>3} signatures")
+    once = [s for s in identified if groups[s] == 1]
+    print(f"  identified and seen once   {len(once):>4} signatures")
+    print()
+    print("The middle row is the one to watch. Those receipts name no counterparty,")
+    print("so the honest answer is usually UNKNOWN — if the classifier invents a")
+    print("category for them instead, it is guessing and the prompt needs work.")
     print()
     print("The biggest groups decide most of the ledger. One wrong answer here")
     print("is wrong for every row under it, so these are the ones to check:")
     for sig, count in groups.most_common(10):
         merchant, description, direction, method = sig
         share = 100 * count / len(rows)
-        flag = "  <- nothing to classify with" if not complete(sig) else ""
+        flag = "  <- no counterparty named" if not named(sig) else ""
         print(f"  {count:>4} rows ({share:>4.1f}%)  {str(merchant)[:24]:<24} | "
               f"{str(description)[:38]:<38} | {direction} {method}{flag}")
 

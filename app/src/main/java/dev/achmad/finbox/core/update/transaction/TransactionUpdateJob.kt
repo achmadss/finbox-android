@@ -72,11 +72,15 @@ class TransactionUpdateJob(
         // them again costs nothing now that their bodies are stored — so there
         // is no reason for a refresh to ask Gmail for new mail while old mail
         // nothing could parse is still lying unparsed.
+        // Both, in that order. A parser that just updated has mail it claimed
+        // and mail it could not read before, and an update is a reason to look
+        // again at each of them.
         var imported = if (reparseParserIds.isNotEmpty()) {
             updater.reparseParsers(reparseParserIds, onProgress)
         } else {
-            updater.parseUnparsed(onProgress)
+            0
         }
+        imported += updater.parseUnparsed(onProgress)
         if (!parseOnly) {
             imported += updater.updateAll(onProgress).getOrThrow()
         }

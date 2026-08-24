@@ -92,7 +92,7 @@ class ParserLoader(
             LoadResult.Success(
                 info,
                 LoadedParser(
-                    id = parserIdOf(info.name, info.versionCode),
+                    id = parserIdOf(info.pkg),
                     pkg = info.pkg,
                     provider = info.provider,
                     name = info.name,

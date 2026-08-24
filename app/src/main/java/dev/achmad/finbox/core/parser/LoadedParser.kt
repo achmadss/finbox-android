@@ -17,18 +17,25 @@ class LoadedParser(
 ) : EmailParser by parser
 
 /**
- * First 8 bytes of `MD5("<name>/<versionCode>")` as a positive Long.
+ * First 8 bytes of `MD5(pkg)` as a positive Long.
  *
  * Deterministic, so a reinstall files its transactions under the same id and
- * nothing is orphaned. Deliberately not stable across releases: `versionCode`
- * is in the hash, so an updated parser is one no email has tried and mail
- * nothing could read before gets another chance. Parsed emails are never
- * re-read, so this cannot duplicate a transaction — it does leave rows filed
- * under the version that parsed them.
+ * nothing is orphaned. Stable across releases too, which is the whole point: a
+ * parser that updates is still the same parser, and the mail it read is still
+ * its mail.
+ *
+ * `versionCode` used to be in the hash, so that an updated parser counted as
+ * one no email had tried and mail nothing could read before got another chance.
+ * That worked, but it made an update an amnesiac — the rows and emails it had
+ * already claimed pointed at an id that no longer existed, so nothing could
+ * find them and a published fix never reached the data it was written for.
+ * Retrying is now asked for outright, by re-reading a parser's own mail when it
+ * updates, which is clearer than arranging for it to happen as a side effect of
+ * an identity change.
  */
-fun parserIdOf(name: String, versionCode: Int): Long {
+fun parserIdOf(pkg: String): Long {
     val digest = MessageDigest.getInstance("MD5")
-        .digest("${name.lowercase()}/$versionCode".toByteArray())
+        .digest(pkg.lowercase().toByteArray())
     var value = 0L
     for (i in 0 until 8) {
         value = (value shl 8) or (digest[i].toLong() and 0xff)

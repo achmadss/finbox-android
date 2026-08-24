@@ -92,8 +92,28 @@ class TransactionUpdateManager(
      * A parser change while a full update is running is dropped: that update
      * re-reads stored mail on its way through anyway.
      */
-    suspend fun reparseNow(userInitiated: Boolean = true) =
-        enqueueOneTime(parseOnly = true, userInitiated = userInitiated)
+    /**
+     * Re-reads stored mail.
+     *
+     * [includeParsed] decides how much: off, only mail nothing has claimed yet,
+     * which is what a plain refresh wants. On, also the mail [parserIds] already
+     * claimed — what an updated parser needs, since the whole reason to publish
+     * one is that it reads those emails differently now.
+     *
+     * Re-reading is nearly free: the bodies are already here, so this costs no
+     * Gmail quota. The transactions come back under the same ids, so a re-read
+     * updates the rows in place rather than duplicating them, and everything the
+     * user owns on those rows survives it.
+     */
+    suspend fun reparseNow(
+        includeParsed: Boolean = false,
+        parserIds: Set<Long> = emptySet(),
+        userInitiated: Boolean = true,
+    ) = enqueueOneTime(
+        parseOnly = true,
+        parserIds = if (includeParsed) parserIds else emptySet(),
+        userInitiated = userInitiated,
+    )
 
     /**
      * Re-reads the mail these parsers already claimed, after one of their
