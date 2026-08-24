@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import dev.achmad.data.repository.ClassificationRunRepository
 import kotlinx.coroutines.launch
 
 /**
@@ -26,9 +27,21 @@ import kotlinx.coroutines.launch
  */
 class CategorizationManager(
     private val categorizer: TransactionCategorizer,
+    private val runs: ClassificationRunRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
+
+    init {
+        // Any run still marked RUNNING is one the process died under, and this
+        // is the one moment that is certainly true: this object owns the only
+        // job there is, and it has not started one yet.
+        //
+        // It used to be done when the screen opened, which meant opening the
+        // screen during a run marked that run cancelled, and finishing it a
+        // minute later flipped it back to done.
+        scope.launch { runs.cancelStale() }
+    }
 
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()

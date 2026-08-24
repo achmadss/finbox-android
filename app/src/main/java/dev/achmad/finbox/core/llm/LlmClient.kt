@@ -1,6 +1,6 @@
 package dev.achmad.finbox.core.llm
 
-import dev.achmad.finbox.util.network.HttpException
+import android.util.Log
 import dev.achmad.finbox.util.network.get
 import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
@@ -14,6 +14,7 @@ import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 /**
  * Talks to one OpenAI-compatible endpoint.
@@ -23,9 +24,25 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * thing above it decides what to ask.
  */
 class LlmClient(
-    private val client: OkHttpClient,
+    client: OkHttpClient,
     private val providers: LlmProviderStore,
 ) {
+
+    /**
+     * The shared client with room to think.
+     *
+     * Everything else here talks to Gmail and GitHub, where 30 seconds without
+     * a byte means something is wrong. A model generating twenty-five answers
+     * routinely takes longer than that, and a free tier can take minutes — so
+     * the app's own timeout was cancelling requests that were working.
+     *
+     * Built from the shared one so the connection pool, cache and interceptors
+     * are the same; only the patience differs.
+     */
+    private val client: OkHttpClient = client.newBuilder()
+        .readTimeout(3, TimeUnit.MINUTES)
+        .callTimeout(5, TimeUnit.MINUTES)
+        .build()
 
     /**
      * The models this endpoint offers, ids only, sorted.
@@ -105,8 +122,21 @@ class LlmClient(
         val body = json
             .encodeToString(request)
             .toRequestBody(JSON_MEDIA_TYPE)
-        val response = client.post(provider.chatUrl, body, headers = auth(apiKey))
-            .parseAs<ChatResponse>()
+        // Reading the body ourselves rather than letting the helper throw on a
+        // non-2xx: an endpoint that rejects something says why in the body, and
+        // "HTTP error 400" alone is not enough to fix anything by.
+        val raw = client.post(
+            provider.chatUrl,
+            body,
+            headers = auth(apiKey),
+            ensureSuccess = false,
+        )
+        val text = raw.use { it.body.string() }
+        if (!raw.isSuccessful) {
+            Log.w(TAG, "${raw.code} from ${provider.chatUrl}: ${text.take(400)}")
+            throw LlmHttpException(raw.code, text.take(400))
+        }
+        val response = json.decodeFromString<ChatResponse>(text)
         return Completion(
             content = response.choices.firstOrNull()?.message?.content.orEmpty(),
             promptTokens = response.usage?.promptTokens ?: 0,
@@ -133,15 +163,17 @@ class LlmClient(
      * a real problem behind a weaker guarantee and a confusing reply.
      */
     private fun looksLikeFormatRejection(error: Throwable): Boolean {
-        val code = (error as? HttpException)?.code ?: return false
+        val failure = error as? LlmHttpException ?: return false
+        val code = failure.code
+        // Now that the body comes along, an endpoint that names the field it
+        // disliked can be believed outright whatever status it chose.
+        val body = failure.body.lowercase()
+        if ("response_format" in body || "json_schema" in body || "schema" in body) return true
         // A host that dislikes a field in the body says 400, or 422 if it
         // validates. Deliberately narrow: 401 and 429 are a bad key and a rate
         // limit, and quietly asking again with a weaker guarantee would hide
         // both behind a confusing reply.
         //
-        // ponytail: the status is all there is to go on, because HttpException
-        // does not carry the response body. If a 400 for some unrelated reason
-        // ever starts costing two wasted requests, give it the body to read.
         return code == 400 || code == 422
     }
 
@@ -188,6 +220,7 @@ class LlmClient(
         providers.active()?.let { it to providers.key(it) }
 
     private companion object {
+        const val TAG = "LlmClient"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
@@ -221,6 +254,10 @@ private data class JsonSchema(
     val schema: JsonObject,
     val strict: Boolean = true,
 )
+
+/** A refused request, with what the endpoint said about it. */
+class LlmHttpException(val code: Int, val body: String) :
+    IllegalStateException("HTTP $code: ${body.take(200)}")
 
 /**
  * What came back, and what it cost.

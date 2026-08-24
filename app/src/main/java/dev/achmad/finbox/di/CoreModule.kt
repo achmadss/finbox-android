@@ -61,7 +61,7 @@ val coreModule = module {
             providers = get(),
         )
     }
-    single<CategorizationManager> { CategorizationManager(categorizer = get()) }
+    single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
     single<ParserLoader> { ParserLoader(androidContext()) }
     single<ParserIndex> { ParserIndex(client = get()) }

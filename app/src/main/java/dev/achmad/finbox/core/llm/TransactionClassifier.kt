@@ -189,9 +189,13 @@ class TransactionClassifier(
             You categorize bank transactions. Each line is one transaction group,
             numbered, with whatever the bank's receipt actually stated.
 
-            Reply with one result per line you were given, using its number as
-            the id. Choose exactly one category from the supplied list. Never
-            invent a category and never explain yourself.
+            Reply with JSON: an object with a "results" array, one entry per line
+            you were given, each with that line's number as "id" and one category
+            as "category". Choose exactly one category from the list below. Never
+            invent a category, and never write anything outside the JSON.
+
+            The word JSON appears here deliberately: some endpoints refuse a
+            JSON-mode request whose messages never mention it.
 
             Categories, and where their edges are:
             INCOME - salary, refunds and money arriving that is not a transfer between the person's own accounts.

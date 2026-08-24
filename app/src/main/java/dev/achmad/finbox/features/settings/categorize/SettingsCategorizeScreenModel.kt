@@ -43,10 +43,14 @@ class SettingsCategorizeScreenModel(
 
     init {
         refresh()
+        // Every instance watches, not just the one that pressed the button.
+        // Opening this screen while a run is going creates a fresh model whose
+        // estimate is a snapshot of a half-finished ledger; without this it kept
+        // showing that count until the screen was closed and opened again.
         screenModelScope.launch {
-            // A run left RUNNING is one the process died under; nothing will
-            // finish it, and showing it as ongoing forever would be a lie.
-            runRepository.cancelStale()
+            manager.state.collect { state ->
+                if (state is CategorizationManager.State.Idle) refresh()
+            }
         }
     }
 
@@ -60,27 +64,13 @@ class SettingsCategorizeScreenModel(
 
     fun start() {
         manager.start(ClassificationScope.UNCATEGORIZED)
-        watch()
     }
 
     fun redoEverything(replaceManual: Boolean) {
         manager.start(ClassificationScope.ALL, replaceManual = replaceManual)
-        watch()
     }
 
     fun cancel() {
         screenModelScope.launch { manager.cancel() }
-    }
-
-    /** The estimate is stale the moment a run finishes, so recount when it does. */
-    private fun watch() {
-        screenModelScope.launch {
-            manager.state.collect { state ->
-                if (state is CategorizationManager.State.Idle) {
-                    refresh()
-                    return@collect
-                }
-            }
-        }
     }
 }

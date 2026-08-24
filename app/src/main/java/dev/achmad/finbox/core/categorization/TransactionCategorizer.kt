@@ -130,8 +130,15 @@ class TransactionCategorizer(
                         // Rate limited, offline, endpoint down. Stop and keep
                         // what landed; the rest are still null and the next pass
                         // picks them up.
+                        // The endpoint's own words, not "something went wrong":
+                        // this is the only place a user can see why a run they
+                        // paid for stopped.
                         Log.w(TAG, "Batch failed, stopping the pass", error)
-                        runs.finish(runId, ClassificationStatus.FAILED, error.message)
+                        runs.finish(
+                            runId,
+                            ClassificationStatus.FAILED,
+                            error.message?.take(300) ?: error::class.simpleName,
+                        )
                         return runId
                     }
 
