@@ -30,6 +30,8 @@ import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Label
+import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,7 +101,12 @@ import dev.achmad.finbox.features.transaction.detail.TransactionDetailScreen
 import kotlin.collections.get
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.annotation.StringRes
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import dev.achmad.data.model.TransactionCategory
+import dev.achmad.finbox.features.transaction.detail.CategoryPickerDialog
 import dev.achmad.finbox.R
 
 /** How far the month labels drift over a full swipe. */
@@ -126,6 +133,7 @@ object TransactionsScreen : Screen {
         val accounts by model.accounts.collectAsState()
         val parsers by model.parsers.collectAsState()
         val parserUpdates by model.parserUpdates.collectAsState()
+        val selected by model.selected.collectAsState()
 
         TransactionsScreenContent(
             use24Hour = rememberUse24HourClock(),
@@ -142,6 +150,11 @@ object TransactionsScreen : Screen {
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
             onOpenTransaction = { navigator.push(TransactionDetailScreen(it.id)) },
+            selected = selected,
+            onToggleSelection = model::toggleSelection,
+            onSelectAll = model::selectAll,
+            onClearSelection = model::clearSelection,
+            onSetCategory = model::setCategory,
             onOpenAccounts = { navigator.push(AccountsScreen) },
             onOpenParsers = { navigator.push(ParsersScreen) },
             onOpenSettings = { navigator.push(SettingsScreen) },
@@ -171,9 +184,31 @@ fun TransactionsScreenContent(
     onOpenAccounts: () -> Unit,
     onOpenParsers: () -> Unit,
     onOpenSettings: () -> Unit,
+    /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
+    selected: Set<String> = emptySet(),
+    onToggleSelection: (String) -> Unit = {},
+    onSelectAll: (Collection<String>) -> Unit = {},
+    onClearSelection: () -> Unit = {},
+    onSetCategory: (TransactionCategory) -> Unit = {},
 ) {
     var showFilterBottomSheet by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
+
+    // Back leaves the selection before it leaves the screen, the platform
+    // convention everywhere else a list does this.
+    BackHandler(enabled = selected.isNotEmpty(), onBack = onClearSelection)
+
+    if (showCategoryPicker) {
+        CategoryPickerDialog(
+            selected = null,
+            onDismiss = { showCategoryPicker = false },
+            onSelect = { category -> category?.let(onSetCategory) },
+            // Bulk-clearing a category is not a thing anyone asked for, and it
+            // would read as "delete" next to a list of real categories.
+            includeUncategorized = false,
+        )
+    }
 
     // Keyed on the method alone, not on the parser it was parsed by: a parser id carries the
     // parser's version, so rows written by an older build would otherwise lose their name.
@@ -212,6 +247,14 @@ fun TransactionsScreenContent(
 
     Scaffold(
         topBar = {
+            if (selected.isNotEmpty()) {
+                SelectionAppBar(
+                    count = selected.size,
+                    onSelectAll = { onSelectAll(monthly[month].orEmpty().map { it.id }) },
+                    onSetCategory = { showCategoryPicker = true },
+                    onClear = onClearSelection,
+                )
+            } else {
             AppBar(
                 modifier = Modifier.dropShadow(RectangleShape, Shadow(2.dp)),
                 title = stringResource(R.string.transactions),
@@ -241,6 +284,7 @@ fun TransactionsScreenContent(
                     ),
                 ),
             )
+            }
         }
     ) { contentPadding ->
         // Seeded from the current load, not from `true`: the model outlives a trip to another
@@ -362,6 +406,8 @@ fun TransactionsScreenContent(
                         methodNames = methodNames,
                         parserNames = parserNames,
                         onOpenTransaction = onOpenTransaction,
+                        selected = selected,
+                        onToggleSelection = onToggleSelection,
                     )
                 }
             }
@@ -378,6 +424,8 @@ private fun MonthPage(
     methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
+    selected: Set<String>,
+    onToggleSelection: (String) -> Unit,
 ) {
     // Both directions, because a month is not only what left: pay lands here too,
     // and a total that ignored it would disagree with the rows under it.
@@ -417,8 +465,14 @@ private fun MonthPage(
         HorizontalDivider()
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
-            grouped -> TransactionList(use24Hour, transactions, methodNames, parserNames, onOpenTransaction)
-            else -> FlatTransactionList(use24Hour, transactions, methodNames, parserNames, onOpenTransaction)
+            grouped -> TransactionList(
+                use24Hour, transactions, methodNames, parserNames, onOpenTransaction,
+                selected, onToggleSelection,
+            )
+            else -> FlatTransactionList(
+                use24Hour, transactions, methodNames, parserNames, onOpenTransaction,
+                selected, onToggleSelection,
+            )
         }
     }
 }
@@ -573,6 +627,8 @@ private fun TransactionList(
     methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
+    selected: Set<String>,
+    onToggleSelection: (String) -> Unit,
 ) {
     // groupBy keeps encounter order, so the model's sort survives the grouping.
     val days = remember(transactions) { transactions.groupBy { toLocalDate(it.timestamp) } }
@@ -608,7 +664,16 @@ private fun TransactionList(
                         dayTransactions.forEachIndexed { index, transaction ->
                             val method = methodNames[transaction.method]
                             val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                            TransactionRow(use24Hour, transaction, method, parser) { onOpenTransaction(transaction) }
+                            TransactionRow(
+                                use24Hour = use24Hour,
+                                transaction = transaction,
+                                method = method,
+                                parser = parser,
+                                selected = transaction.id in selected,
+                                selecting = selected.isNotEmpty(),
+                                onClick = { onOpenTransaction(transaction) },
+                                onToggleSelection = { onToggleSelection(transaction.id) },
+                            )
                             if (index != dayTransactions.lastIndex) {
                                 HorizontalDivider()
                             }
@@ -628,6 +693,8 @@ private fun FlatTransactionList(
     methodNames: Map<String, String>,
     parserNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
+    selected: Set<String>,
+    onToggleSelection: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
     VerticalFastScroller(
@@ -645,9 +712,17 @@ private fun FlatTransactionList(
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
                     val method = methodNames[transaction.method]
                     val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
-                    TransactionRow(use24Hour, transaction, method, parser, showDay = true) {
-                        onOpenTransaction(transaction)
-                    }
+                    TransactionRow(
+                        use24Hour = use24Hour,
+                        transaction = transaction,
+                        method = method,
+                        parser = parser,
+                        selected = transaction.id in selected,
+                        selecting = selected.isNotEmpty(),
+                        showDay = true,
+                        onClick = { onOpenTransaction(transaction) },
+                        onToggleSelection = { onToggleSelection(transaction.id) },
+                    )
                     if (index != transactions.lastIndex) {
                         HorizontalDivider()
                     }
@@ -663,13 +738,27 @@ private fun TransactionRow(
     transaction: Transaction,
     method: String?,
     parser: String,
+    selected: Boolean = false,
+    /** Whether anything at all is selected: a tap then picks rather than opens. */
+    selecting: Boolean = false,
     showDay: Boolean = false,
     onClick: () -> Unit,
+    onToggleSelection: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = { if (selecting) onToggleSelection() else onClick() },
+                onLongClick = onToggleSelection,
+            )
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                } else {
+                    Color.Transparent
+                },
+            )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -687,6 +776,9 @@ private fun TransactionRow(
             )
             val subtitle = buildList {
                 add(parser)
+                // Small and quiet on purpose — this is a ledger, not a diff view.
+                // The detail screen is where it says when.
+                if (transaction.edited) add(stringResource(R.string.label_edited))
             }
             Text(
                 text = subtitle.joinToString(" • "),
@@ -711,6 +803,35 @@ private fun TransactionRow(
             )
         }
     }
+}
+
+/** The app bar while rows are picked: what is selected, and what can be done to it. */
+@Composable
+private fun SelectionAppBar(
+    count: Int,
+    onSelectAll: () -> Unit,
+    onSetCategory: () -> Unit,
+    onClear: () -> Unit,
+) {
+    AppBar(
+        modifier = Modifier.dropShadow(RectangleShape, Shadow(2.dp)),
+        title = pluralStringResource(R.plurals.transactions_selected, count, count),
+        // The back arrow drops the selection rather than the screen, which is
+        // what the same arrow does in every other list that works this way.
+        navigateUp = onClear,
+        actions = listOf(
+            AppBar.Action(
+                title = stringResource(R.string.action_select_all),
+                icon = Icons.Outlined.SelectAll,
+                onClick = onSelectAll,
+            ),
+            AppBar.Action(
+                title = stringResource(R.string.action_set_category),
+                icon = Icons.Outlined.Label,
+                onClick = onSetCategory,
+            ),
+        ),
+    )
 }
 
 @Composable

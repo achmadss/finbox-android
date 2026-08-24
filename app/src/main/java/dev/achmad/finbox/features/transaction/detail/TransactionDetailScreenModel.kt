@@ -3,6 +3,8 @@ package dev.achmad.finbox.features.transaction.detail
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.TransactionCategory
+import dev.achmad.data.model.signature
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.parser.TransactionMethod
@@ -41,6 +43,22 @@ class TransactionDetailScreenModel(
 
     fun save(edited: Transaction) {
         screenModelScope.launch { repository.update(edited) }
+    }
+
+    /**
+     * Rows a classifier would read identically to [transaction] and that are not
+     * already filed under its category.
+     *
+     * What the "apply to similar" offer counts. Rows already carrying the
+     * category are left out: offering to change forty when thirty-nine already
+     * agree names a number that means nothing.
+     */
+    suspend fun similarTo(transaction: Transaction): List<Transaction> =
+        repository.withSignature(transaction.signature(), excludingId = transaction.id)
+            .filter { it.category != transaction.category }
+
+    fun applyCategoryTo(ids: List<String>, category: TransactionCategory) {
+        screenModelScope.launch { repository.setCategoryByUser(ids, category) }
     }
 
     fun delete() {

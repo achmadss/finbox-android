@@ -46,6 +46,10 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.CategorySource
+import dev.achmad.data.model.TransactionCategory
+import dev.achmad.data.model.signature
+import dev.achmad.finbox.features.transaction.categoryLabel
+import dev.achmad.finbox.features.transaction.pickableCategories
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
@@ -54,12 +58,15 @@ import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
@@ -91,6 +98,9 @@ data class TransactionEditScreen(private val id: String) : Screen {
             }
         }
 
+        val scope = rememberCoroutineScope()
+        var offer by remember { mutableStateOf<SimilarCategoryOffer?>(null) }
+
         TransactionEditScreenContent(
             draft = draft,
             methods = methods,
@@ -98,11 +108,72 @@ data class TransactionEditScreen(private val id: String) : Screen {
             // What is on screen against what is stored: the only thing worth warning about.
             dirty = draft != null && draft != transaction?.toDraft(),
             onDraftChange = { draft = it },
-            onSave = { edited -> transaction?.let { model.save(edited.applyTo(it)) } },
+            onSave = { edited ->
+                transaction?.let { current ->
+                    val updated = edited.applyTo(current)
+                    model.save(updated)
+                    val category = updated.category
+                    // Filing this row is only half of it. The cache carries the
+                    // decision forward to rows parsed later, and nothing carries
+                    // it back, so the rows already sitting there get asked about.
+                    if (category != null && category != current.category) {
+                        scope.launch {
+                            val similar = model.similarTo(updated)
+                            if (similar.isEmpty()) {
+                                navigator.pop()
+                            } else {
+                                offer = SimilarCategoryOffer(category, similar.map { it.id })
+                            }
+                        }
+                    } else {
+                        navigator.pop()
+                    }
+                }
+            },
             onLeave = navigator::pop,
         )
+
+        offer?.let { pending ->
+            // Leaves either way: the edit is already saved, and this is an offer
+            // about other rows rather than a step in saving this one.
+            val leave: () -> Unit = {
+                offer = null
+                navigator.pop()
+            }
+            AlertDialog(
+                onDismissRequest = leave,
+                title = { Text(stringResource(R.string.apply_to_similar_title)) },
+                text = {
+                    Text(
+                        pluralStringResource(
+                            R.plurals.apply_to_similar_message,
+                            pending.ids.size,
+                            pending.ids.size,
+                            categoryLabel(pending.category),
+                        ),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            model.applyCategoryTo(pending.ids, pending.category)
+                            leave()
+                        },
+                    ) { Text(stringResource(R.string.action_apply_to_similar)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = leave) { Text(stringResource(R.string.action_only_this_one)) }
+                },
+            )
+        }
     }
 }
+
+/** A saved category change, and the rows it could be carried back to. */
+private data class SimilarCategoryOffer(
+    val category: TransactionCategory,
+    val ids: List<String>,
+)
 
 /** Null [draft] is the first read still running. */
 @Composable
@@ -131,10 +202,7 @@ internal fun TransactionEditScreenContent(
                         AppBar.Action(
                             title = stringResource(R.string.action_save),
                             icon = Icons.Outlined.Check,
-                            onClick = {
-                                onSave(it)
-                                onLeave()
-                            },
+                            onClick = { onSave(it) },
                         )
                     },
                 ),
@@ -192,6 +260,7 @@ private fun TransactionEditor(
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
     var pickMethod by remember { mutableStateOf(false) }
+    var pickCategory by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -238,12 +307,11 @@ private fun TransactionEditor(
             modifier = Modifier.fillMaxWidth(),
             onClick = { pickMethod = true },
         )
-        OutlinedTextField(
-            value = draft.category,
-            onValueChange = { onChange(draft.copy(category = it)) },
-            label = { Text(stringResource(R.string.category)) },
-            singleLine = true,
+        PickerField(
+            label = stringResource(R.string.category),
+            value = categoryLabel(draft.category),
             modifier = Modifier.fillMaxWidth(),
+            onClick = { pickCategory = true },
         )
         OutlinedTextField(
             value = draft.description,
@@ -285,6 +353,66 @@ private fun TransactionEditor(
             onSelect = { onChange(draft.copy(method = it)) },
         )
     }
+
+    if (pickCategory) {
+        CategoryPickerDialog(
+            selected = draft.category,
+            onDismiss = { pickCategory = false },
+            onSelect = { onChange(draft.copy(category = it)) },
+        )
+    }
+}
+
+/**
+ * The app's categories, plus Uncategorized.
+ *
+ * Uncategorized is not a way of saying "none of these": it clears the row back
+ * to unprocessed, which is what hands it to the next classify pass. UNKNOWN is
+ * missing on purpose — code assigns that after looking, and nobody should be
+ * able to claim it by hand.
+ */
+@Composable
+internal fun CategoryPickerDialog(
+    selected: TransactionCategory?,
+    onDismiss: () -> Unit,
+    onSelect: (TransactionCategory?) -> Unit,
+    /** Off where clearing makes no sense, such as filing a selection. */
+    includeUncategorized: Boolean = true,
+) {
+    val options = if (includeUncategorized) {
+        listOf<TransactionCategory?>(null) + pickableCategories
+    } else {
+        pickableCategories
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.category)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                options.forEach { category ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelect(category)
+                                onDismiss()
+                            }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = category == selected, onClick = null)
+                        Text(
+                            text = categoryLabel(category),
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 /** A read-only value that opens a picker. Weighted, so a pair of them share a row. */
@@ -439,7 +567,7 @@ internal data class Draft(
     val amount: String,
     val direction: TransactionDirection?,
     val method: String?,
-    val category: String,
+    val category: TransactionCategory?,
     val description: String,
     val merchant: String,
 )
@@ -449,7 +577,7 @@ internal fun Transaction.toDraft() = Draft(
     amount = amount?.toString().orEmpty(),
     direction = direction,
     method = method,
-    category = categoryName.orEmpty(),
+    category = category,
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
 )
@@ -458,15 +586,30 @@ internal fun Transaction.toDraft() = Draft(
  * Blank means "the parser found nothing", i.e. null — the same as an untouched row.
  * Fields the form does not offer keep whatever the row already holds.
  */
-internal fun Draft.applyTo(transaction: Transaction) = transaction.copy(
-    date = date,
-    amount = amount.trim().toLongOrNull(),
-    direction = direction,
-    method = method,
-    categoryName = category.blankToNull(),
-    description = description.blankToNull(),
-    merchant = merchant.blankToNull(),
-)
+internal fun Draft.applyTo(transaction: Transaction): Transaction {
+    val edited = transaction.copy(
+        date = date,
+        amount = amount.trim().toLongOrNull(),
+        direction = direction,
+        method = method,
+        description = description.blankToNull(),
+        merchant = merchant.blankToNull(),
+    )
+    return when {
+        // Filing it yourself makes it yours, and a classify pass then leaves it
+        // alone unless it is told outright to replace manual work.
+        category != transaction.category -> edited.copy(
+            categoryName = category?.name,
+            categorySource = category?.let { CategorySource.USER },
+        )
+        // The row was UNKNOWN for want of anything to classify with. If this
+        // edit supplied a merchant or a description, hand it back to the next
+        // pass rather than leaving it stuck on an answer that is now stale.
+        transaction.category == TransactionCategory.UNKNOWN && edited.signature().isComplete ->
+            edited.copy(categoryName = null, categorySource = null)
+        else -> edited
+    }
+}
 
 private fun String.blankToNull(): String? = trim().takeIf { it.isNotEmpty() }
 
@@ -487,7 +630,7 @@ private fun TransactionEditPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 method = "QRIS",
-                categoryName = "FOOD",
+                categoryName = TransactionCategory.FOOD.name,
                 categorySource = CategorySource.AI,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",

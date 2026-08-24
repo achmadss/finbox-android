@@ -42,7 +42,9 @@
 
     <!-- Shared labels -->
     <string name="label_added">Added</string>
+    <string name="label_updated">Updated</string>
     <string name="label_edited">Edited</string>
+    <string name="label_edited_by_you">Edited by you</string>
     <string name="label_enabled">Enabled</string>
     <string name="label_out">Out</string>
     <string name="label_in">In</string>
@@ -72,6 +74,9 @@
     <string name="action_previous_month">Previous month</string>
     <string name="action_next_month">Next month</string>
     <string name="action_jump_to_latest">Jump to latest</string>
+    <string name="action_select_all">Select all</string>
+    <string name="action_select_none">Clear selection</string>
+    <string name="action_set_category">Set category</string>
 
     <!-- Notifications -->
     <string name="transaction_update_channel">Transaction updates</string>
@@ -227,4 +232,37 @@
     <!-- Account info screen -->
     <string name="account_sync_summ">Read new transactions from this mailbox</string>
     <string name="account_no_parsers">No parsers installed. Install a parser first.</string>
+
+    <!-- Categories. What the money was for, the app's own vocabulary. -->
+    <string name="category_uncategorized">Uncategorized</string>
+    <string name="category_income">Income</string>
+    <string name="category_food">Food and drink</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_transportation">Transportation</string>
+    <string name="category_bills">Bills and utilities</string>
+    <string name="category_housing">Housing</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_health">Health</string>
+    <string name="category_education">Education</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_personal_care">Personal care</string>
+    <string name="category_financial">Savings and investments</string>
+    <string name="category_transfer">Transfer</string>
+    <string name="category_fees">Fees and charges</string>
+    <string name="category_other">Other</string>
+    <string name="category_unknown">Not enough information</string>
+
+    <!-- Selecting transactions -->
+    <plurals name="transactions_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="apply_to_similar_title">Apply to similar transactions?</string>
+    <plurals name="apply_to_similar_message">
+        <item quantity="one">%1$d other transaction reads the same. File it under %2$s too?</item>
+        <item quantity="other">%1$d other transactions read the same. File them under %2$s too?</item>
+    </plurals>
+    <string name="action_apply_to_similar">Apply to all</string>
+    <string name="action_only_this_one">Only this one</string>
 </resources>

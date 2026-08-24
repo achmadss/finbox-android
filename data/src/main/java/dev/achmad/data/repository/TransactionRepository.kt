@@ -154,6 +154,22 @@ class TransactionRepository(
     }
 
     /**
+     * Other rows a classifier would read exactly as it reads this one.
+     *
+     * The cache only reaches rows classified after an answer existed, so
+     * correcting one INDOMARET row leaves the other thirty-nine wrong. This is
+     * what the offer to apply a correction backwards is counted from.
+     */
+    suspend fun withSignature(
+        signature: Signature,
+        excludingId: String,
+    ): List<Transaction> = withContext(Dispatchers.IO) {
+        db.transactionQueries.SELECTAll().executeAsList()
+            .map { it.toModel() }
+            .filter { it.id != excludingId && it.signature() == signature }
+    }
+
+    /**
      * Every signature somebody has already answered, best answer first.
      *
      * The cache is the transactions table — a signature that has been

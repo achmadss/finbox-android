@@ -35,6 +35,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.CategorySource
+import dev.achmad.data.model.TransactionCategory
+import dev.achmad.finbox.features.transaction.categoryLabel
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
@@ -176,12 +178,18 @@ private fun TransactionView(
     // The parser's own word for the method, falling back to the stored key when its
     // parser is gone or dropped it.
     Field(stringResource(R.string.method), methods.nameOf(transaction.method) ?: transaction.method)
-    Field(stringResource(R.string.category), transaction.categoryName)
+    Field(stringResource(R.string.category), categoryLabel(transaction.category))
     Field(stringResource(R.string.description), transaction.description)
     Field(stringResource(R.string.merchant), transaction.merchant)
     HorizontalDivider()
     Field(stringResource(R.string.label_added), formatDate(transaction.createdAt, use24Hour))
-    Field(stringResource(R.string.label_edited), formatDate(transaction.updatedAt, use24Hour))
+    Field(stringResource(R.string.label_updated), formatDate(transaction.updatedAt, use24Hour))
+    // Only when there is one. Updated says when anything last wrote to the row,
+    // a re-parse included; this says the user did it, which is what makes the
+    // row survive the next one.
+    transaction.editedAt?.let {
+        Field(stringResource(R.string.label_edited_by_you), formatDate(it, use24Hour))
+    }
 }
 
 /** One read-only row. An empty value still shows, so the shape of the record is visible. */
@@ -214,7 +222,7 @@ private fun TransactionDetailPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 method = "QRIS",
-                categoryName = "FOOD",
+                categoryName = TransactionCategory.FOOD.name,
                 categorySource = CategorySource.AI,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",

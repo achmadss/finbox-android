@@ -112,6 +112,45 @@ class TransactionRepositoryTest {
     }
 
     @Test
+    fun `filing a selection by hand writes every row in it and nothing else`() = runBlocking {
+        repository.upsertAll(
+            listOf(
+                transaction(index = 0, merchant = "Indomaret"),
+                transaction(index = 1, merchant = "Alfamart"),
+                transaction(index = 2, merchant = "Kopi Kenangan"),
+            ),
+        )
+        val all = repository.all().sortedBy { it.id }
+
+        repository.setCategoryByUser(all.take(2).map { it.id }, TransactionCategory.GROCERIES)
+
+        val stored = repository.all().sortedBy { it.id }
+        assertEquals(TransactionCategory.GROCERIES, stored[0].category)
+        assertEquals(TransactionCategory.GROCERIES, stored[1].category)
+        assertNull(stored[2].category)
+        assertNull(stored[2].editedAt)
+    }
+
+    @Test
+    fun `matching rows are the ones a classifier would read identically`() = runBlocking {
+        repository.upsertAll(
+            listOf(
+                transaction(index = 0, merchant = "Indomaret", description = "Purchase"),
+                transaction(index = 1, merchant = " indomaret ", description = "PURCHASE"),
+                // Same merchant, different description: a classifier sees two
+                // different problems, so this one is not matched.
+                transaction(index = 2, merchant = "Indomaret", description = "Top up"),
+                transaction(index = 3, merchant = "Alfamart", description = "Purchase"),
+            ),
+        )
+        val rows = repository.all().sortedBy { it.id }
+
+        val matching = repository.withSignature(rows[0].signature(), excludingId = rows[0].id)
+
+        assertEquals(listOf(rows[1].id), matching.map { it.id })
+    }
+
+    @Test
     fun `an UNKNOWN row never becomes a cached answer`() = runBlocking {
         repository.upsertAll(listOf(transaction(merchant = null, description = null)))
         val id = repository.all().single().id

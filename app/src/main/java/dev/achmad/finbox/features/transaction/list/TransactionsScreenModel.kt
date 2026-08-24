@@ -4,6 +4,7 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
@@ -70,7 +71,7 @@ internal fun monthRange(
 }
 
 class TransactionsScreenModel(
-    transactionRepository: TransactionRepository = inject(),
+    private val transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
     private val parserManager: ParserManager = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject()
@@ -148,5 +149,40 @@ class TransactionsScreenModel(
 
     fun resetFilter() {
         _filter.value = TransactionFilter()
+    }
+
+    private val _selected = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * The rows a bulk action would touch. Empty means the list is in its normal
+     * state — there is no separate "selection mode" flag to keep in step with it.
+     */
+    val selected: StateFlow<Set<String>> = _selected.asStateFlow()
+
+    fun toggleSelection(id: String) {
+        _selected.value = _selected.value.let { if (id in it) it - id else it + id }
+    }
+
+    /** Everything currently on screen, which is one month and whatever the filter kept. */
+    fun selectAll(ids: Collection<String>) {
+        _selected.value = _selected.value + ids
+    }
+
+    fun clearSelection() {
+        _selected.value = emptySet()
+    }
+
+    /**
+     * Files the selection by hand and drops it.
+     *
+     * Clearing the selection afterwards is the point of the action being over,
+     * and leaving it up invites a second bulk write on rows the user has stopped
+     * looking at.
+     */
+    fun setCategory(category: TransactionCategory) {
+        val ids = _selected.value
+        if (ids.isEmpty()) return
+        _selected.value = emptySet()
+        screenModelScope.launch { transactionRepository.setCategoryByUser(ids, category) }
     }
 }
