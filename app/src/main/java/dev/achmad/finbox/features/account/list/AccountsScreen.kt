@@ -58,7 +58,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewAccount
 import dev.achmad.finbox.R
 
 object AccountsScreen : Screen {
@@ -281,12 +280,28 @@ private fun AccountsScreenPreview() {
     AppTheme {
         AccountsScreenContent(
             rows = listOf(
-                AccountRow(previewAccount(), parserCount = 3),
                 AccountRow(
-                    previewAccount(
+                    EmailAccount(
+                        id = "preview",
+                        email = "someone@example.com",
+                        displayName = "Someone",
+                        authTokenRef = null,
+                        enabled = true,
+                        createdAt = 1_700_000_000_000L,
+                        updatedAt = 1_700_000_000_000L,
+                        lastSyncAt = 1_700_000_000_000L,
+                    ),
+                    parserCount = 3,
+                ),
+                AccountRow(
+                    EmailAccount(
                         id = "second",
                         email = "other@example.com",
+                        displayName = null,
+                        authTokenRef = null,
                         enabled = false,
+                        createdAt = 1_700_000_000_000L,
+                        updatedAt = 1_700_000_000_000L,
                         lastSyncAt = null,
                     ),
                     parserCount = 0,

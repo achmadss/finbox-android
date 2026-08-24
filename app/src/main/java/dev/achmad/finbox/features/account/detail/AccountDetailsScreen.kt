@@ -48,7 +48,6 @@ import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewAccount
 import dev.achmad.finbox.R
 
 data class AccountDetailsScreen(private val id: String) : Screen {
@@ -271,7 +270,16 @@ private fun SwitchRow(
 private fun AccountDetailsPreview() {
     AppTheme {
         AccountDetailsScreenContent(
-            account = previewAccount(),
+            account = EmailAccount(
+                id = "preview",
+                email = "someone@example.com",
+                displayName = "Someone",
+                authTokenRef = null,
+                enabled = true,
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+                lastSyncAt = 1_700_000_000_000L,
+            ),
             parsers = listOf(
                 ParserToggle(1L, "Jago", enabled = true),
                 ParserToggle(2L, "BRI", enabled = false),

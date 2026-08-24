@@ -79,8 +79,6 @@ import dev.achmad.finbox.features.account.list.AccountsScreen
 import dev.achmad.finbox.features.parser.list.ParsersScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.PREVIEW_TIMESTAMP
-import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.theme.components.MonthYearPickerSheet
 import dev.achmad.finbox.theme.components.VerticalFastScroller
@@ -760,24 +758,48 @@ internal val TransactionDirection.labelRes: Int
 @Composable
 private fun TransactionsScreenPreview() {
     val month = YearMonth.of(2023, 11)
-    val day = PREVIEW_TIMESTAMP
-    val dayBefore = PREVIEW_TIMESTAMP - 86_400_000L
+    val day = 1_700_000_000_000L
+    val dayBefore = day - 86_400_000L
+    fun sample(
+        index: Int,
+        amount: Long,
+        merchant: String,
+        at: Long,
+        direction: TransactionDirection = TransactionDirection.OUTGOING,
+    ) = Transaction(
+        accountId = "preview",
+        parserId = 1L,
+        emailMessageId = "message-$index",
+        index = index,
+        threadId = null,
+        reference = null,
+        date = at,
+        amount = amount,
+        currency = "IDR",
+        direction = direction,
+        type = null,
+        category = null,
+        description = merchant,
+        merchant = merchant,
+        createdAt = at,
+        updatedAt = at,
+        deleted = false,
+    )
     AppTheme {
         TransactionsScreenContent(
             use24Hour = true,
             monthly = mapOf(
                 month to listOf(
-                    previewTransaction(index = 1, amount = 24_000, description = "Kopi Kenangan", merchant = "Kopi Kenangan", date = day),
-                    previewTransaction(index = 2, amount = 315_000, description = "Tokopedia", merchant = "Tokopedia", date = day),
-                    previewTransaction(
+                    sample(index = 1, amount = 24_000, merchant = "Kopi Kenangan", at = day),
+                    sample(index = 2, amount = 315_000, merchant = "Tokopedia", at = day),
+                    sample(
                         index = 3,
                         amount = 12_500_000,
-                        direction = TransactionDirection.INCOMING,
-                        description = "Payroll",
                         merchant = "Payroll",
-                        date = dayBefore,
+                        at = dayBefore,
+                        direction = TransactionDirection.INCOMING,
                     ),
-                    previewTransaction(index = 4, amount = 1_000_000, description = "Transfer to savings", merchant = "Savings", date = dayBefore),
+                    sample(index = 4, amount = 1_000_000, merchant = "Transfer to savings", at = dayBefore),
                 ),
             ),
             months = listOf(month.minusMonths(1), month),

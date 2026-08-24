@@ -64,8 +64,7 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewAvailableParser
-import dev.achmad.finbox.util.preview.previewInstalledParser
+import dev.achmad.data.model.InstalledParser
 import dev.achmad.finbox.R
 
 object ParsersScreen : Screen {
@@ -435,21 +434,63 @@ private fun ParsersScreenPreview() {
                 isLoading = false,
                 updates = listOf(
                     ParserUiModel.Installed(
-                        parser = previewInstalledParser(),
-                        update = previewAvailableParser(pkg = "dev.achmad.parser.jago", name = "Jago"),
+                        parser = InstalledParser(
+                            pkg = "dev.achmad.parser.jago",
+                            provider = "Bank Jago",
+                            name = "Jago",
+                            file = "/data/parsers/jago.apk",
+                            versionCode = 3,
+                            versionName = "1.2.0",
+                            libVersion = "1.0",
+                            sha256 = "0".repeat(64),
+                            parserIds = listOf(1L),
+                            enabled = true,
+                        ),
+                        update = AvailableParser(
+                            name = "Jago",
+                            provider = "Bank Jago",
+                            pkg = "dev.achmad.parser.jago",
+                            versionCode = 4,
+                            versionName = "1.3.0",
+                            libVersion = 1.0,
+                            apkUrl = "https://example.com/jago.apk",
+                            sha256 = "0".repeat(64),
+                            iconUrl = null,
+                        ),
                         installStep = InstallStep.Idle,
                     ),
                 ),
                 installed = listOf(
                     ParserUiModel.Installed(
-                        parser = previewInstalledParser(pkg = "dev.achmad.parser.bni", name = "BNI"),
+                        parser = InstalledParser(
+                            pkg = "dev.achmad.parser.bni",
+                            provider = "Bank BNI",
+                            name = "BNI",
+                            file = "/data/parsers/bni.apk",
+                            versionCode = 2,
+                            versionName = "1.0.1",
+                            libVersion = "1.0",
+                            sha256 = "0".repeat(64),
+                            parserIds = listOf(2L),
+                            enabled = true,
+                        ),
                         update = null,
                         installStep = InstallStep.Idle,
                     ),
                 ),
                 available = listOf(
                     ParserUiModel.Available(
-                        parser = previewAvailableParser(),
+                        parser = AvailableParser(
+                            name = "BRI",
+                            provider = "Bank BRI",
+                            pkg = "dev.achmad.parser.bri",
+                            versionCode = 5,
+                            versionName = "2.0.0",
+                            libVersion = 1.0,
+                            apkUrl = "https://example.com/bri.apk",
+                            sha256 = "0".repeat(64),
+                            iconUrl = null,
+                        ),
                         installStep = InstallStep.Idle,
                     ),
                 ),

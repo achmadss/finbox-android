@@ -54,7 +54,7 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewInstalledParser
+import dev.achmad.data.model.InstalledParser
 import dev.achmad.finbox.R
 import dev.achmad.finbox.features.parser.list.labelRes
 
@@ -314,7 +314,18 @@ private fun ParserDetailPreview() {
         ParserDetailScreenContent(
             state = ParserDetailScreenModel.State(
                 parser = ParserUiModel.Installed(
-                    parser = previewInstalledParser(),
+                    parser = InstalledParser(
+                        pkg = "dev.achmad.parser.jago",
+                        provider = "Bank Jago",
+                        name = "Jago",
+                        file = "/data/parsers/jago.apk",
+                        versionCode = 3,
+                        versionName = "1.2.0",
+                        libVersion = "1.0",
+                        sha256 = "0".repeat(64),
+                        parserIds = listOf(1L),
+                        enabled = true,
+                    ),
                     update = null,
                     installStep = InstallStep.Idle,
                 ),

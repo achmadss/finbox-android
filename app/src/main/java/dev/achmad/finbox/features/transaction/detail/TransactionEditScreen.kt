@@ -62,7 +62,6 @@ import java.time.ZoneOffset
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.R
 
 /**
@@ -475,7 +474,25 @@ private fun String.blankToNull(): String? = trim().takeIf { it.isNotEmpty() }
 private fun TransactionEditPreview() {
     AppTheme {
         TransactionEditScreenContent(
-            draft = previewTransaction().toDraft(),
+            draft = Transaction(
+                accountId = "preview",
+                parserId = 1L,
+                emailMessageId = "message-1",
+                index = 0,
+                threadId = null,
+                reference = "REF1",
+                date = 1_700_000_000_000L,
+                amount = 125_000,
+                currency = "IDR",
+                direction = TransactionDirection.OUTGOING,
+                type = "QRIS",
+                category = "Food",
+                description = "Coffee and a croissant",
+                merchant = "Kopi Kenangan",
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+                deleted = false,
+            ).toDraft(),
             types = emptyList(),
             use24Hour = true,
         )

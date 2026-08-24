@@ -35,6 +35,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
 import dev.achmad.finbox.parser.TransactionType
 import dev.achmad.finbox.theme.components.AppBar
@@ -44,7 +45,6 @@ import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
-import dev.achmad.finbox.util.preview.previewTransaction
 import dev.achmad.finbox.R
 
 data class TransactionDetailScreen(private val id: String) : Screen {
@@ -201,7 +201,25 @@ private fun Field(label: String, value: String?) {
 private fun TransactionDetailPreview() {
     AppTheme {
         TransactionDetailScreenContent(
-            transaction = previewTransaction(),
+            transaction = Transaction(
+                accountId = "preview",
+                parserId = 1L,
+                emailMessageId = "message-1",
+                index = 0,
+                threadId = null,
+                reference = "REF1",
+                date = 1_700_000_000_000L,
+                amount = 125_000,
+                currency = "IDR",
+                direction = TransactionDirection.OUTGOING,
+                type = "QRIS",
+                category = "Food",
+                description = "Coffee and a croissant",
+                merchant = "Kopi Kenangan",
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+                deleted = false,
+            ),
             types = emptyList(),
             use24Hour = true,
         )
