@@ -323,6 +323,14 @@
     <string name="categorize_scope_uncategorized">Uncategorized</string>
     <string name="categorize_scope_selection">Selected</string>
     <string name="categorize_scope_all">Everything</string>
+    <string name="run_detail_title">Run</string>
+    <string name="run_detail_summary">%1$d transactions · %2$d asked · %3$d from cache · %4$d never sent</string>
+    <string name="run_detail_empty">This run recorded nothing.</string>
+    <string name="run_detail_group">%1$s · %2$d</string>
+    <string name="run_detail_no_text">No merchant or note</string>
+    <string name="run_detail_origin_asked">asked the model</string>
+    <string name="run_detail_origin_cached">from an earlier answer</string>
+    <string name="run_detail_origin_no_input">nothing to send</string>
 
     <!-- Onboarding: the optional AI step -->
     <string name="onboarding_ai_title">Categorize automatically</string>

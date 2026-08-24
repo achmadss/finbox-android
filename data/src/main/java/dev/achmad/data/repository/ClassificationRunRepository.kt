@@ -2,11 +2,16 @@ package dev.achmad.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import dev.achmad.data.db.Classification_result
 import dev.achmad.data.db.Classification_run
 import dev.achmad.data.db.FinboxDatabase
+import dev.achmad.data.model.ClassificationOrigin
+import dev.achmad.data.model.ClassificationResult
 import dev.achmad.data.model.ClassificationRun
 import dev.achmad.data.model.ClassificationScope
 import dev.achmad.data.model.ClassificationStatus
+import dev.achmad.data.model.TransactionCategory
+import dev.achmad.data.model.TransactionDirection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,6 +30,38 @@ class ClassificationRunRepository(
 
     suspend fun getById(id: Long): ClassificationRun? = withContext(Dispatchers.IO) {
         db.classificationRunQueries.SELECTRunById(id).executeAsOneOrNull()?.toModel()
+    }
+
+    /** Every decision one run made, as it was made. */
+    fun results(runId: Long): Flow<List<ClassificationResult>> =
+        db.classificationResultQueries.SELECTResults(runId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows -> rows.map { it.toModel() } }
+
+    /**
+     * Records what a batch decided.
+     *
+     * One database transaction for the whole batch: a pass writes a few hundred
+     * of these and a round trip each would show up next to the request itself.
+     */
+    suspend fun recordResults(results: List<ClassificationResult>) = withContext(Dispatchers.IO) {
+        db.transaction {
+            results.forEach {
+                db.classificationResultQueries.INSERTResult(
+                    run_id = it.runId,
+                    transaction_id = it.transactionId,
+                    merchant = it.merchant,
+                    description = it.description,
+                    method = it.method,
+                    direction = it.direction?.name,
+                    amount = it.amount,
+                    date = it.date,
+                    category = it.categoryName,
+                    origin = it.origin.name,
+                )
+            }
+        }
     }
 
     suspend fun start(
@@ -102,9 +139,25 @@ class ClassificationRunRepository(
     }
 
     suspend fun clear() = withContext(Dispatchers.IO) {
-        db.classificationRunQueries.DELETEAllRuns()
-        Unit
+        db.transaction {
+            db.classificationResultQueries.DELETEAllResults()
+            db.classificationRunQueries.DELETEAllRuns()
+        }
     }
+
+    private fun Classification_result.toModel() = ClassificationResult(
+        runId = run_id,
+        transactionId = transaction_id,
+        merchant = merchant,
+        description = description,
+        method = method,
+        direction = direction?.let { name -> TransactionDirection.entries.firstOrNull { it.name == name } },
+        amount = amount,
+        date = date,
+        category = TransactionCategory.fromStringOrNull(category),
+        categoryName = category,
+        origin = ClassificationOrigin.fromStringOrNull(origin) ?: ClassificationOrigin.ASKED,
+    )
 
     private fun Classification_run.toModel() = ClassificationRun(
         id = id,

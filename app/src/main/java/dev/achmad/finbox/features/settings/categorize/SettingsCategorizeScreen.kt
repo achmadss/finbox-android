@@ -1,5 +1,6 @@
 package dev.achmad.finbox.features.settings.categorize
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -170,7 +171,7 @@ object SettingsCategorizeScreen : Screen {
                     }
                 }
                 items(runs, key = { it.id }) { run ->
-                    RunRow(run, use24Hour)
+                    RunRow(run, use24Hour) { navigator.push(ClassificationRunScreen(run.id)) }
                     HorizontalDivider()
                 }
             }
@@ -206,9 +207,12 @@ object SettingsCategorizeScreen : Screen {
     }
 
     @Composable
-    private fun RunRow(run: ClassificationRun, use24Hour: Boolean) {
+    private fun RunRow(run: ClassificationRun, use24Hour: Boolean, onClick: () -> Unit) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(

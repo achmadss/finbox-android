@@ -1,0 +1,47 @@
+-- What a run decided, row by row.
+--
+-- The run table says a pass categorized 273 and left 114 unknown; this says
+-- which ones and off what text, which is the only way to tell a model that is
+-- reading receipts badly from receipts that genuinely do not say. Answers are
+-- paid for, so throwing them away and re-deriving them later is the one thing
+-- worth avoiding here.
+CREATE TABLE classification_result (
+    run_id INTEGER NOT NULL,
+    transaction_id TEXT NOT NULL,
+    -- What the classifier was shown, copied rather than joined back. A run is a
+    -- record of what happened, and a later re-parse rewriting the merchant must
+    -- not rewrite the evidence for a decision taken before it.
+    merchant TEXT,
+    description TEXT,
+    method TEXT,
+    direction TEXT,
+    -- Kept only so the list reads as transactions rather than as strings.
+    amount INTEGER,
+    date INTEGER,
+    -- The category name as answered, UNKNOWN included.
+    category TEXT NOT NULL,
+    -- ASKED, CACHED or NO_INPUT: whether this cost a request, came free from a
+    -- previous answer, or was never sent because there was no text to send.
+    origin TEXT NOT NULL,
+    PRIMARY KEY (run_id, transaction_id)
+);
+
+CREATE INDEX idx_classification_result_run ON classification_result(run_id);
+
+-- Grouped by what was decided: a wrong call is easiest to spot next to the
+-- other rows filed the same way.
+SELECTResults:
+SELECT * FROM classification_result
+WHERE run_id = :run_id
+ORDER BY category, merchant, description;
+
+INSERTResult:
+INSERT OR REPLACE INTO classification_result(
+    run_id, transaction_id, merchant, description, method, direction,
+    amount, date, category, origin
+)
+VALUES (:run_id, :transaction_id, :merchant, :description, :method, :direction,
+    :amount, :date, :category, :origin);
+
+DELETEAllResults:
+DELETE FROM classification_result;

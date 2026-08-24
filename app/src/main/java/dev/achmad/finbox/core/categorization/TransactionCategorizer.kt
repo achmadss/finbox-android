@@ -2,6 +2,8 @@ package dev.achmad.finbox.core.categorization
 
 import android.util.Log
 import dev.achmad.data.model.CategorySource
+import dev.achmad.data.model.ClassificationOrigin
+import dev.achmad.data.model.ClassificationResult
 import dev.achmad.data.model.ClassificationScope
 import dev.achmad.data.model.ClassificationStatus
 import dev.achmad.data.model.Signature
@@ -87,7 +89,7 @@ class TransactionCategorizer(
             val (sendable, empty) = groups.entries.partition { it.key.isComplete }
             var done = 0
             for (entry in empty) {
-                write(entry.value, TransactionCategory.UNKNOWN, source = null)
+                write(runId, entry.value, TransactionCategory.UNKNOWN, null, ClassificationOrigin.NO_INPUT)
                 runs.addProgress(runId, unknown = entry.value.size)
                 done++
             }
@@ -103,7 +105,7 @@ class TransactionCategorizer(
                 if (hit == null) {
                     remaining += entry
                 } else {
-                    write(entry.value, hit, CategorySource.USER)
+                    write(runId, entry.value, hit, CategorySource.USER, ClassificationOrigin.CACHED)
                     runs.addProgress(runId, signaturesCached = 1, categorized = entry.value.size)
                     done++
                     onProgress(Progress(done, groups.size))
@@ -147,7 +149,7 @@ class TransactionCategorizer(
                 for (entry in batch) {
                     val category = answers.categories[entry.key] ?: continue
                     val source = if (category == TransactionCategory.UNKNOWN) null else CategorySource.AI
-                    write(entry.value, category, source)
+                    write(runId, entry.value, category, source, ClassificationOrigin.ASKED)
                     if (category == TransactionCategory.UNKNOWN) {
                         unknown += entry.value.size
                     } else {
@@ -179,12 +181,38 @@ class TransactionCategorizer(
         return runId
     }
 
+    /**
+     * Files the rows, and keeps a copy of the decision.
+     *
+     * The record is written from the transaction as it stood when it was
+     * classified rather than read back later, so a re-parse afterwards cannot
+     * quietly change what the model is on the record as having seen.
+     */
     private suspend fun write(
+        runId: Long,
         rows: List<Transaction>,
         category: TransactionCategory,
         source: CategorySource?,
+        origin: ClassificationOrigin,
     ) {
         rows.forEach { transactions.setCategory(it.id, category, source) }
+        runs.recordResults(
+            rows.map { row ->
+                ClassificationResult(
+                    runId = runId,
+                    transactionId = row.id,
+                    merchant = row.merchant,
+                    description = row.description,
+                    method = row.method,
+                    direction = row.direction,
+                    amount = row.amount,
+                    date = row.date,
+                    category = category,
+                    categoryName = category.name,
+                    origin = origin,
+                )
+            },
+        )
     }
 
     /**
