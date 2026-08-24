@@ -1,6 +1,5 @@
 package dev.achmad.finbox.core.parser
 
-import android.content.Context
 import dev.achmad.finbox.core.preference.UpdatePreferences
 import dev.achmad.finbox.util.preference.PreferenceStore
 import java.util.concurrent.TimeUnit
@@ -13,7 +12,7 @@ import java.util.concurrent.TimeUnit
  * on when the app is in use, and the index is a single small file.
  */
 class ParserUpdateChecker(
-    private val context: Context,
+    private val notifier: ParserUpdateNotifier,
     private val manager: ParserManager,
     private val updatePreferences: UpdatePreferences,
     preferenceStore: PreferenceStore,
@@ -34,7 +33,6 @@ class ParserUpdateChecker(
         manager.reload()
 
         val pending = manager.pendingUpdates()
-        val notifier = ParserUpdateNotifier(context)
         if (pending.isEmpty()) notifier.dismiss() else notifier.promptUpdates(pending.map { it.name })
     }
 

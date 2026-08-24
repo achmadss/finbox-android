@@ -1,20 +1,18 @@
 package dev.achmad.finbox.features.settings
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.StringRes
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.backup.BACKUP_FILE_EXTENSION
-import dev.achmad.data.backup.FinboxBackup
+import dev.achmad.data.backup.BackupManager
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.util.koin.injectAndroidContext
 import dev.achmad.finbox.util.ui.ToastHelper
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,14 +23,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SettingsScreenModel : ScreenModel {
-
-    private val context: Context = injectAndroidContext()
-    private val backup = inject<FinboxBackup>()
-    private val csv = inject<CsvExport>()
-    private val accountRepository = inject<AccountRepository>()
-    private val appUpdateChecker = inject<AppUpdateChecker>()
-    private val toast = inject<ToastHelper>()
+class SettingsScreenModel(
+    private val backupManager: BackupManager = inject(),
+    private val csvExport: CsvExport = inject(),
+    private val accountRepository: AccountRepository = inject(),
+    private val appUpdateChecker: AppUpdateChecker = inject(),
+    private val toastHelper: ToastHelper = inject(),
+    private val transactionUpdateManager: TransactionUpdateManager = inject(),
+) : ScreenModel {
 
     /** The newest fetch across accounts — what "last fetched" means to the user. */
     val lastSync: StateFlow<Long?> = accountRepository.accounts()
@@ -48,28 +46,31 @@ class SettingsScreenModel : ScreenModel {
     fun csvFileName(): String = "finbox_${LocalDate.now()}.csv"
 
     fun createBackup(uri: Uri) = runExclusive(R.string.backup_created) {
-        context.contentResolver.openOutputStream(uri)?.use { backup.backupTo(it) }
-            ?: error("Could not open the file")
+        backupManager.backupTo(uri)
     }
 
     fun restoreBackup(uri: Uri) = runExclusive(R.string.backup_restored) {
-        context.contentResolver.openInputStream(uri)?.use { backup.restoreFrom(it) }
-            ?: error("Could not open the file")
+        backupManager.restoreFrom(uri)
     }
 
     fun exportCsv(uri: Uri) = runExclusive(R.string.transactions_exported) {
-        context.contentResolver.openOutputStream(uri)?.use { csv.exportTo(it) }
-            ?: error("Could not open the file")
+        csvExport.exportTo(uri)
     }
 
-    fun fetchNow(context: Context) {
-        screenModelScope.launch { TransactionUpdateJob.runNow(context) }
+    fun fetchNow() {
+        screenModelScope.launch { transactionUpdateManager.runNow() }
     }
 
     /** Hands stored mail to the current parsers again, in the background. */
-    fun reindexTransactions(context: Context) {
-        screenModelScope.launch { TransactionUpdateJob.reparseNow(context) }
+    fun reindexTransactions() {
+        screenModelScope.launch { transactionUpdateManager.reparseNow() }
     }
+
+    /**
+     * WorkManager replaces the job in place, so a new schedule or condition
+     * applies now instead of after the old period runs out.
+     */
+    fun rescheduleFetch() = transactionUpdateManager.schedule()
 
     /**
      * Forced, so neither the daily throttle nor the switch swallows it.
@@ -82,13 +83,13 @@ class SettingsScreenModel : ScreenModel {
             runCatching { appUpdateChecker.checkForUpdate(force = true) }
                 .onSuccess { update ->
                     when (update) {
-                        null -> toast.show(R.string.app_update_up_to_date)
-                        else -> toast.show(R.string.app_update_available, update.version)
+                        null -> toastHelper.show(R.string.app_update_up_to_date)
+                        else -> toastHelper.show(R.string.app_update_available, update.version)
                     }
                 }
                 .onFailure {
                     Log.e("Settings", "App update check failed", it)
-                    toast.show(R.string.app_update_check_failed)
+                    toastHelper.show(R.string.app_update_check_failed)
                 }
         }
     }
@@ -99,10 +100,10 @@ class SettingsScreenModel : ScreenModel {
         _busy.value = true
         screenModelScope.launch {
             runCatching { block() }
-                .onSuccess { toast.show(success) }
+                .onSuccess { toastHelper.show(success) }
                 .onFailure {
                     Log.e("Settings", "File operation failed", it)
-                    toast.show(R.string.error_generic)
+                    toastHelper.show(R.string.error_generic)
                 }
             _busy.value = false
         }

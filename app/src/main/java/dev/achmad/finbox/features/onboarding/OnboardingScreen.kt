@@ -35,6 +35,8 @@ import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingInstallParsersContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingNotificationPermissionContent
 import dev.achmad.finbox.util.koin.injectLazy
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import dev.achmad.finbox.util.permission.rememberNotificationPermissionState
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import soup.compose.material.motion.animation.materialSharedAxisX
@@ -57,7 +59,7 @@ object OnboardingScreen: Screen {
             if (state is OnboardingScreenModel.State.Done) navigator.replace(TransactionsScreen)
         }
 
-        OnboardingScreen(
+        OnboardingScreenContent(
             state = state,
             authorizationIntent = screenModel::authorizationIntent,
             onSignInStarted = screenModel::onSignInStarted,
@@ -69,8 +71,9 @@ object OnboardingScreen: Screen {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun OnboardingScreen(
+private fun OnboardingScreenContent(
     state: OnboardingScreenModel.State,
     authorizationIntent: () -> Intent,
     onSignInStarted: () -> Unit,
@@ -96,9 +99,9 @@ private fun OnboardingScreen(
     BackHandler { confirmExit = true }
 
     // The grant lands on the activity result, not on the button press.
-    LaunchedEffect(notificationPermission.isGranted.value, state) {
+    LaunchedEffect(notificationPermission.status.isGranted, state) {
         if (state is OnboardingScreenModel.State.NotificationPermission &&
-            notificationPermission.isGranted.value
+            notificationPermission.status.isGranted
         ) {
             onNotificationPromptSettled()
         }
@@ -155,7 +158,7 @@ private fun OnboardingScreen(
             }
             is OnboardingScreenModel.State.NotificationPermission -> {
                 OnboardingNotificationPermissionContent(
-                    onClickAllowNotification = { notificationPermission.requestPermission() },
+                    onClickAllowNotification = { notificationPermission.launchPermissionRequest() },
                     onSkipNotificationPermission = onNotificationPromptSettled,
                 )
             }

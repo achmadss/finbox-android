@@ -1,5 +1,7 @@
 package dev.achmad.data.export
 
+import android.content.Context
+import android.net.Uri
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.repository.TransactionRepository
 import java.io.OutputStream
@@ -9,13 +11,28 @@ import kotlinx.coroutines.withContext
 /**
  * The ledger as CSV, for a spreadsheet.
  *
- * Export only — restoring the app is [dev.achmad.data.backup.FinboxBackup]'s
+ * Export only — restoring the app is [dev.achmad.data.backup.BackupManager]'s
  * job, and a CSV can't carry the rest of the state.
  */
-class CsvExport(private val transactions: TransactionRepository) {
+class CsvExport(
+    private val context: Context,
+    private val transactions: TransactionRepository,
+) {
+
+    /**
+     * Writes every transaction to the document at [uri].
+     *
+     * Opening it lives here rather than at the call site: a screen that picked
+     * the document has no other reason to hold a Context.
+     */
+    suspend fun exportTo(uri: Uri) {
+        val out = context.contentResolver.openOutputStream(uri)
+            ?: error("Could not open the file")
+        out.use { exportTo(it) }
+    }
 
     /** Writes every transaction to [out]. Does not close it. */
-    suspend fun exportTo(out: OutputStream) = withContext(Dispatchers.IO) {
+    private suspend fun exportTo(out: OutputStream) = withContext(Dispatchers.IO) {
         out.bufferedWriter().apply {
             appendLine(row(HEADER))
             transactions.all()

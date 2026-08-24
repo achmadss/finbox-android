@@ -1,6 +1,5 @@
 package dev.achmad.finbox.features.transaction.list
 
-import android.content.Context
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
@@ -10,10 +9,9 @@ import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.LoadedParser
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.util.koin.injectAndroidContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -75,7 +73,7 @@ class TransactionsScreenModel(
     transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
     private val parserManager: ParserManager = inject(),
-    private val context: Context = injectAndroidContext()
+    private val transactionUpdateManager: TransactionUpdateManager = inject()
 ) : ScreenModel {
 
     /** Parsers currently loaded — what a transaction's `parserId` points at. */
@@ -137,7 +135,7 @@ class TransactionsScreenModel(
     /** The job outlives this screen; the app-wide banner reports how it goes. */
     fun refresh() {
         // Says so itself, with a toast, when another update is already running.
-        screenModelScope.launch { TransactionUpdateJob.runNow(context) }
+        screenModelScope.launch { transactionUpdateManager.runNow() }
     }
 
     fun setMonth(month: YearMonth) {

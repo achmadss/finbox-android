@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import android.content.Context
 import android.os.Build
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -14,15 +13,14 @@ import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
-import dev.achmad.finbox.util.permission.arePermissionsAllowed
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.util.koin.injectAndroidContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dev.achmad.finbox.core.preference.OnboardingPreference
+import dev.achmad.finbox.util.permission.PermissionHelper
 
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
@@ -30,7 +28,8 @@ class OnboardingScreenModel(
     private val parserManager: ParserManager = inject(),
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
-    private val context: Context = injectAndroidContext(),
+    private val transactionUpdateManager: TransactionUpdateManager = inject(),
+    private val permissionHelper: PermissionHelper = inject(),
 ): StateScreenModel<OnboardingScreenModel.State>(State.Resolving) {
     init {
         screenModelScope.launch {
@@ -138,7 +137,7 @@ class OnboardingScreenModel(
         preferences.onboardingComplete().set(true)
         // Nobody pressed refresh — this is the way out of onboarding, and a parser
         // install a moment earlier may still have its own re-read running.
-        TransactionUpdateJob.runNow(context, userInitiated = false)
+        transactionUpdateManager.runNow(userInitiated = false)
         mutableState.value = State.Done
     }
 
@@ -169,7 +168,7 @@ class OnboardingScreenModel(
     /** Granted, or already asked once and declined — either way, don't ask again. */
     private fun notificationSettled(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            context.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
+            permissionHelper.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
 
     /** The browser flow to launch for result; its outcome comes back as [onSignInResult]. */

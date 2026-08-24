@@ -1,51 +1,27 @@
 package dev.achmad.finbox.di
 
-import android.content.Context
-import dev.achmad.finbox.BuildConfig
-import dev.achmad.finbox.util.network.NetworkHelper
-import dev.achmad.finbox.util.preference.AndroidPreferenceStore
-import dev.achmad.finbox.util.preference.PreferenceStore
-import dev.achmad.finbox.util.ui.ToastHelper
 import dev.achmad.finbox.core.parser.ParserIndex
 import dev.achmad.finbox.core.parser.ParserInstaller
 import dev.achmad.finbox.core.preference.ParserTypePreference
 import dev.achmad.finbox.core.parser.ParserLoader
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.ParserUpdateChecker
+import dev.achmad.finbox.core.parser.ParserUpdateNotifier
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailAuthManagerImpl
 import dev.achmad.finbox.core.gmail.GmailTokenManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.core.update.transaction.TransactionUpdater
-import dev.achmad.finbox.core.preference.OnboardingPreference
-import dev.achmad.finbox.core.preference.SyncPreferences
-import dev.achmad.finbox.core.preference.UpdatePreferences
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
-import dev.achmad.finbox.core.preference.UiPreferences
-import okhttp3.OkHttpClient
+import androidx.work.WorkManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
-val appModule = module {
-    single<ToastHelper> { ToastHelper(context = androidContext()) }
-    single<OkHttpClient> { get<NetworkHelper>().client }
-    single<NetworkHelper> {
-        NetworkHelper(
-            context = androidContext(),
-            isDebugBuild = BuildConfig.DEBUG
-        )
-    }
-    single<PreferenceStore> {
-        AndroidPreferenceStore(
-            sharedPreferences = androidContext()
-                .getSharedPreferences(
-                    "app_pref",
-                    Context.MODE_PRIVATE
-                ),
-        )
-    }
+val coreModule = module {
     single<GmailTokenStore> { GmailTokenStore(context = androidContext()) }
     single<GmailTokenManager> {
         GmailTokenManager(
@@ -78,7 +54,7 @@ val appModule = module {
     single<ParserTypePreference> { ParserTypePreference(preferenceStore = get()) }
     single<ParserManager> {
         ParserManager(
-            context = androidContext(),
+            transactionUpdateManager = get(),
             loader = get(),
             installer = get(),
             index = get(),
@@ -86,9 +62,10 @@ val appModule = module {
             typePreference = get()
         )
     }
+    single<ParserUpdateNotifier> { ParserUpdateNotifier(context = androidContext()) }
     single<ParserUpdateChecker> {
         ParserUpdateChecker(
-            context = androidContext(),
+            notifier = get(),
             manager = get(),
             updatePreferences = get(),
             preferenceStore = get()
@@ -101,10 +78,6 @@ val appModule = module {
             preferences = get()
         )
     }
-    single<OnboardingPreference> { OnboardingPreference(preferenceStore = get()) }
-    single<UiPreferences> { UiPreferences(preferenceStore = get()) }
-    single<SyncPreferences> { SyncPreferences(preferenceStore = get()) }
-    single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
     single<TransactionUpdater> {
         TransactionUpdater(
             parsers = { get<ParserManager>().parsers },
@@ -116,4 +89,16 @@ val appModule = module {
             typePreference = get()
         )
     }
+
+    // One instance per process, as WorkManager itself is: the only place the
+    // application Context is needed to reach the scheduler.
+    single<WorkManager> { WorkManager.getInstance(androidContext()) }
+    single<TransactionUpdateManager> {
+        TransactionUpdateManager(
+            workManager = get(),
+            preferences = get(),
+            toastHelper = get()
+        )
+    }
+    single<TransactionUpdateStatus> { TransactionUpdateStatus(workManager = get()) }
 }

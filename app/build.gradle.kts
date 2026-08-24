@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.security.crypto)
     implementation(libs.appauth)
     implementation(libs.work.runtime.ktx)
+    implementation(libs.accompanist.permissions)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
     implementation(libs.serialization.json.okio)

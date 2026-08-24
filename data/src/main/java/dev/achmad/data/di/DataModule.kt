@@ -1,6 +1,6 @@
 package dev.achmad.data.di
 
-import dev.achmad.data.backup.FinboxBackup
+import dev.achmad.data.backup.BackupManager
 import dev.achmad.data.db.DatabaseFactory
 import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.export.CsvExport
@@ -23,8 +23,8 @@ val dataModule = module {
     single { TransactionRepository(get()) }
 
     /** Whole-app backup and restore, `.finboxbackup`. */
-    single { FinboxBackup(get(), get(), get(), get(), get()) }
+    single { BackupManager(androidContext(), get(), get(), get(), get(), get()) }
 
     /** The ledger as a spreadsheet. Export only. */
-    single { CsvExport(get()) }
+    single { CsvExport(androidContext(), get()) }
 }

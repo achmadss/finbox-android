@@ -1,9 +1,8 @@
 package dev.achmad.finbox.core.parser
 
-import android.content.Context
 import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.repository.InstalledParserRepository
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
@@ -36,7 +35,7 @@ import dev.achmad.finbox.core.preference.ParserTypePreference
  * - runs installs and updates ([install], [update])
  */
 class ParserManager(
-    private val context: Context,
+    private val transactionUpdateManager: TransactionUpdateManager,
     private val loader: ParserLoader,
     private val installer: ParserInstaller,
     private val index: ParserIndex,
@@ -155,7 +154,7 @@ class ParserManager(
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
         // The app asked, not the user: a request turned down here is not worth a toast.
-        TransactionUpdateJob.reparseNow(context, userInitiated = false)
+        transactionUpdateManager.reparseNow(userInitiated = false)
     }
 
     /** Installed parsers the index has a newer build of. */

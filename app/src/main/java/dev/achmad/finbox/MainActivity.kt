@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
     private val onboardingPreference: OnboardingPreference by injectLazy()
     private val parserUpdateChecker: ParserUpdateChecker by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
-    private val transactionUpdateStatus by lazy { TransactionUpdateStatus(applicationContext) }
+    private val transactionUpdateStatus: TransactionUpdateStatus by injectLazy()
 
     private var isReady = false
     private var initialScreen: Screen = TransactionsScreen

@@ -3,8 +3,12 @@ package dev.achmad.finbox
 import android.app.Application
 import android.util.Log
 import dev.achmad.data.di.dataModule
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
-import dev.achmad.finbox.di.appModule
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
+import dev.achmad.finbox.di.coreModule
+import dev.achmad.finbox.di.helperModule
+import dev.achmad.finbox.di.networkModule
+import dev.achmad.finbox.di.preferenceModule
+import dev.achmad.finbox.util.koin.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
@@ -29,11 +33,11 @@ class MainApplication: Application() {
                 }
             )
             androidContext(this@MainApplication)
-            modules(dataModule, appModule)
+            modules(coreModule, dataModule, helperModule, networkModule, preferenceModule)
         }
 
         // The fetch schedule is the app's, not a screen's: it has to exist even if
         // nobody opens settings.
-        TransactionUpdateJob.schedule(this)
+        inject<TransactionUpdateManager>().schedule()
     }
 }

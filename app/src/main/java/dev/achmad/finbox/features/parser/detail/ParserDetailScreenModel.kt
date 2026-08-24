@@ -9,11 +9,10 @@ import dev.achmad.finbox.R
 import dev.achmad.finbox.core.preference.ParserTypePreference
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.InstallStep
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.features.parser.list.ParserUiModel
 import dev.achmad.finbox.parser.TransactionDirection
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.util.koin.injectAndroidContext
 import java.io.File
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
@@ -25,6 +24,7 @@ class ParserDetailScreenModel(
     private val manager: ParserManager = inject(),
     private val typePreference: ParserTypePreference = inject(),
     private val transactionRepository: TransactionRepository = inject(),
+    private val transactionUpdateManager: TransactionUpdateManager = inject(),
 ) : StateScreenModel<ParserDetailScreenModel.State>(State()) {
 
     init {
@@ -77,7 +77,7 @@ class ParserDetailScreenModel(
     fun setEnabled(enabled: Boolean) {
         screenModelScope.launch {
             manager.setEnabled(pkg, enabled)
-            TransactionUpdateJob.reparseNow(injectAndroidContext())
+            transactionUpdateManager.reparseNow()
         }
     }
 
@@ -90,7 +90,7 @@ class ParserDetailScreenModel(
         screenModelScope.launch {
             val parserIds = state.value.parser?.parser?.parserIds.orEmpty().toSet()
             if (typePreference.toggle(pkg, key)) {
-                TransactionUpdateJob.reparseParsersNow(injectAndroidContext(), parserIds)
+                transactionUpdateManager.reparseParsersNow(parserIds)
             } else {
                 transactionRepository.deleteByType(parserIds, key)
             }

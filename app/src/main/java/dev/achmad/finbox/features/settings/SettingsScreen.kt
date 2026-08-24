@@ -20,7 +20,6 @@ import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.core.preference.ThemeMode
 import dev.achmad.finbox.core.preference.UiPreferences
 import dev.achmad.finbox.core.preference.UpdatePreferences
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
 import dev.achmad.finbox.features.settings.language.SettingsLanguageScreen
 import dev.achmad.finbox.theme.components.Preference
 import dev.achmad.finbox.theme.components.PreferenceScreen
@@ -103,16 +102,13 @@ object SettingsScreen : Screen {
 
     @Composable
     private fun syncGroup(): Preference.PreferenceGroup {
-        val context = LocalContext.current
         val model = rememberScreenModel { SettingsScreenModel() }
         val preferences = remember { inject<SyncPreferences>() }
         val intervalHours by preferences.autoFetchIntervalHours().collectAsState()
         val lastSync by model.lastSync.collectAsState()
         val use24Hour = rememberUse24HourClock()
 
-        // WorkManager replaces the job in place, so a new schedule or condition
-        // applies now instead of after the old period runs out.
-        val reschedule: suspend (Any?) -> Unit = { TransactionUpdateJob.schedule(context) }
+        val reschedule: suspend (Any?) -> Unit = { model.rescheduleFetch() }
 
         return Preference.PreferenceGroup(
             title = stringResource(R.string.sync),
@@ -147,12 +143,12 @@ object SettingsScreen : Screen {
                     subtitle = lastSync
                         ?.let { stringResource(R.string.last_synced, formatDate(it, use24Hour)) }
                         ?: stringResource(R.string.never_synced),
-                    onClick = { model.fetchNow(context) },
+                    onClick = { model.fetchNow() },
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(R.string.pref_reindex),
                     subtitle = stringResource(R.string.pref_reindex_summ),
-                    onClick = { model.reindexTransactions(context) },
+                    onClick = { model.reindexTransactions() },
                 ),
             ),
         )

@@ -9,15 +9,16 @@ import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.parser.ParserUpdateNotifier
 import dev.achmad.finbox.core.parser.InstallStep
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateJob
+import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.util.koin.injectAndroidContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ParsersScreenModel(
     private val manager: ParserManager = inject(),
+    private val parserUpdateNotifier: ParserUpdateNotifier = inject(),
+    private val transactionUpdateManager: TransactionUpdateManager = inject(),
 ) : StateScreenModel<ParsersScreenModel.State>(State()) {
 
     init {
@@ -45,7 +46,7 @@ class ParsersScreenModel(
         // Nothing left to update means the notification is stale, whoever cleared it.
         screenModelScope.launch {
             manager.updatesCount.collect { count ->
-                if (count == 0) ParserUpdateNotifier(injectAndroidContext()).dismiss()
+                if (count == 0) parserUpdateNotifier.dismiss()
             }
         }
     }
@@ -76,7 +77,7 @@ class ParsersScreenModel(
             manager.setEnabled(pkg, enabled)
             // A parser switched on reads the mail it has not tried yet. Handed to a
             // job, which outlives this screen.
-            TransactionUpdateJob.reparseNow(injectAndroidContext())
+            transactionUpdateManager.reparseNow()
         }
     }
 
