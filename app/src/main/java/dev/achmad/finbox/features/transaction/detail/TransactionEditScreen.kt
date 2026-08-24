@@ -602,10 +602,14 @@ internal fun Draft.applyTo(transaction: Transaction): Transaction {
             categoryName = category?.name,
             categorySource = category?.let { CategorySource.USER },
         )
-        // The row was UNKNOWN for want of anything to classify with. If this
-        // edit supplied a merchant or a description, hand it back to the next
-        // pass rather than leaving it stuck on an answer that is now stale.
-        transaction.category == TransactionCategory.UNKNOWN && edited.signature().isComplete ->
+        // UNKNOWN means the receipt did not say what this was for. An edit that
+        // changed what a classifier would read makes that answer stale, so hand
+        // the row back to the next pass. Comparing signatures rather than asking
+        // whether one is complete: correcting an amount changes nothing a
+        // classifier looks at, and re-opening the row for it would just get the
+        // same answer back.
+        transaction.category == TransactionCategory.UNKNOWN &&
+            edited.signature() != transaction.signature() ->
             edited.copy(categoryName = null, categorySource = null)
         else -> edited
     }

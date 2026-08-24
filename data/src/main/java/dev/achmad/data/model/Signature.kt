@@ -25,15 +25,20 @@ data class Signature(
     val method: String?,
 ) {
     /**
-     * Whether there is anything here to classify with.
+     * Whether there is anything here at all to send.
      *
-     * Direction and method alone cannot say what money was *for*: every QRIS
-     * payment shares them. A signature that fails this goes straight to
-     * [TransactionCategory.UNKNOWN] without troubling a model, which is the
-     * cheapest accuracy win available — those rows could only ever have come
-     * back as a guess dressed up as an answer.
+     * Deliberately arithmetic rather than judgement. Whether a name is
+     * *informative* — whether "GoPay" or "debit card" says what money was for —
+     * is a question about the world, and the app is the wrong place to answer
+     * it: every answer it could hold would be a fact about some particular bank
+     * hard-coded somewhere it does not belong. That reading is left to the
+     * classifier, which may report back that the text does not say.
+     *
+     * All this rules out is a signature with no text whatsoever, which there is
+     * no point spending a call on.
      */
-    val isComplete: Boolean get() = merchant != null || description != null
+    val isComplete: Boolean
+        get() = merchant != null || description != null || method != null
 }
 
 /**

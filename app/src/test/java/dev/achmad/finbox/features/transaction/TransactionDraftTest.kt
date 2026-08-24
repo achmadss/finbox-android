@@ -96,7 +96,7 @@ class TransactionDraftTest {
     }
 
     @Test
-    fun `an UNKNOWN row with nothing added stays UNKNOWN`() {
+    fun `an edit a classifier would not read leaves UNKNOWN alone`() {
         val unclassifiable = transaction.copy(
             categoryName = TransactionCategory.UNKNOWN.name,
             categorySource = null,
@@ -104,6 +104,8 @@ class TransactionDraftTest {
             description = null,
         )
 
+        // The amount is not part of a signature, so nothing a classifier reads
+        // has changed and asking again would return the same answer.
         val edited = unclassifiable.toDraft().copy(amount = "500").applyTo(unclassifiable)
 
         assertEquals(TransactionCategory.UNKNOWN, edited.category)

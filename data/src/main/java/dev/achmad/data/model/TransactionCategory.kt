@@ -28,15 +28,20 @@ enum class TransactionCategory {
     OTHER,
 
     /**
-     * Nothing to classify with — the signature carried no merchant and no
-     * description.
+     * The receipt does not say what the money was for.
      *
-     * Assigned by code, never chosen by a model, and deliberately not the same
-     * as a null category. Null means not processed yet, so the pass retries it;
-     * this means the pass looked and the data was not there. Folding the two
-     * together would either retry forever or hide the gap, and folding this into
-     * [OTHER] would inflate a real category with rows that are not
-     * miscellaneous, which every insight built on it would then repeat.
+     * Two things arrive here and they mean the same to everything downstream.
+     * Code assigns it when a signature carried no text at all. The classifier
+     * may also answer it, for a signature that carried text which does not name
+     * a purpose — a top up to a wallet, a card rail, a transfer to an account
+     * number. Only the classifier can make that call: it is a fact about the
+     * world, and an app that knew it would be an app with a bank's name written
+     * inside it.
+     *
+     * Deliberately not null and deliberately not [OTHER]. Null means not
+     * processed, so the pass retries it forever. [OTHER] means looked at and
+     * genuinely miscellaneous, so folding these in inflates a real category and
+     * every insight built on it repeats the lie.
      */
     UNKNOWN,
     ;
