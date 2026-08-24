@@ -1,5 +1,6 @@
 package dev.achmad.finbox.core.llm
 
+import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.util.network.get
 import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
@@ -57,7 +58,39 @@ class LlmClient(
         system: String,
         user: String,
         schema: JsonObject? = null,
-    ): String = withContext(Dispatchers.IO) {
+    ): Completion = withContext(Dispatchers.IO) {
+        if (schema == null) return@withContext send(provider, apiKey, system, user, null)
+
+        // Ask for the strongest guarantee the endpoint will accept, then walk
+        // down. "OpenAI-compatible" is a family, not a specification: the big
+        // hosts take a strict JSON Schema, plenty of smaller ones only know
+        // json_object, and some ignore response_format or reject it outright.
+        // Whatever works is remembered, so this probes once per provider rather
+        // than once per batch.
+        var mode = supported[provider.id] ?: ResponseFormatMode.SCHEMA
+        while (true) {
+            try {
+                val completion = send(provider, apiKey, system, user, format(mode, schema))
+                supported[provider.id] = mode
+                return@withContext completion
+            } catch (error: Throwable) {
+                val next = mode.fallback()
+                if (next == null || !looksLikeFormatRejection(error)) throw error
+                // Not remembered yet: a rejection here is about this request, and
+                // only the mode that actually returns something is worth keeping.
+                mode = next
+            }
+        }
+        @Suppress("UNREACHABLE_CODE") error("unreachable")
+    }
+
+    private suspend fun send(
+        provider: LlmProvider,
+        apiKey: String?,
+        system: String,
+        user: String,
+        responseFormat: ResponseFormat?,
+    ): Completion {
         val request = ChatRequest(
             model = provider.model,
             messages = listOf(
@@ -67,20 +100,65 @@ class LlmClient(
             // Categorization is a lookup, not a creative act. The same signature
             // asked twice should come back the same, or the cache is a lie.
             temperature = 0.0,
-            responseFormat = schema?.let {
-                ResponseFormat(jsonSchema = JsonSchema(name = "categories", schema = it))
-            },
+            responseFormat = responseFormat,
         )
         val body = json
             .encodeToString(request)
             .toRequestBody(JSON_MEDIA_TYPE)
-        client.post(provider.chatUrl, body, headers = auth(apiKey))
+        val response = client.post(provider.chatUrl, body, headers = auth(apiKey))
             .parseAs<ChatResponse>()
-            .choices
-            .firstOrNull()
-            ?.message
-            ?.content
-            .orEmpty()
+        return Completion(
+            content = response.choices.firstOrNull()?.message?.content.orEmpty(),
+            promptTokens = response.usage?.promptTokens ?: 0,
+            completionTokens = response.usage?.completionTokens ?: 0,
+        )
+    }
+
+    private fun format(mode: ResponseFormatMode, schema: JsonObject): ResponseFormat? = when (mode) {
+        ResponseFormatMode.SCHEMA ->
+            ResponseFormat(type = "json_schema", jsonSchema = JsonSchema(name = "categories", schema = schema))
+        // No schema, but still "the reply must be a JSON object", which most
+        // hosts that reject a schema will still honour.
+        ResponseFormatMode.OBJECT -> ResponseFormat(type = "json_object", jsonSchema = null)
+        // Nothing but the prompt. The caller has to be able to cope with a reply
+        // that is merely usually JSON, and ours does.
+        ResponseFormatMode.NONE -> null
+    }
+
+    /**
+     * Whether an error reads like the endpoint refusing the response format
+     * rather than refusing the request.
+     *
+     * Deliberately narrow. Downgrading on a rate limit or a bad key would hide
+     * a real problem behind a weaker guarantee and a confusing reply.
+     */
+    private fun looksLikeFormatRejection(error: Throwable): Boolean {
+        val code = (error as? HttpException)?.code ?: return false
+        // A host that dislikes a field in the body says 400, or 422 if it
+        // validates. Deliberately narrow: 401 and 429 are a bad key and a rate
+        // limit, and quietly asking again with a weaker guarantee would hide
+        // both behind a confusing reply.
+        //
+        // ponytail: the status is all there is to go on, because HttpException
+        // does not carry the response body. If a 400 for some unrelated reason
+        // ever starts costing two wasted requests, give it the body to read.
+        return code == 400 || code == 422
+    }
+
+    /** What an endpoint turned out to accept, remembered for the session. */
+    private val supported = mutableMapOf<String, ResponseFormatMode>()
+
+    private enum class ResponseFormatMode {
+        SCHEMA,
+        OBJECT,
+        NONE,
+        ;
+
+        fun fallback(): ResponseFormatMode? = when (this) {
+            SCHEMA -> OBJECT
+            OBJECT -> NONE
+            NONE -> null
+        }
     }
 
     /**
@@ -96,7 +174,7 @@ class LlmClient(
             apiKey = apiKey,
             system = "Reply with exactly one word.",
             user = "Say OK.",
-        ).trim().ifEmpty { "(empty reply)" }
+        ).content.trim().ifEmpty { "(empty reply)" }
     }
 
     private fun auth(apiKey: String?): Headers = Headers.Builder().apply {
@@ -133,8 +211,8 @@ private data class Message(val role: String, val content: String)
 
 @Serializable
 private data class ResponseFormat(
-    val type: String = "json_schema",
-    @SerialName("json_schema") val jsonSchema: JsonSchema,
+    val type: String,
+    @SerialName("json_schema") val jsonSchema: JsonSchema? = null,
 )
 
 @Serializable
@@ -144,8 +222,30 @@ private data class JsonSchema(
     val strict: Boolean = true,
 )
 
+/**
+ * What came back, and what it cost.
+ *
+ * Usage is zero rather than null when the endpoint does not report it: many
+ * OpenAI-compatible hosts leave it out, and a run that adds up to zero tokens
+ * reads as "not reported" without a second flag to carry it.
+ */
+data class Completion(
+    val content: String,
+    val promptTokens: Long,
+    val completionTokens: Long,
+)
+
 @Serializable
-private data class ChatResponse(val choices: List<Choice> = emptyList())
+private data class ChatResponse(
+    val choices: List<Choice> = emptyList(),
+    val usage: Usage? = null,
+)
+
+@Serializable
+private data class Usage(
+    @SerialName("prompt_tokens") val promptTokens: Long = 0,
+    @SerialName("completion_tokens") val completionTokens: Long = 0,
+)
 
 @Serializable
 private data class Choice(val message: Message? = null)

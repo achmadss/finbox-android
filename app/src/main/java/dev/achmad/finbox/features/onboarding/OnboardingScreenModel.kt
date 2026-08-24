@@ -9,6 +9,7 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
+import dev.achmad.finbox.core.llm.TransactionClassifier
 import dev.achmad.finbox.core.parser.AvailableParser
 import dev.achmad.finbox.core.parser.InstallStep
 import dev.achmad.finbox.core.parser.ParserManager
@@ -33,6 +34,7 @@ class OnboardingScreenModel(
     private val preferences: OnboardingPreference = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
     private val permissionHelper: PermissionHelper = inject(),
+    private val classifier: TransactionClassifier = inject(),
 ): StateScreenModel<OnboardingScreenModel.State>(State.Resolving) {
     init {
         screenModelScope.launch {
@@ -88,6 +90,19 @@ class OnboardingScreenModel(
                         duration = Toast.LENGTH_LONG,
                     )
                 }
+            next()
+        }
+    }
+
+    /**
+     * Set up or waved away — either way the offer has been made.
+     *
+     * Also called on returning from the provider screen, so finishing setup
+     * there moves onboarding along without a second confirmation.
+     */
+    fun onAiPromptSettled() {
+        screenModelScope.launch {
+            preferences.aiPromptSeen().set(true)
             next()
         }
     }
@@ -178,6 +193,9 @@ class OnboardingScreenModel(
         !notificationSettled() -> State.NotificationPermission
         parserManager.installedInfo.value.isEmpty() ->
             State.InstallParsers(parsers = parserManager.available.value)
+        // Last, and the only step that asks for nothing: a provider already set
+        // up, or the offer already made, both count as settled.
+        !classifier.isConfigured() && !preferences.aiPromptSeen().get() -> State.SetupAi
         else -> null
     }
 
@@ -207,6 +225,9 @@ class OnboardingScreenModel(
             permissionHelper.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
 
+    /** Whether a provider is set up, which is what finishes the optional step. */
+    fun hasProvider(): Boolean = classifier.isConfigured()
+
     /** The browser flow to launch for result; its outcome comes back as [onSignInResult]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
 
@@ -220,6 +241,9 @@ class OnboardingScreenModel(
         /** [isSigningIn] while the browser flow is out and its token exchange runs. */
         data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
+
+        /** Offering the optional classifier. Nothing here is required. */
+        object SetupAi: State()
         data class InstallParsers(
             /** What the index is offering. Carried here so the step draws from state alone. */
             val parsers: List<AvailableParser> = emptyList(),

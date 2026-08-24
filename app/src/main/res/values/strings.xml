@@ -292,4 +292,42 @@
     <string name="llm_active">Active</string>
     <string name="llm_set_active">Use this one</string>
     <string name="llm_delete_confirmation">Remove %1$s? The API key is deleted with it.</string>
+
+    <!-- Auto categorization -->
+    <string name="pref_auto_categorize">Auto-categorize</string>
+    <string name="pref_auto_categorize_summ">Fill in categories with AI, and see what each run did</string>
+    <string name="pref_auto_categorize_summ_off">Set up a provider first</string>
+    <string name="categorize_title">Auto-categorize</string>
+    <string name="categorize_estimate_title">Nothing to categorize</string>
+    <string name="categorize_estimate">%1$d transactions, in %2$d groups a classifier would read identically. About %3$d requests.</string>
+    <string name="categorize_estimate_cached">%1$d of those groups are already answered and cost nothing.</string>
+    <string name="categorize_start">Categorize</string>
+    <string name="categorize_start_all">Redo everything</string>
+    <string name="categorize_cancel">Stop</string>
+    <string name="categorize_running">Group %1$d of %2$d</string>
+    <string name="categorize_no_provider">No AI provider is set up, so only groups already answered can be filled in.</string>
+    <string name="categorize_redo_confirmation">This asks the model again for every transaction, including %1$d you categorized yourself. Your backup file is the only way back.</string>
+    <string name="categorize_redo_keep_mine">Keep mine</string>
+    <string name="categorize_redo_replace">Replace mine too</string>
+    <string name="categorize_history">Recent runs</string>
+    <string name="categorize_history_empty">No runs yet.</string>
+    <string name="categorize_run_summary">%1$d categorized · %2$d unknown</string>
+    <string name="categorize_run_cost">%1$d requests · %2$s</string>
+    <string name="categorize_run_tokens">%1$d tokens</string>
+    <string name="categorize_run_no_tokens">usage not reported</string>
+    <string name="categorize_run_cached">%1$d groups from cache</string>
+    <string name="categorize_status_running">Running</string>
+    <string name="categorize_status_done">Done</string>
+    <string name="categorize_status_failed">Failed</string>
+    <string name="categorize_status_cancelled">Stopped</string>
+    <string name="categorize_scope_uncategorized">Uncategorized</string>
+    <string name="categorize_scope_selection">Selected</string>
+    <string name="categorize_scope_all">Everything</string>
+
+    <!-- Onboarding: the optional AI step -->
+    <string name="onboarding_ai_title">Categorize automatically</string>
+    <string name="onboarding_ai_body">Connect an AI provider and finbox can work out what each transaction was for. It reads only the merchant and note your bank already sent, never the email itself.</string>
+    <string name="onboarding_ai_note">Entirely optional. Everything else works without it, and you can set it up later in Settings.</string>
+    <string name="onboarding_ai_setup">Set up a provider</string>
+    <string name="onboarding_ai_skip">Not now</string>
 </resources>

@@ -8,6 +8,7 @@ import dev.achmad.data.repository.AccountParserRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.InstalledParserRepository
+import dev.achmad.data.repository.ClassificationRunRepository
 import dev.achmad.data.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -21,6 +22,7 @@ val dataModule = module {
     single { InstalledParserRepository(get()) }
     single { EmailRepository(get()) }
     single { TransactionRepository(get()) }
+    single { ClassificationRunRepository(get()) }
 
     /** Whole-app backup and restore, `.finboxbackup`. */
     single { BackupManager(androidContext(), get(), get(), get(), get(), get()) }
