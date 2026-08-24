@@ -31,6 +31,8 @@ import dev.achmad.finbox.util.preference.collectAsState
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.stringResource
 import dev.achmad.finbox.R
+import dev.achmad.finbox.core.llm.LlmProviderStore
+import dev.achmad.finbox.features.settings.llm.SettingsLlmScreen
 
 /** Every setting the app has, in one screen. */
 object SettingsScreen : Screen {
@@ -48,10 +50,36 @@ object SettingsScreen : Screen {
                 listOf(
                     appearanceGroup(),
                     syncGroup(),
+                    categorizationGroup(),
                     dataGroup(),
                     systemGroup(),
                 )
             },
+        )
+    }
+
+    /**
+     * The optional AI. Its own group rather than a line under Sync, because
+     * setting it up is a decision — it sends signatures to somebody else's
+     * server — and nothing else in the app needs it.
+     */
+    @Composable
+    private fun categorizationGroup(): Preference.PreferenceGroup {
+        val navigator = LocalNavigator.currentOrThrow
+        val providers = remember { inject<LlmProviderStore>() }
+        val active = remember { providers.active() }
+
+        return Preference.PreferenceGroup(
+            title = stringResource(R.string.pref_category_categorization),
+            preferenceItems = listOf(
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(R.string.pref_llm_providers),
+                    subtitle = active
+                        ?.let { stringResource(R.string.pref_llm_providers_summ, it.name, it.model) }
+                        ?: stringResource(R.string.pref_llm_providers_summ_none),
+                    onClick = { navigator.push(SettingsLlmScreen) },
+                ),
+            ),
         )
     }
 

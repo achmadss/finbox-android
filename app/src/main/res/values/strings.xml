@@ -265,4 +265,31 @@
     </plurals>
     <string name="action_apply_to_similar">Apply to all</string>
     <string name="action_only_this_one">Only this one</string>
+
+    <!-- Categorization and the optional LLM -->
+    <string name="pref_category_categorization">Categorization</string>
+    <string name="pref_llm_providers">AI provider</string>
+    <string name="pref_llm_providers_summ_none">Not set up. Categories can still be set by hand.</string>
+    <string name="pref_llm_providers_summ">%1$s · %2$s</string>
+    <string name="llm_providers_title">AI providers</string>
+    <string name="llm_provider_title">Provider</string>
+    <string name="llm_add_provider">Add a provider</string>
+    <string name="llm_empty">No provider yet.\n\nCategorizing with AI is optional — everything else works without it, and you can always file transactions by hand.</string>
+    <string name="llm_name">Name</string>
+    <string name="llm_name_hint">A label for you, such as OpenAI or Groq</string>
+    <string name="llm_endpoint">Endpoint</string>
+    <string name="llm_endpoint_hint">Base URL, such as https://api.openai.com/v1</string>
+    <string name="llm_api_key">API key</string>
+    <string name="llm_api_key_saved">Saved. Leave blank to keep it.</string>
+    <string name="llm_model">Model</string>
+    <string name="llm_connect">Fetch models</string>
+    <string name="llm_connect_failed">Could not reach the endpoint: %1$s</string>
+    <string name="llm_no_models">The endpoint listed no models. Type the id instead.</string>
+    <string name="llm_model_manual">Model id</string>
+    <string name="llm_test">Test</string>
+    <string name="llm_test_ok">Working. The model replied: %1$s</string>
+    <string name="llm_test_failed">Test failed: %1$s</string>
+    <string name="llm_active">Active</string>
+    <string name="llm_set_active">Use this one</string>
+    <string name="llm_delete_confirmation">Remove %1$s? The API key is deleted with it.</string>
 </resources>
