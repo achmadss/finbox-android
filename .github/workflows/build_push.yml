@@ -1,0 +1,61 @@
+name: Release Builder
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build release app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # OAuth client ids are gitignored, so the release build needs them injected.
+      - name: Write local.properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties
+
+      - name: Build app
+        run: ./gradlew assembleRelease
+
+      - name: Run unit tests
+        run: ./gradlew test
+
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '35.0.1'
+
+      - name: Clean up build artifacts
+        run: mv app/build/outputs/apk/release/app-release-unsigned-signed.apk Finbox.apk
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: r${{ github.run_number }}
+          name: Finbox r${{ github.run_number }}
+          files: Finbox.apk
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
