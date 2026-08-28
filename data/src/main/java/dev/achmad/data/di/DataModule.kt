@@ -7,7 +7,6 @@ import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.InstalledExtensionRepository
 import dev.achmad.data.repository.ClassificationRunRepository
 import dev.achmad.data.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
@@ -19,13 +18,12 @@ val dataModule = module {
 
     single { AccountRepository(get()) }
     single { AccountExtensionRepository(get()) }
-    single { InstalledExtensionRepository(get()) }
     single { EmailRepository(get()) }
     single { TransactionRepository(get()) }
     single { ClassificationRunRepository(get()) }
 
     /** Whole-app backup and restore, `.finboxbackup`. */
-    single { BackupManager(androidContext(), get(), get(), get(), get(), get()) }
+    single { BackupManager(androidContext(), get(), get(), get(), get()) }
 
     /** The ledger as a spreadsheet. Export only. */
     single { CsvExport(androidContext(), get()) }

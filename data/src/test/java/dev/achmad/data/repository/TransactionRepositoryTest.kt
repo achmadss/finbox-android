@@ -217,7 +217,7 @@ class TransactionRepositoryTest {
         amount: Long = 25_000,
     ) = Transaction(
         accountId = "account",
-        extensionId = "dev.achmad.finbox.extension.test",
+        extensionId = "test",
         emailMessageId = "message-$index",
         index = index,
         threadId = null,

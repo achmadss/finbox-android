@@ -25,9 +25,21 @@ class BackupFormatTest {
     }
 
     @Test
-    fun `a post-refactor backup is not mistaken for an old one`() {
-        val current =
+    fun `a backup with package-name extension ids is refused too`() {
+        // Written while extensions installed as separate apps. Restoring it
+        // would file every transaction under an id nothing answers to.
+        val packaged =
             """{"version":1,"assignments":[{"accountId":"a","extensionId":"dev.achmad.finbox.extension.bri"}]}"""
+
+        val error = runCatching { requireRestorable(packaged) }.exceptionOrNull()
+
+        assertTrue("expected a refusal, got $error", error is IllegalArgumentException)
+        assertEquals(PACKAGE_ID_MESSAGE, error?.message)
+    }
+
+    @Test
+    fun `a current backup is not mistaken for either`() {
+        val current = """{"version":1,"assignments":[{"accountId":"a","extensionId":"bri"}]}"""
 
         requireRestorable(current)
     }
@@ -38,13 +50,13 @@ class BackupFormatTest {
             version = FORMAT_VERSION,
             createdAt = 1_700_000_000_000L,
             assignments = listOf(
-                BackupAssignment(accountId = "account", extensionId = "dev.achmad.finbox.extension.bri"),
+                BackupAssignment(accountId = "account", extensionId = "bri"),
             ),
             transactions = listOf(
                 BackupTransaction(
-                    id = "account:message:m1:dev.achmad.finbox.extension.bri:0",
+                    id = "account:message:m1:bri:0",
                     accountId = "account",
-                    extensionId = "dev.achmad.finbox.extension.bri",
+                    extensionId = "bri",
                     emailMessageId = "m1",
                     date = 1_700_000_000_000L,
                     amount = 25_000,

@@ -1,7 +1,8 @@
 CREATE TABLE transactions (
     id TEXT NOT NULL PRIMARY KEY,
     account_id TEXT NOT NULL,
-    -- The extension's package name, e.g. dev.achmad.finbox.extension.bri.
+    -- The extension's id, e.g. `bri` — see Extensions.all. Short again now
+    -- that an extension is not a package; renaming one costs a reimport.
     -- Stored directly rather than hashed into an integer: the package is
     -- already unique and already stable across releases, so the hash bought
     -- nothing and cost a dump, a backup and the report tool their readability.

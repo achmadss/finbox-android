@@ -19,7 +19,7 @@ class TransactionFilterTest {
         amount: Long? = 1_000,
         date: Long = 0,
         accountId: String = "account",
-        extensionId: String = "dev.achmad.finbox.extension.test",
+        extensionId: String = "test",
         description: String? = null,
     ) = Transaction(
         accountId = accountId,
@@ -48,7 +48,7 @@ class TransactionFilterTest {
     private val transactions = listOf(
         transaction("a", amount = 300, date = 100, description = "Bakso"),
         transaction("b", amount = null, date = 300, description = "Cendol", direction = TransactionDirection.INCOMING),
-        transaction("c", amount = 200, date = 200, description = "Ayam", extensionId = "dev.achmad.finbox.extension.other", accountId = "other"),
+        transaction("c", amount = 200, date = 200, description = "Ayam", extensionId = "other", accountId = "other"),
     )
 
     @Test
@@ -67,7 +67,7 @@ class TransactionFilterTest {
         )
         assertEquals(
             listOf("c"),
-            TransactionFilter(extensionIds = setOf("dev.achmad.finbox.extension.other")).applyTo(transactions).map { it.label },
+            TransactionFilter(extensionIds = setOf("other")).applyTo(transactions).map { it.label },
         )
         assertEquals(
             listOf("c"),

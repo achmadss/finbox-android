@@ -3,7 +3,6 @@ package dev.achmad.data.backup
 import dev.achmad.data.model.AccountExtension
 import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.model.StoredEmail
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
@@ -25,14 +24,6 @@ internal fun BackupAccount.toModel() = EmailAccount(
 internal fun AccountExtension.toBackup() = BackupAssignment(accountId, extensionId, enabled, position)
 
 internal fun BackupAssignment.toModel() = AccountExtension(accountId, extensionId, enabled, position)
-
-internal fun InstalledExtension.toBackup() = BackupExtension(
-    pkg, name, versionCode, versionName, libVersion, country, extensionIds, enabled,
-)
-
-internal fun BackupExtension.toModel() = InstalledExtension(
-    pkg, name, versionCode, versionName, libVersion, country, extensionIds, enabled,
-)
 
 internal fun StoredEmail.toBackup() = BackupEmail(
     messageId = messageId,
