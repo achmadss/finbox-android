@@ -27,11 +27,11 @@ internal fun AccountExtension.toBackup() = BackupAssignment(accountId, extension
 internal fun BackupAssignment.toModel() = AccountExtension(accountId, extensionId, enabled, position)
 
 internal fun InstalledExtension.toBackup() = BackupExtension(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
+    pkg, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
 )
 
 internal fun BackupExtension.toModel() = InstalledExtension(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
+    pkg, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
 )
 
 internal fun StoredEmail.toBackup() = BackupEmail(

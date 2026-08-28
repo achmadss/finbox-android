@@ -20,7 +20,6 @@ sealed class LoadResult {
 
 data class InstalledExtensionInfo(
     val pkg: String,
-    val provider: String,
     val name: String,
     val versionCode: Int,
     val versionName: String,
@@ -31,7 +30,6 @@ data class InstalledExtensionInfo(
 /** An extension entry from the repo index.json. */
 data class AvailableExtension(
     val name: String,
-    val provider: String,
     val pkg: String,
     val versionCode: Int,
     val versionName: String,

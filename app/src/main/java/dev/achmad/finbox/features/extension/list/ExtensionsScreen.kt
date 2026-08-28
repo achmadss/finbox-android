@@ -442,7 +442,6 @@ private fun ExtensionsScreenPreview() {
                     ExtensionUiModel.Installed(
                         extension = InstalledExtension(
                             pkg = "dev.achmad.extension.jago",
-                            provider = "Bank Jago",
                             name = "Jago",
                             file = "/data/extensions/jago.apk",
                             versionCode = 3,
@@ -454,7 +453,6 @@ private fun ExtensionsScreenPreview() {
                         ),
                         update = AvailableExtension(
                             name = "Jago",
-                            provider = "Bank Jago",
                             pkg = "dev.achmad.extension.jago",
                             versionCode = 4,
                             versionName = "1.3.0",
@@ -470,7 +468,6 @@ private fun ExtensionsScreenPreview() {
                     ExtensionUiModel.Installed(
                         extension = InstalledExtension(
                             pkg = "dev.achmad.extension.bni",
-                            provider = "Bank BNI",
                             name = "BNI",
                             file = "/data/extensions/bni.apk",
                             versionCode = 2,
@@ -488,7 +485,6 @@ private fun ExtensionsScreenPreview() {
                     ExtensionUiModel.Available(
                         extension = AvailableExtension(
                             name = "BRI",
-                            provider = "Bank BRI",
                             pkg = "dev.achmad.extension.bri",
                             versionCode = 5,
                             versionName = "2.0.0",

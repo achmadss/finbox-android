@@ -63,7 +63,6 @@ class ExtensionLoader(
 
         val info = InstalledExtensionInfo(
             pkg = pkgInfo.packageName,
-            provider = meta.getString("finbox.extension.provider") ?: "unknown",
             name = meta.getString("finbox.extension.name") ?: apk.name,
             versionCode = versionCode.toInt(),
             versionName = versionName,
@@ -88,7 +87,6 @@ class ExtensionLoader(
                 LoadedExtension(
                     id = extensionIdOf(info.pkg),
                     pkg = info.pkg,
-                    provider = info.provider,
                     name = info.name,
                     extension = extension,
                 ),

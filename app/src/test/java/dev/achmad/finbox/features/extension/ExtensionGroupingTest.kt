@@ -12,7 +12,6 @@ class ExtensionGroupingTest {
 
     private fun installed(pkg: String, versionCode: Int = 1) = InstalledExtension(
         pkg = pkg,
-        provider = "Bank",
         name = pkg.substringAfterLast('.'),
         file = "/exts/$pkg-1.0.apk",
         versionCode = versionCode,
@@ -25,7 +24,6 @@ class ExtensionGroupingTest {
 
     private fun available(pkg: String, versionCode: Int = 1) = AvailableExtension(
         name = pkg.substringAfterLast('.'),
-        provider = "Bank",
         pkg = pkg,
         versionCode = versionCode,
         versionName = "$versionCode.0",

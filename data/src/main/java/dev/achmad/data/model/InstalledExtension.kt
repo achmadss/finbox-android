@@ -2,7 +2,6 @@ package dev.achmad.data.model
 
 data class InstalledExtension(
     val pkg: String,
-    val provider: String,
     val name: String,
     val file: String,
     val versionCode: Int,

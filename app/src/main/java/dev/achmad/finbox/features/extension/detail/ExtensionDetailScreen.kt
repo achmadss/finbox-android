@@ -316,7 +316,6 @@ private fun ExtensionDetailPreview() {
                 extension = ExtensionUiModel.Installed(
                     extension = InstalledExtension(
                         pkg = "dev.achmad.extension.jago",
-                        provider = "Bank Jago",
                         name = "Jago",
                         file = "/data/extensions/jago.apk",
                         versionCode = 3,

@@ -41,7 +41,6 @@ data class BackupAssignment(
 @Serializable
 data class BackupExtension(
     val pkg: String,
-    val provider: String,
     val name: String,
     val file: String,
     val versionCode: Int,

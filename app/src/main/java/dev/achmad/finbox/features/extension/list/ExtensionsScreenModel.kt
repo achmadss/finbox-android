@@ -145,7 +145,6 @@ fun groupExtensions(
 sealed interface ExtensionUiModel {
     val pkg: String
     val name: String
-    val provider: String
     val versionName: String
     val installStep: InstallStep
 
@@ -158,7 +157,6 @@ sealed interface ExtensionUiModel {
     ) : ExtensionUiModel {
         override val pkg get() = extension.pkg
         override val name get() = extension.name
-        override val provider get() = extension.provider
         override val versionName get() = extension.versionName
         val enabled get() = extension.enabled
     }
@@ -169,7 +167,6 @@ sealed interface ExtensionUiModel {
     ) : ExtensionUiModel {
         override val pkg get() = extension.pkg
         override val name get() = extension.name
-        override val provider get() = extension.provider
         override val versionName get() = extension.versionName
     }
 }

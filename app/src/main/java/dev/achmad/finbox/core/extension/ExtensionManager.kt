@@ -192,7 +192,6 @@ class ExtensionManager(
                 val existing = dbByPkg[info.pkg]
                 val row = InstalledExtension(
                     pkg = info.pkg,
-                    provider = info.provider,
                     name = info.name,
                     file = loader.extensionsDir()
                         .listFiles()

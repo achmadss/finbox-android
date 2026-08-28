@@ -33,7 +33,6 @@ class InstalledExtensionRepository(
     private fun upsertIn(extension: InstalledExtension) =
         db.installedExtensionQueries.INSERTOrReplace(
             pkg = extension.pkg,
-            provider = extension.provider,
             name = extension.name,
             file = extension.file,
             version_code = extension.versionCode.toLong(),
@@ -68,7 +67,6 @@ class InstalledExtensionRepository(
 
     private fun Installed_extension.toModel() = InstalledExtension(
         pkg = pkg,
-        provider = provider,
         name = name,
         file = file_,
         versionCode = version_code.toInt(),

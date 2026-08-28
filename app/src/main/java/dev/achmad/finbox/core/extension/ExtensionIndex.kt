@@ -16,7 +16,6 @@ data class ExtensionIndexResponse(
 @Serializable
 data class ExtensionIndexEntry(
     @SerialName("name") val name: String,
-    @SerialName("provider") val provider: String,
     @SerialName("pkg") val pkg: String,
     @SerialName("version_code") val versionCode: Int,
     @SerialName("version_name") val versionName: String,
@@ -43,7 +42,6 @@ class ExtensionIndex(
             if (!FinboxConfig.supportsLibVersion(libVersion)) return@mapNotNull null
             AvailableExtension(
                 name = entry.name,
-                provider = entry.provider,
                 pkg = entry.pkg,
                 versionCode = entry.versionCode,
                 versionName = entry.versionName,

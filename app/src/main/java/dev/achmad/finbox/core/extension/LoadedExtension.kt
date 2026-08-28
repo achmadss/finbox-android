@@ -8,7 +8,6 @@ class LoadedExtension(
     val id: Long,
     /** Survives an update, unlike [id] — so the method switches are filed under it. */
     val pkg: String,
-    val provider: String,
     val name: String,
     extension: EmailSource,
 ) : EmailSource by extension

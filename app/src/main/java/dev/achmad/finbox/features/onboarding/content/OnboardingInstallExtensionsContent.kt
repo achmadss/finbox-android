@@ -245,7 +245,6 @@ private fun OnboardingScreenPreviewInstallExtensions() {
             extensions = listOf(
                 AvailableExtension(
                     name = "BRI",
-                    provider = "Gmail",
                     pkg = "com.finbox.extension.gmail",
                     versionCode = 12,
                     versionName = "1.4.0",
@@ -256,7 +255,6 @@ private fun OnboardingScreenPreviewInstallExtensions() {
                 ),
                 AvailableExtension(
                     name = "Mandiri",
-                    provider = "Bank Mandiri",
                     pkg = "com.finbox.extension.mandiri",
                     versionCode = 7,
                     versionName = "1.2.1",
@@ -267,7 +265,6 @@ private fun OnboardingScreenPreviewInstallExtensions() {
                 ),
                 AvailableExtension(
                     name = "BCA",
-                    provider = "BCA",
                     pkg = "com.finbox.extension.bca",
                     versionCode = 4,
                     versionName = "1.0.3",
