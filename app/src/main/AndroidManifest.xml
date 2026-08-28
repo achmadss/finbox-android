@@ -10,6 +10,23 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- The app is installed from an APK, so it updates itself. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+
+    <!--
+      Extensions are found by the uses-feature they declare, and there is no way
+      to ask the package manager for packages by feature — only for all of them.
+      On API 30+ that needs this permission or getInstalledPackages returns
+      almost nothing.
+
+      ponytail: QUERY_ALL_PACKAGES because a uses-feature cannot be queried.
+      Play restricts it, which does not apply to a sideloaded app. If finbox
+      ever needs to ship on Play, give extensions a marker intent filter and
+      switch to a <queries><intent> block.
+    -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:name=".MainApplication"

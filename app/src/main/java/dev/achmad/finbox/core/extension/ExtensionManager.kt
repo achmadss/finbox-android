@@ -1,5 +1,7 @@
 package dev.achmad.finbox.core.extension
 
+import android.content.Context
+import android.content.Intent
 import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.repository.InstalledExtensionRepository
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
@@ -28,14 +30,24 @@ import kotlinx.coroutines.withContext
 
 /** Orchestrates installed extensions: loading, database sync, installs, and updates. */
 class ExtensionManager(
+    private val context: Context,
     private val transactionUpdateManager: TransactionUpdateManager,
     private val loader: ExtensionLoader,
     private val installer: ExtensionInstaller,
     private val index: ExtensionIndex,
     private val repository: InstalledExtensionRepository,
+    private val trust: ExtensionTrust,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * Extensions the user has not trusted yet: read, listed, never run.
+     *
+     * Separate from [loadErrors] because it is not a failure — the package is
+     * fine and the user simply has not said yes to its signer.
+     */
+    val untrusted: MutableStateFlow<List<InstalledExtensionInfo>> = MutableStateFlow(emptyList())
 
     private val mutex = Mutex()
 
@@ -74,17 +86,36 @@ class ExtensionManager(
     val extensions: List<LoadedExtension>
         get() = _extensionsFlow.value
 
+    /**
+     * Watches the device's package list, which is the source of truth now.
+     *
+     * Registered here rather than in the manifest: the app only cares while it
+     * is running.
+     */
+    private val installReceiver = ExtensionInstallReceiver(
+        onAdded = { pkg -> scope.launch { if (loader.packageInfoOf(pkg) != null) onExtensionInstalled(pkg) } },
+        onRemoved = { pkg -> scope.launch { reload() } },
+        onStatus = { pkg, step ->
+            // Only a failure has to stick: a success is followed by
+            // ACTION_PACKAGE_ADDED, which reloads and redraws the row from the
+            // installed list.
+            if (step == InstallStep.Error) _installSteps.update { it + (pkg to step) }
+            else _installSteps.update { it - pkg }
+        },
+        onUserAction = { intent ->
+            // The system's confirm dialog. It needs an activity to start from,
+            // and this is reached from a broadcast, so it starts its own task.
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        },
+    )
+
+    init {
+        installReceiver.register(context)
+    }
+
     suspend fun refreshIndex() {
         available.value = index.fetch()
     }
-
-    /**
-     * The install as a flow of steps, ending in [InstallStep.Installed] once the
-     * APK is loaded and the registry has caught up.
-     */
-    private fun installExtension(extension: AvailableExtension): Flow<InstallStep> =
-        installer.downloadAndInstall(extension)
-            .onEach { if (it == InstallStep.Installed) reload() }
 
     /**
      * Downloads and installs [extension], reporting progress through [installSteps].
@@ -100,7 +131,7 @@ class ExtensionManager(
         _installSteps.update { it + (pkg to InstallStep.Pending) }
         installJobs[pkg] = scope.launch {
             var last = InstallStep.Idle
-            installExtension(extension)
+            installer.downloadAndInstall(extension)
                 .onEach { step ->
                     last = step
                     _installSteps.update { it + (pkg to step) }
@@ -112,11 +143,9 @@ class ExtensionManager(
                     if (last != InstallStep.Error) _installSteps.update { it - pkg }
                 }
                 .collect()
-            if (last == InstallStep.Installed) reparseWanted.set(true)
-            // The last install of a batch speaks for all of them: asking per
-            // extension only gets the first request in, while the rest arrive during
-            // the re-read and are turned away.
-            if (installJobs.isEmpty() && reparseWanted.getAndSet(false)) reparse()
+            // Nothing is reloaded here: the flow ends when the bytes reach the
+            // system installer, and the user has not answered its dialog yet.
+            // ExtensionInstallReceiver is what knows an install happened.
         }
     }
 
@@ -125,7 +154,13 @@ class ExtensionManager(
         install(extension)
     }
 
-    /** Ends a download; nothing is written until it finishes, so there is nothing to undo. */
+    /**
+     * Ends a download.
+     *
+     * Only possible while it is still downloading — once the bytes reach the
+     * system installer the transaction belongs to the system, and the UI stops
+     * offering this.
+     */
     fun cancelInstall(pkg: String) {
         installJobs.remove(pkg)?.cancel()
         _installSteps.update { it - pkg }
@@ -153,12 +188,31 @@ class ExtensionManager(
     fun pendingUpdates(): List<InstalledExtension> =
         installed.value.filter { available.value.hasUpdateFor(it) }
 
-    suspend fun remove(pkg: String) {
-        installer.remove(pkg)
-        repository.delete(pkg)
-        // Keyed by package, so they would otherwise outlive it and quietly
-        // suppress methods if the same extension were installed again.
+    /**
+     * Asks the system to uninstall, and does nothing else.
+     *
+     * The database row and the registry are cleared when the removal actually
+     * happens, which ACTION_PACKAGE_REMOVED reports. Doing it here would drop
+     * the extension from the list even when the user says no to the dialog.
+     */
+    fun remove(pkg: String) = installer.remove(pkg)
+
+    /** The user allowing an extension's signer; it loads on the next pass. */
+    suspend fun trustExtension(pkg: String) {
+        val info = untrusted.value.firstOrNull { it.pkg == pkg } ?: return
+        trust.trust(info.pkg, info.signature)
         reload()
+    }
+
+    private suspend fun onExtensionInstalled(pkg: String) {
+        reload()
+        // An extension that arrived can read mail already stored, so ask for the
+        // re-read here rather than at the end of a download that may never have
+        // been one — a sideloaded APK never went through install().
+        if (extensionsFlow.value.any { it.id == pkg }) {
+            reparseWanted.set(true)
+            if (installJobs.isEmpty() && reparseWanted.getAndSet(false)) reparse()
+        }
     }
 
     suspend fun setEnabled(pkg: String, enabled: Boolean) {
@@ -166,20 +220,29 @@ class ExtensionManager(
         reload()
     }
 
-    /** Reloads the APKs and resyncs the database and the in-memory registry. */
+    /**
+     * Re-reads the installed packages and resyncs the database and the registry.
+     *
+     * The device's package list is the source of truth, so this also reconciles:
+     * a package uninstalled while the app was dead leaves a row behind, and a
+     * row with no package is a lie.
+     */
     suspend fun reload() = mutex.withLock {
         val results = withContext(Dispatchers.IO) { loader.loadExtensions() }
 
         val infos = mutableMapOf<InstalledExtensionInfo, LoadedExtension>()
         val errors = mutableMapOf<String, String>()
+        val blocked = mutableListOf<InstalledExtensionInfo>()
         for (result in results) {
             when (result) {
                 is LoadResult.Success -> infos[result.info] = result.extension
-                is LoadResult.Error -> errors[result.file] = result.reason
+                is LoadResult.Untrusted -> blocked += result.info
+                is LoadResult.Error -> errors[result.pkg] = result.reason
             }
         }
         installedInfo.value = infos.entries.associate { it.key.pkg to it.key }
         loadErrors.value = errors
+        untrusted.value = blocked
 
         val dbExtensions = repository.extensions().first()
         val dbByPkg = dbExtensions.associateBy { it.pkg }
@@ -190,21 +253,20 @@ class ExtensionManager(
                 val row = InstalledExtension(
                     pkg = info.pkg,
                     name = info.name,
-                    file = loader.extensionsDir()
-                        .listFiles()
-                        ?.firstOrNull { it.extension == "apk" && it.name.startsWith("${info.pkg}-") }
-                        ?.absolutePath
-                        ?: "",
                     versionCode = info.versionCode,
                     versionName = info.versionName,
                     libVersion = info.libVersion.toString(),
-                    sha256 = "",
+                    country = info.country,
                     extensionIds = listOf(extension.id),
-                    // The APK is the truth about everything except this.
+                    // The package is the truth about everything except this.
                     enabled = existing?.enabled != false,
                 )
                 if (row != existing) repository.upsert(row)
             }
+            // Anything the package manager no longer reports, including one
+            // removed while the app was not running. An untrusted extension is
+            // dropped too: it is on the device but it is not running, and a row
+            // saying otherwise would let the ledger claim rows it never parsed.
             val loadedPkgs = infos.keys.map { it.pkg }.toSet()
             dbExtensions.filter { it.pkg !in loadedPkgs }.forEach { repository.delete(it.pkg) }
         }
@@ -219,6 +281,12 @@ class ExtensionManager(
     }
 
     fun getById(extensionId: String): LoadedExtension? = knownExtensions[extensionId]
+
+    /** The size of the installed APK, or null if the package is gone. */
+    fun apkSizeOf(pkg: String): Long? =
+        loader.packageInfoOf(pkg)?.applicationInfo?.sourceDir
+            ?.let { java.io.File(it).length() }
+            ?.takeIf { it > 0 }
 }
 
 fun List<AvailableExtension>.hasUpdateFor(extension: InstalledExtension): Boolean =

@@ -1,11 +1,12 @@
 CREATE TABLE installed_extension (
     pkg TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
-    file TEXT NOT NULL,
     version_code INTEGER NOT NULL,
     version_name TEXT NOT NULL,
     lib_version TEXT NOT NULL,
-    sha256 TEXT NOT NULL,
+    -- ISO 3166-1 alpha-2, from the package's own metadata. Empty for an
+    -- extension that declares none.
+    country TEXT NOT NULL DEFAULT '',
     extension_ids TEXT NOT NULL,
     enabled INTEGER NOT NULL DEFAULT 1
 );
@@ -17,8 +18,8 @@ SELECTByPkg:
 SELECT * FROM installed_extension WHERE pkg = :pkg;
 
 INSERTOrReplace:
-INSERT OR REPLACE INTO installed_extension(pkg, name, file, version_code, version_name, lib_version, sha256, extension_ids, enabled)
-VALUES (:pkg, :name, :file, :version_code, :version_name, :lib_version, :sha256, :extension_ids, :enabled);
+INSERT OR REPLACE INTO installed_extension(pkg, name, version_code, version_name, lib_version, country, extension_ids, enabled)
+VALUES (:pkg, :name, :version_code, :version_name, :lib_version, :country, :extension_ids, :enabled);
 
 DELETEByPkg:
 DELETE FROM installed_extension WHERE pkg = :pkg;

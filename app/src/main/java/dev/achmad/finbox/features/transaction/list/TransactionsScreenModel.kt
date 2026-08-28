@@ -82,6 +82,18 @@ class TransactionsScreenModel(
 
     val extensionUpdates: StateFlow<Int> = extensionManager.updatesCount
 
+    /**
+     * Nothing installed that could read mail.
+     *
+     * Drives the setup prompt on an empty ledger. Read from the installed rows
+     * rather than the loaded registry, so an extension that is installed but
+     * switched off or untrusted still counts as present — the user knows about
+     * it, and telling them to install one would be wrong.
+     */
+    val hasNoExtensions: StateFlow<Boolean> = extensionManager.installed
+        .map { it.isEmpty() }
+        .stateIn(screenModelScope, SharingStarted.Eagerly, false)
+
     init {
         // The registry only fills on reload, and opening straight onto this screen means nothing
         // has done that yet — the filter sheet would offer no extensions. Idempotent and cheap.

@@ -13,11 +13,10 @@ class ExtensionGroupingTest {
     private fun installed(pkg: String, versionCode: Int = 1) = InstalledExtension(
         pkg = pkg,
         name = pkg.substringAfterLast('.'),
-        file = "/exts/$pkg-1.0.apk",
         versionCode = versionCode,
         versionName = "1.0",
         libVersion = "1.0",
-        sha256 = "",
+        country = "ID",
         extensionIds = listOf("dev.achmad.finbox.extension.test"),
         enabled = true,
     )
@@ -30,6 +29,7 @@ class ExtensionGroupingTest {
         libVersion = 1.0,
         apkUrl = "https://example.com/$pkg.apk",
         sha256 = "",
+        country = "ID",
         iconUrl = null,
     )
 

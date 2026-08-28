@@ -1,49 +1,68 @@
 package dev.achmad.finbox.core.extension
 
 import android.content.Context
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.extension.Source
-import java.io.File
 
-/** Loads extensions from the APK files in `filesDir/extensions/`. */
+/** The feature an extension APK declares, which is how it is found at all. */
+const val EXTENSION_FEATURE = "dev.achmad.finbox.extension"
+
+private const val METADATA_CLASS = "finbox.extension.class"
+private const val METADATA_NAME = "finbox.extension.name"
+private const val METADATA_LIB = "finbox.extension.lib"
+private const val METADATA_COUNTRY = "finbox.extension.country"
+
+/**
+ * Finds extensions among the device's installed packages and loads their code.
+ *
+ * They are ordinary apps: `adb install` puts one on a device and this finds it,
+ * which is the whole point of installing rather than copying an APK into
+ * filesDir. The repo is then a way to distribute extensions rather than the only
+ * way to get one onto a phone.
+ */
 class ExtensionLoader(
     private val context: Context,
+    private val trust: ExtensionTrust,
 ) {
 
-    fun extensionsDir(): File = File(context.filesDir, "extensions").apply { mkdirs() }
+    fun loadExtensions(): List<LoadResult> = installedPackages().map { load(it) }
 
-    fun loadExtensions(): List<LoadResult> {
-        val files = extensionsDir().listFiles { f -> f.isFile && f.extension == "apk" }
-            .orEmpty()
-            .sortedBy { it.name }
-        return files.map { loadApk(it) }
+    /**
+     * Every installed package declaring the finbox feature.
+     *
+     * By feature rather than by a package-name prefix, so an extension is free
+     * to be called anything. The package manager cannot filter by feature, hence
+     * QUERY_ALL_PACKAGES in the manifest and this filter here.
+     */
+    private fun installedPackages(): List<PackageInfo> =
+        context.packageManager.getInstalledPackages(PACKAGE_FLAGS)
+            .filter { pkg -> pkg.reqFeatures.orEmpty().any { it.name == EXTENSION_FEATURE } }
+            .sortedBy { it.packageName }
+
+    fun packageInfoOf(pkg: String): PackageInfo? = try {
+        context.packageManager.getPackageInfo(pkg, PACKAGE_FLAGS)
+            .takeIf { info -> info.reqFeatures.orEmpty().any { it.name == EXTENSION_FEATURE } }
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
     }
 
-    fun loadApk(apk: File): LoadResult {
-        val pkgInfo = try {
-            context.packageManager.getPackageArchiveInfo(
-                apk.absolutePath,
-                PackageManager.GET_META_DATA,
-            )
-        } catch (e: Exception) {
-            null
-        }
-        val meta = pkgInfo?.applicationInfo?.metaData
-            ?: return LoadResult.Error(apk.name, "Invalid or unreadable APK")
+    fun load(pkgInfo: PackageInfo): LoadResult {
+        val pkg = pkgInfo.packageName
+        val meta = pkgInfo.applicationInfo?.metaData
+            ?: return LoadResult.Error(pkg, "No metadata: not a finbox extension")
 
-        // The APK's own versionName/versionCode: an extension that fails to declare
-        // them is broken, not defaultable.
+        // The APK's own versionName/versionCode: an extension that fails to
+        // declare them is broken, not defaultable.
         val versionName = pkgInfo.versionName
-        if (versionName.isNullOrEmpty()) {
-            return LoadResult.Error(apk.name, "Missing versionName")
-        }
+        if (versionName.isNullOrEmpty()) return LoadResult.Error(pkg, "Missing versionName")
         val versionCode = PackageInfoCompat.getLongVersionCode(pkgInfo)
 
-        // aapt stores "1.0" as a float, so getString returns null; 0f means the
-        // metadata is absent and the versionName prefix carries it ("1.0.3" -> 1.0).
-        val libVersion = meta.getFloat("finbox.extension.lib")
+        // aapt stores "2.0" as a float, so getString returns null; 0f means the
+        // metadata is absent and the versionName prefix carries it ("2.0.3" -> 2.0).
+        val libVersion = meta.getFloat(METADATA_LIB)
             .takeUnless { it == 0f }
             // Via the string: widening the float to double reads 1.4 as
             // 1.3999999761581421.
@@ -52,30 +71,37 @@ class ExtensionLoader(
             ?: versionName.substringBeforeLast('.').toDoubleOrNull()
         if (libVersion == null || !FinboxConfig.supportsLibVersion(libVersion)) {
             return LoadResult.Error(
-                apk.name,
-                "Unsupported extension lib version '$libVersion' (supported: " +
-                    "${FinboxConfig.MIN_LIB_VERSION} to ${FinboxConfig.LIB_VERSION})",
+                pkg,
+                "Built for extension API $libVersion; this app supports " +
+                    FinboxConfig.SUPPORTED_LIB_VERSIONS.joinToString(", "),
             )
         }
 
-        val className = meta.getString("finbox.extension.class")
-            ?: return LoadResult.Error(apk.name, "Missing finbox.extension.class metadata")
+        val className = meta.getString(METADATA_CLASS)
+            ?: return LoadResult.Error(pkg, "Missing $METADATA_CLASS metadata")
 
         val info = InstalledExtensionInfo(
-            pkg = pkgInfo.packageName,
-            name = meta.getString("finbox.extension.name") ?: apk.name,
+            pkg = pkg,
+            name = meta.getString(METADATA_NAME) ?: pkg,
             versionCode = versionCode.toInt(),
             versionName = versionName,
             libVersion = libVersion,
+            country = meta.getString(METADATA_COUNTRY).orEmpty(),
             className = className,
+            signature = trust.signatureOf(pkgInfo),
         )
 
+        // Before Class.forName, and the reason this check exists at all: an
+        // extension runs in this process and parse() is handed email bodies.
+        // An untrusted one is listed, so the user can see it and decide, and
+        // never loaded.
+        if (!trust.isTrusted(info.pkg, info.signature)) {
+            return LoadResult.Untrusted(info)
+        }
+
         return try {
-            // Also here, not only at install time: an APK from an older build
-            // is still sitting there, still writable.
-            if (apk.canWrite()) apk.setReadOnly()
             val classLoader = ChildFirstPathClassLoader(
-                dexPath = apk.absolutePath,
+                dexPath = pkgInfo.applicationInfo!!.sourceDir,
                 parent = javaClass.classLoader ?: context.classLoader,
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
@@ -84,17 +110,20 @@ class ExtensionLoader(
             // declares its capabilities by implementing them, so this is the
             // only place that needs to know a second kind exists.
             val source = clazz.getDeclaredConstructor().newInstance() as? Source
-                ?: return LoadResult.Error(apk.name, "Class $className implements no Source")
+                ?: return LoadResult.Error(pkg, "Class $className implements no Source")
             LoadResult.Success(
                 info,
-                LoadedExtension(
-                    id = info.pkg,
-                    name = info.name,
-                    source = source,
-                ),
+                LoadedExtension(id = info.pkg, name = info.name, source = source),
             )
         } catch (e: Throwable) {
-            LoadResult.Error(apk.name, "Failed to instantiate: ${e.message}")
+            LoadResult.Error(pkg, "Failed to instantiate: ${e.message}")
         }
+    }
+
+    private companion object {
+        val PACKAGE_FLAGS = PackageManager.GET_META_DATA or
+            PackageManager.GET_CONFIGURATIONS or
+            @Suppress("DEPRECATION") PackageManager.GET_SIGNATURES or
+            PackageManager.GET_SIGNING_CERTIFICATES
     }
 }

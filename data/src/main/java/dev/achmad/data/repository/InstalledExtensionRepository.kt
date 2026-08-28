@@ -34,11 +34,10 @@ class InstalledExtensionRepository(
         db.installedExtensionQueries.INSERTOrReplace(
             pkg = extension.pkg,
             name = extension.name,
-            file = extension.file,
             version_code = extension.versionCode.toLong(),
             version_name = extension.versionName,
             lib_version = extension.libVersion,
-            sha256 = extension.sha256,
+            country = extension.country,
             extension_ids = Json.encodeToString(extension.extensionIds),
             enabled = if (extension.enabled) 1L else 0L,
         )
@@ -68,11 +67,10 @@ class InstalledExtensionRepository(
     private fun Installed_extension.toModel() = InstalledExtension(
         pkg = pkg,
         name = name,
-        file = file_,
         versionCode = version_code.toInt(),
         versionName = version_name,
         libVersion = lib_version,
-        sha256 = sha256,
+        country = country,
         extensionIds = Json.decodeFromString<List<String>>(extension_ids),
         enabled = enabled != 0L,
     )

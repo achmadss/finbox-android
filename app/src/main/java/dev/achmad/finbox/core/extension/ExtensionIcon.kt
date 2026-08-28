@@ -3,7 +3,6 @@ package dev.achmad.finbox.core.extension
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
-import android.util.DisplayMetrics
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.runtime.Composable
@@ -15,44 +14,34 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.core.graphics.drawable.toBitmap
 import dev.achmad.data.model.InstalledExtension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
-/** Painter for an installed extension's own icon, read from its APK. */
+/**
+ * Painter for an installed extension's own icon.
+ *
+ * It is an installed app, so the icon is already on the device and the system
+ * picks the right density. Nothing is downloaded and nothing is cached — the
+ * repo's `iconUrl` is only for extensions that are not installed, where there
+ * is no package to ask.
+ */
 @Composable
 fun rememberExtensionPainter(extension: InstalledExtension): Painter {
     val context = LocalContext.current
-    val densityDpi = (LocalDensity.current.density * DisplayMetrics.DENSITY_DEFAULT).toInt()
-    val icon by produceState<ImageBitmap?>(initialValue = null, extension.file) {
+    val icon by produceState<ImageBitmap?>(initialValue = null, extension.pkg) {
         value = withContext(Dispatchers.IO) {
-            loadApkIcon(context, extension.file, densityDpi)?.toBitmap()?.asImageBitmap()
+            packageIcon(context, extension.pkg)?.toBitmap()?.asImageBitmap()
         }
     }
     val fallback = rememberVectorPainter(Icons.Filled.Extension)
     return icon?.let { BitmapPainter(it) } ?: fallback
 }
 
-/**
- * Reads an extension's launcher icon out of its APK.
- *
- * The APK is never installed as a package, so [ApplicationInfo.sourceDir] must
- * be pointed back at the file before its resources can be read.
- *
- * Blocking; call it off the main thread. Null when the APK is gone or declares
- * no icon.
- */
-private fun loadApkIcon(context: Context, apkPath: String, density: Int): Drawable? = try {
-    val pm = context.packageManager
-    val appInfo = pm.getPackageArchiveInfo(apkPath, 0)?.applicationInfo
-    appInfo?.sourceDir = apkPath
-    appInfo?.publicSourceDir = apkPath
-    appInfo
-        ?.takeIf { it.icon != 0 && File(apkPath).exists() }
-        ?.let { pm.getResourcesForApplication(it).getDrawableForDensity(it.icon, density, null) }
-} catch (e: Exception) {
+/** Blocking; call it off the main thread. Null when the package is gone. */
+private fun packageIcon(context: Context, pkg: String): Drawable? = try {
+    context.packageManager.getApplicationIcon(pkg)
+} catch (e: PackageManager.NameNotFoundException) {
     null
 }

@@ -22,6 +22,7 @@ data class ExtensionIndexEntry(
     @SerialName("lib_version") val libVersion: String,
     @SerialName("apk") val apk: String,
     @SerialName("sha256") val sha256: String,
+    @SerialName("country") val country: String = "",
     @SerialName("icon") val icon: String? = null,
 )
 
@@ -48,6 +49,7 @@ class ExtensionIndex(
                 libVersion = libVersion,
                 apkUrl = entry.apk,
                 sha256 = entry.sha256,
+                country = entry.country,
                 iconUrl = entry.icon,
             )
         }

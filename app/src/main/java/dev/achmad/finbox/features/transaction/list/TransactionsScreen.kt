@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -130,6 +131,7 @@ object TransactionsScreen : Screen {
         val latest by model.latest.collectAsState()
         val loading by model.loading.collectAsState()
         val filter by model.filter.collectAsState()
+        val hasNoExtensions by model.hasNoExtensions.collectAsState()
         val accounts by model.accounts.collectAsState()
         val extensions by model.extensions.collectAsState()
         val extensionUpdates by model.extensionUpdates.collectAsState()
@@ -157,6 +159,7 @@ object TransactionsScreen : Screen {
             onSetCategory = model::setCategory,
             onOpenAccounts = { navigator.push(AccountsScreen) },
             onOpenExtensions = { navigator.push(ExtensionsScreen) },
+            hasNoExtensions = hasNoExtensions,
             onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
@@ -183,6 +186,8 @@ fun TransactionsScreenContent(
     onOpenTransaction: (Transaction) -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenExtensions: () -> Unit,
+    /** Nothing installed that could read mail; the empty ledger says so. */
+    hasNoExtensions: Boolean = false,
     onOpenSettings: () -> Unit,
     /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
     selected: Set<String> = emptySet(),
@@ -391,9 +396,11 @@ fun TransactionsScreenContent(
                         use24Hour = use24Hour,
                         transactions = monthly[months[index]].orEmpty(),
                         filtered = filter.isActive,
+                        hasNoExtensions = hasNoExtensions,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
                         extensionNames = extensionNames,
+                        onOpenExtensions = onOpenExtensions,
                         onOpenTransaction = onOpenTransaction,
                         selected = selected,
                         onToggleSelection = onToggleSelection,
@@ -409,8 +416,10 @@ private fun MonthPage(
     use24Hour: Boolean,
     transactions: List<Transaction>,
     filtered: Boolean,
+    hasNoExtensions: Boolean,
     grouped: Boolean,
     extensionNames: Map<String, String>,
+    onOpenExtensions: () -> Unit,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -451,7 +460,14 @@ private fun MonthPage(
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider()
         when {
-            transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
+            transactions.isEmpty() -> EmptyTransactions(
+                filtered = filtered,
+                // Both conditions, never either: no extensions *and* no rows.
+                // Someone who uninstalled one still has a ledger, and hiding it
+                // behind a setup screen would read as having lost it.
+                needsExtension = hasNoExtensions && !filtered,
+                onOpenExtensions = onOpenExtensions,
+            )
             grouped -> TransactionList(
                 use24Hour, transactions, extensionNames, onOpenTransaction,
                 selected, onToggleSelection,
@@ -818,11 +834,17 @@ private fun SelectionAppBar(
  * dead in exactly the state where someone reaches for a refresh.
  */
 @Composable
-private fun EmptyTransactions(filtered: Boolean) {
+private fun EmptyTransactions(
+    filtered: Boolean,
+    needsExtension: Boolean,
+    onOpenExtensions: () -> Unit,
+) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             EmptyTransactionsContent(
                 filtered = filtered,
+                needsExtension = needsExtension,
+                onOpenExtensions = onOpenExtensions,
                 // The viewport's height, not the content's: the message stays
                 // centred, which wrapping to its own height would not do.
                 modifier = Modifier.fillParentMaxSize(),
@@ -832,7 +854,12 @@ private fun EmptyTransactions(filtered: Boolean) {
 }
 
 @Composable
-private fun EmptyTransactionsContent(filtered: Boolean, modifier: Modifier = Modifier) {
+private fun EmptyTransactionsContent(
+    filtered: Boolean,
+    needsExtension: Boolean = false,
+    onOpenExtensions: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -846,20 +873,31 @@ private fun EmptyTransactionsContent(filtered: Boolean, modifier: Modifier = Mod
         )
         Text(
             text = stringResource(
-                if (filtered) R.string.transactions_empty_filtered
-                else R.string.transactions_empty,
+                when {
+                    filtered -> R.string.transactions_empty_filtered
+                    needsExtension -> R.string.transactions_empty_no_extension
+                    else -> R.string.transactions_empty
+                },
             ),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
             text = stringResource(
-                if (filtered) R.string.transactions_empty_filtered_info
-                else R.string.transactions_empty_info,
+                when {
+                    filtered -> R.string.transactions_empty_filtered_info
+                    needsExtension -> R.string.transactions_empty_no_extension_info
+                    else -> R.string.transactions_empty_info
+                },
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        if (needsExtension) {
+            Button(onClick = onOpenExtensions) {
+                Text(stringResource(R.string.transactions_empty_no_extension_action))
+            }
+        }
     }
 }
 

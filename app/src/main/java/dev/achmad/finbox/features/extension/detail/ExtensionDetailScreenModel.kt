@@ -8,7 +8,6 @@ import dev.achmad.finbox.core.extension.InstallStep
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.features.extension.list.ExtensionUiModel
 import dev.achmad.finbox.util.koin.inject
-import java.io.File
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,8 +41,9 @@ class ExtensionDetailScreenModel(
                 mutableState.update {
                     it.copy(
                         extension = item,
-                        sizeBytes = item?.extension?.file
-                            ?.let { path -> File(path).length().takeIf { size -> size > 0 } },
+                        // The installed APK on disk, asked of the package
+                        // manager: there is no file of the app's own any more.
+                        sizeBytes = item?.extension?.pkg?.let { manager.apkSizeOf(it) },
                     )
                 }
             }

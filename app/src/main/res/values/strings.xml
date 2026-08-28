@@ -131,6 +131,9 @@
     <!-- Transactions screen -->
     <string name="transactions_empty">Nothing this month</string>
     <string name="transactions_empty_info">Transactions parsed out of your email show up here.</string>
+    <string name="transactions_empty_no_extension">No extensions installed</string>
+    <string name="transactions_empty_no_extension_info">finbox reads receipts through a bank extension. Install one for your bank to start building a ledger.</string>
+    <string name="transactions_empty_no_extension_action">Browse extensions</string>
     <string name="transactions_empty_filtered">Nothing matches the filter</string>
     <string name="transactions_empty_filtered_info">Loosen the filter, or pick another month.</string>
 

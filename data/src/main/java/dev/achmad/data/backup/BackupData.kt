@@ -42,11 +42,10 @@ data class BackupAssignment(
 data class BackupExtension(
     val pkg: String,
     val name: String,
-    val file: String,
     val versionCode: Int,
     val versionName: String,
     val libVersion: String,
-    val sha256: String,
+    val country: String = "",
     val extensionIds: List<String> = emptyList(),
     val enabled: Boolean = true,
 )

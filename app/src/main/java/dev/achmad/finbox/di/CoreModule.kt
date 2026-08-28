@@ -3,6 +3,7 @@ package dev.achmad.finbox.di
 import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
 import dev.achmad.finbox.core.extension.ExtensionLoader
+import dev.achmad.finbox.core.extension.ExtensionTrust
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
 import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
@@ -62,21 +63,24 @@ val coreModule = module {
     }
     single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
-    single<ExtensionLoader> { ExtensionLoader(androidContext()) }
+    single<ExtensionTrust> { ExtensionTrust(preferenceStore = get()) }
+    single<ExtensionLoader> { ExtensionLoader(context = androidContext(), trust = get()) }
     single<ExtensionIndex> { ExtensionIndex(client = get()) }
     single<ExtensionInstaller> {
         ExtensionInstaller(
+            context = androidContext(),
             client = get(),
-            loader = get()
         )
     }
     single<ExtensionManager> {
         ExtensionManager(
+            context = androidContext(),
             transactionUpdateManager = get(),
             loader = get(),
             installer = get(),
             index = get(),
             repository = get(),
+            trust = get(),
         )
     }
     single<ExtensionUpdateNotifier> { ExtensionUpdateNotifier(context = androidContext()) }

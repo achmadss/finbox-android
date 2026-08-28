@@ -299,11 +299,10 @@ private fun ExtensionDetailPreview() {
                     extension = InstalledExtension(
                         pkg = "dev.achmad.extension.jago",
                         name = "Jago",
-                        file = "/data/extensions/jago.apk",
                         versionCode = 3,
                         versionName = "1.2.0",
                         libVersion = "1.0",
-                        sha256 = "0".repeat(64),
+                        country = "ID",
                         extensionIds = listOf("dev.achmad.finbox.extension.preview"),
                         enabled = true,
                     ),
