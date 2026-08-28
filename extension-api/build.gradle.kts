@@ -11,29 +11,23 @@ plugins {
 // `apiVersion` on every change, and keep it in step with the app's
 // FinboxConfig.LIB_VERSION — plus MIN_LIB_VERSION when the change breaks
 // already-published extensions, as removing a field does.
-//
-// Only the fallback for a local publishToMavenLocal, though: see `version`.
 val apiVersion = "1.0"
 
-// JitPack's coordinates, matched exactly so a locally published build and a
-// JitPack one are interchangeable. Its multi-module form joins the owner and
-// the repo with a dot in the group, leaving the artifact to name the module:
-// com.github.achmadss.finbox-android:extension-api.
+// JitPack's coordinates for this repo, matched so a locally published build and
+// a JitPack one are interchangeable. It collapses a repo with one publishable
+// module to <owner>:<repo>, which is why this is not
+// `...finbox-android:extension-api`.
 //
-// This used to be the collapsed <owner>:<repo> form, with a comment saying a
-// nicer name would cost splitting the API into its own repo. That was wrong:
-// JitPack publishes whatever coordinates the build declares and rewrites
-// nothing, and both halves are declared right here, so the nicer name costs
-// these two lines.
-group = "com.github.achmadss.finbox-android"
-
-// JitPack builds whatever git ref was asked for and passes it as -Pversion,
-// expecting the build to publish under that ref. Hardcoding apiVersion worked
-// only while the tag and apiVersion happened to be the same string; ask for a
-// commit hash and the build publishes "1.0", so the lookup finds nothing. That
-// is the wall finbox.apiRef hits from the other side, and neither half works
-// alone. Local publishToMavenLocal passes nothing, so it falls back.
-version = providers.gradleProperty("version").getOrElse(apiVersion)
+// Tested on this branch rather than assumed, because the plan assumed
+// otherwise: declaring group `com.github.achmadss.finbox-android` and artifact
+// `extension-api` changes nothing JitPack serves. It reads whatever the build
+// published — the log says `Found artifact: ...:extension-api:1.0` — and then
+// republishes it under the coordinates that were *asked for*, rewriting both
+// the artifact name and the version to the git ref. So the module name and the
+// version here reach nobody, and splitting the API into its own repo (as
+// Tachiyomi does with extensions-lib) is still what would earn a nicer name.
+group = "com.github.achmadss"
+version = apiVersion
 
 android {
     namespace = "dev.achmad.finbox.extension"
@@ -66,7 +60,7 @@ android {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            artifactId = "extension-api"
+            artifactId = "finbox-android"
             afterEvaluate { from(components["release"]) }
         }
     }
