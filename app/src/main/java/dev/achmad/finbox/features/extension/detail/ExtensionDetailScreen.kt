@@ -37,7 +37,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
-import dev.achmad.finbox.extension.EmailSource
+import dev.achmad.finbox.extension.core.source.email.EmailSource
 import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.features.extension.list.ExtensionIcon
 import dev.achmad.finbox.theme.AppTheme

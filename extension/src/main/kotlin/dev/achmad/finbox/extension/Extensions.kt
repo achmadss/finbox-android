@@ -1,9 +1,8 @@
 package dev.achmad.finbox.extension
 
-import dev.achmad.finbox.extension.bni.Bni
-import dev.achmad.finbox.extension.bri.Bri
-import dev.achmad.finbox.extension.jago.Jago
-import dev.achmad.finbox.extension.mandiri.Mandiri
+import dev.achmad.finbox.extension.core.annotation.SourceEntrypoint
+import dev.achmad.finbox.extension.core.source.Source
+import dev.achmad.finbox.extension.core.source.email.EmailSource
 
 /**
  * One bank reader, as the app sees it.
@@ -14,10 +13,8 @@ import dev.achmad.finbox.extension.mandiri.Mandiri
  */
 data class Extension(
     /**
-     * Stable, short, and chosen once.
-     *
-     * Stored on every transaction and in `account_extension`, so it is a real
-     * contract with the database and renaming one costs a reimport.
+     * Stable, short, and chosen once. See [SourceEntrypoint.id], which is where
+     * it is written.
      */
     val id: String,
     /** What the user reads. */
@@ -31,19 +28,15 @@ data class Extension(
 /**
  * Every extension this build ships.
  *
- * A hand-written list, because there is nothing to discover: extensions compile
- * into the app, so the compiler already knows all four and a registry that went
- * looking for them would only be able to find the same four later. Adding a
- * bank is a class and a line here.
+ * The list is generated: `:extension-processor` collects each
+ * [SourceEntrypoint] at compile time, so adding a bank is a class and an
+ * annotation, and there is no second place to forget. What is left here is the
+ * lookup, which is a fact about how the app reads the list rather than about
+ * what is in it.
  */
 object Extensions {
 
-    val all: List<Extension> = listOf(
-        Extension(id = "bni", name = "Bank BNI", source = Bni()),
-        Extension(id = "bri", name = "Bank BRI", source = Bri()),
-        Extension(id = "jago", name = "Bank Jago", source = Jago()),
-        Extension(id = "mandiri", name = "Bank Mandiri", source = Mandiri()),
-    )
+    val all: List<Extension> = GeneratedExtensions.all
 
     private val byId = all.associateBy { it.id }
 

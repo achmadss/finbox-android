@@ -23,3 +23,4 @@ rootProject.name = "Finbox"
 include(":app")
 include(":data")
 include(":extension")
+include(":extension-processor")

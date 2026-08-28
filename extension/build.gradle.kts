@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ksp)
 }
 
 // Deliberately a plain JVM module, not an Android library. Nothing an extension
@@ -28,6 +29,11 @@ dependencies {
     // and the reason it is `api`: nothing in :app uses jsoup, but an extension
     // written against Receipt may reach for it.
     api(libs.jsoup)
+
+    // Walks @SourceEntrypoint into GeneratedExtensions.all, which Extensions
+    // reads. Nothing here compiles against the processor — it runs in the
+    // compiler and finds the annotations by name.
+    ksp(project(":extension-processor"))
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.core)

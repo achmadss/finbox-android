@@ -5,7 +5,7 @@ import dev.achmad.finbox.util.network.HttpException
 import dev.achmad.finbox.util.network.get
 import dev.achmad.finbox.util.network.json
 import dev.achmad.finbox.util.network.parseAs
-import dev.achmad.finbox.extension.Email
+import dev.achmad.finbox.extension.core.source.email.model.Email
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.MessageListResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse

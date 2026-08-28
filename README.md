@@ -33,7 +33,8 @@ ledger; it holds no knowledge of any bank's email format.
 | Bank Jago | payments, transfers, Jago Partner, debit card purchases |
 | Bank Mandiri | Livin' receipts — QR payments, e-money top ups, SBN orders |
 
-Adding one is a class and a line in a list — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Adding one is a single annotated class — the list the app reads is generated at
+compile time. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it keeps
 
@@ -54,10 +55,12 @@ Currently IDR only, and sync is manual pull-to-refresh.
 | `app/` | UI, Gmail client, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
 | `extension/` | The bank readers, and the contract they implement |
+| `extension-processor/` | KSP processor that generates the extension list |
 
 `extension/` is a plain Kotlin module — no Android on its classpath, so an
 extension cannot fetch, schedule, or reach a token even by accident. `app/`
 depends on it; `data/` knows extension ids only as strings.
+`extension-processor/` runs inside the compiler and is not shipped.
 
 ## Status
 

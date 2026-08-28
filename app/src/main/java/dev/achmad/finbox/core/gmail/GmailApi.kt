@@ -1,7 +1,7 @@
 package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
-import dev.achmad.finbox.extension.Email
+import dev.achmad.finbox.extension.core.source.email.model.Email
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
 import dev.achmad.finbox.core.gmail.model.MessageRef

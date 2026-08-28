@@ -14,7 +14,7 @@ import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineExtensionQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
 import dev.achmad.finbox.util.network.HttpException
-import dev.achmad.finbox.extension.Email
+import dev.achmad.finbox.extension.core.source.email.model.Email
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

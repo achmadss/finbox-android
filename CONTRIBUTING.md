@@ -1,8 +1,8 @@
 # Contributing
 
-Adding a bank means writing one class and adding one line to a list. It lives in
-`extension/`, a plain Kotlin module with no Android in it, so `./gradlew
-:extension:test` is the whole loop.
+Adding a bank means writing one annotated class. It lives in `extension/`, a
+plain Kotlin module with no Android in it, so `./gradlew :extension:test` is the
+whole loop.
 
 **The trade this makes, so you know it up front: a bank now ships with the app.**
 Extensions used to be separate APKs, published to their own repository and
@@ -14,12 +14,13 @@ guarding against a problem this project does not have.
 
 ## Add an extension
 
-**1. Write the class** in `extension/src/main/kotlin/dev/achmad/finbox/extension/<id>/`,
+**1. Write the class** in `extension/src/main/kotlin/dev/achmad/finbox/extension/lib/<id>/`,
 named after the bank and nothing else:
 
 ```kotlin
-package dev.achmad.finbox.extension.jago
+package dev.achmad.finbox.extension.lib.jago
 
+@SourceEntrypoint(id = "jago", name = "Bank Jago")
 class Jago : EmailSource {
 
     override val query = EmailQuery.from("noreply@jago.com")
@@ -31,25 +32,32 @@ class Jago : EmailSource {
 A package per bank, so a bank that grows a helper puts it beside its own reader
 instead of into a namespace all four share.
 
-**2. Register it** in `Extensions.kt`:
+**That is the registration.** `:extension-processor` collects every
+`@SourceEntrypoint` at compile time into the list the app reads, so there is no
+second file to edit and no way to write an extension that quietly never runs.
 
-```kotlin
-Extension(id = "jago", name = "Bank Jago", source = Jago()),
-```
+The `id` is short, lowercase, alphanumeric, and chosen once: it names the
+package, the test resources and the icon, and it is stored on every transaction
+and in `account_extension`. Renaming one costs a reimport, so it is written in
+the annotation rather than derived from the class or package name — a refactor
+must not be able to rename it for you.
 
-The `id` is short, lowercase, and chosen once: it names the package, the test
-resources and the icon, and it is stored on every transaction and in
-`account_extension`. Renaming one costs a reimport.
-
-**3. Add an icon** at `app/src/main/res/drawable-<density>/ic_extension_<id>.png`,
+**2. Add an icon** at `app/src/main/res/drawable-<density>/ic_extension_<id>.png`,
 and a branch in `extensionIcon()`. The `when` is deliberate — a lookup by name
 is reflection R8 cannot see through, and a typo becomes a blank row at runtime.
+This is the one thing the processor cannot do for you: icons are Android
+resources and `:extension` has none.
 
-**What you implement is what you declare.** `EmailSource` is one of a set of
-interfaces the app recognises, and it works out what your extension can read by
-asking the class, not by reading a list you wrote. Email is the only one so far.
-When a bank publishes receipts some other way, that is another interface to
-implement, and implementing it is the whole of declaring it.
+**What you implement is what you declare.** `EmailSource` carries
+`@SourceProvider`, which is how a source kind says the app has something that can
+drive it. Your extension's capabilities are worked out by asking the class, not
+by reading a list you wrote, and the build fails if a `@SourceEntrypoint`
+implements no `@SourceProvider` interface — an extension the app could never ask
+for anything is a build error, not a quiet no-op.
+
+Email is the only source kind so far. When a bank publishes receipts some other
+way, that is one more interface extending `Source`, annotated `@SourceProvider`,
+and implementing it is the whole of declaring it.
 
 ### The two members
 
@@ -123,13 +131,17 @@ schedules, never touches a token or an HTTP client — the app owns all of that,
 and hands over an `Email`. The module is plain Kotlin on purpose: there is no
 Android on its classpath, so this is a compiler fact rather than a rule.
 
+The layout follows that split. `core/` is the contract — the annotations,
+`Source`, `EmailSource` and the models. `lib/` is the banks, one package each.
+`util/` is `Receipt`. Only `lib/` grows when you add a bank.
+
 Conversely the app holds no opinion about parsing. It passes the body exactly as
 it arrived, html included; turning markup into readable lines is your call, and
 `lib/` does it.
 
 ## Use the receipt library
 
-`lib/Receipt.kt` is shared by every extension. It covers what banks have in
+`util/Receipt.kt` is shared by every extension. It covers what banks have in
 common, and nothing that belongs to one of them:
 
 ```kotlin
@@ -151,7 +163,7 @@ Two layouts are already handled: label and value on one line (BRI, BNI, Mandiri)
 and on two, with or without a colon (Jago). If a new bank breaks something here,
 fix it here — that is why it is a library and not copied into each extension.
 
-And "shared" means shared: one bank's vocabulary in `lib/` is one every other
+And "shared" means shared: one bank's vocabulary in `util/` is one every other
 extension has to carry and none of them can correct.
 
 ## Test
