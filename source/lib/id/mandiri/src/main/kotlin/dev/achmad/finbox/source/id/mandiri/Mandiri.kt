@@ -23,9 +23,6 @@ import dev.achmad.finbox.source.core.util.Receipt
 @SourceEntrypoint
 class Mandiri : EmailSource {
 
-    override val id = "mandiri"
-    override val name = "Bank Mandiri"
-    override val icon = R.drawable.mandiri_icon
 
 
     override val query = EmailQuery.from("noreply.livin@bankmandiri.co.id")

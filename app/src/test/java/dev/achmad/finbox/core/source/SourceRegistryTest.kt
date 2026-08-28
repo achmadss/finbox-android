@@ -34,7 +34,7 @@ class SourceRegistryTest {
     @Test
     fun `every source declares a capability the app can drive`() {
         GeneratedSources.all.forEach {
-            assertTrue("${it.id} reads nothing the app can ask for", it is EmailSource)
+            assertTrue("${it.id} reads nothing the app can ask for", it.source is EmailSource)
         }
     }
 

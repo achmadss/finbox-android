@@ -77,7 +77,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.features.account.list.AccountsScreen
 import dev.achmad.finbox.features.source.list.SourcesScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
@@ -175,7 +175,7 @@ fun TransactionsScreenContent(
     loading: Boolean,
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    sources: List<Source>,
+    sources: List<SourceEntry>,
     /** Sources with a newer build in the repo index. */
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,

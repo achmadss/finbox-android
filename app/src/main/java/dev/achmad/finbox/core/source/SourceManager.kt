@@ -3,7 +3,7 @@ package dev.achmad.finbox.core.source
 import dev.achmad.finbox.core.preference.SourcePreferences
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.source.GeneratedSources
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,7 +36,7 @@ class SourceManager(
     private val byId by lazy { all.associateBy { it.id } }
 
     /** Everything this build ships, switched off or not. */
-    val all: List<Source> = GeneratedSources.all
+    val all: List<SourceEntry> = GeneratedSources.all
 
     /**
      * The sources that actually run.
@@ -44,11 +44,11 @@ class SourceManager(
      * A flow because the switch can move while a screen is open; the list it
      * derives from cannot.
      */
-    val enabled: StateFlow<List<Source>> = preferences.disabledSources().changes()
+    val enabled: StateFlow<List<SourceEntry>> = preferences.disabledSources().changes()
         .map { disabled -> all.filterNot { it.id in disabled } }
         .stateIn(scope, SharingStarted.Eagerly, enabledNow())
 
-    fun enabledNow(): List<Source> {
+    fun enabledNow(): List<SourceEntry> {
         val disabled = preferences.disabledSources().get()
         return all.filterNot { it.id in disabled }
     }
@@ -56,7 +56,7 @@ class SourceManager(
     fun isEnabled(id: String): Boolean = id !in preferences.disabledSources().get()
 
     /** Null for an id no build ships — a ledger row older than a source's removal. */
-    fun byId(id: String): Source? = byId[id]
+    fun byId(id: String): SourceEntry? = byId[id]
 
     /**
      * No re-parse on enabling.

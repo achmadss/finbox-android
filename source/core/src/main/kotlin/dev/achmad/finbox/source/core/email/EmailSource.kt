@@ -3,6 +3,7 @@ package dev.achmad.finbox.source.core.email
 import dev.achmad.finbox.source.core.annotation.SourceProvider
 import dev.achmad.finbox.source.core.ParsedTransaction
 import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 
 /** A provider that publishes transactions by email. */
 @SourceProvider
@@ -23,10 +24,10 @@ interface EmailSource : Source {
 }
 
 /**
- * This source as an [EmailSource], or null if it reads something else.
+ * This entry's source as an [EmailSource], or null if it reads something else.
  *
  * The type check is the whole of the question — a source that implements the
  * interface can be asked, and one that does not cannot. Callers read better for
  * having a name for it.
  */
-val Source.email: EmailSource? get() = this as? EmailSource
+val SourceEntry.email: EmailSource? get() = source as? EmailSource

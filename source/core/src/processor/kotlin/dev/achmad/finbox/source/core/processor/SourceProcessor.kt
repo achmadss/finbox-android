@@ -16,6 +16,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
 import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.source.core.annotation.SourceEntrypoint
 import dev.achmad.finbox.source.core.annotation.SourceProvider
 
@@ -27,6 +28,7 @@ import dev.achmad.finbox.source.core.annotation.SourceProvider
 private val ENTRYPOINT: String = SourceEntrypoint::class.java.name
 private val PROVIDER: String = SourceProvider::class.java.name
 private val SOURCE: String = Source::class.java.name
+private val ENTRY: String = SourceEntry::class.java.name
 
 /**
  * Where a source module leaves its calling card, and the only place the
@@ -37,6 +39,12 @@ private const val MANIFEST_PACKAGE = "dev.achmad.finbox.source.generated"
 
 /** Set on whichever module assembles the registry — `:app`. */
 private const val AGGREGATE_OPTION = "finbox.source.aggregate"
+
+// Set on every source module from its `source {}` block. Identity comes from
+// the build file rather than the class, so this is the only way in.
+private const val ID_OPTION = "finbox.source.id"
+private const val NAME_OPTION = "finbox.source.name"
+private const val NAMESPACE_OPTION = "finbox.source.namespace"
 
 private const val REGISTRY_PACKAGE = "dev.achmad.finbox.source"
 private const val REGISTRY_CLASS = "GeneratedSources"
@@ -60,8 +68,10 @@ private const val REGISTRY_CLASS = "GeneratedSources"
 class SourceProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    private val aggregating: Boolean,
+    private val options: Map<String, String>,
 ) : SymbolProcessor {
+
+    private val aggregating = options[AGGREGATE_OPTION].toBoolean()
 
     private var invoked = false
 
@@ -148,6 +158,23 @@ class SourceProcessor(
             // The FQN flattened, so two banks that both call their class Bri
             // cannot collide in the shared package.
             val holder = fqn.replace('.', '_')
+
+            val id = options[ID_OPTION]
+            val name = options[NAME_OPTION]
+            val namespace = options[NAMESPACE_OPTION]
+            if (id.isNullOrBlank() || name.isNullOrBlank() || namespace.isNullOrBlank()) {
+                // The root build passes all three off the `source {}` block, so
+                // this is a module configured outside that convention rather
+                // than anything wrong with the class itself.
+                logger.error(
+                    "This module declares a @SourceEntrypoint but no identity. A source " +
+                        "sits under source/lib/<country>/<bank> and declares " +
+                        "source { id = \"...\"; name = \"...\" } in its build file.",
+                    decl,
+                )
+                return@forEach
+            }
+
             codeGenerator.createNewFile(
                 Dependencies(aggregating = false, decl.containingFile!!),
                 MANIFEST_PACKAGE,
@@ -160,7 +187,12 @@ class SourceProcessor(
                     |package $MANIFEST_PACKAGE
                     |
                     |public object $holder {
-                    |    public val source: $SOURCE = $instance
+                    |    public val entry: $ENTRY = $ENTRY(
+                    |        id = "$id",
+                    |        name = "$name",
+                    |        icon = $namespace.R.drawable.${id}_icon,
+                    |        source = $instance,
+                    |    )
                     |}
                     |
                     """.trimMargin(),
@@ -200,14 +232,14 @@ class SourceProcessor(
             REGISTRY_PACKAGE,
             REGISTRY_CLASS,
         ).bufferedWriter().use { out ->
-            val listed = holders.joinToString("\n") { "|        $it.source," }
+            val listed = holders.joinToString("\n") { "|        $it.entry," }
             out.write(
                 """
                 |// Generated from every @SourceEntrypoint on the classpath. Do not edit.
                 |package $REGISTRY_PACKAGE
                 |
                 |internal object $REGISTRY_CLASS {
-                |    val all: List<$SOURCE> = listOf(
+                |    val all: List<$ENTRY> = listOf(
                 $listed
                 |    )
                 |}
@@ -228,6 +260,6 @@ class SourceProcessorProvider : SymbolProcessorProvider {
         SourceProcessor(
             codeGenerator = environment.codeGenerator,
             logger = environment.logger,
-            aggregating = environment.options[AGGREGATE_OPTION].toBoolean(),
+            options = environment.options,
         )
 }

@@ -9,7 +9,7 @@ import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineSourceQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
@@ -35,7 +35,7 @@ import kotlinx.coroutines.withContext
  */
 class TransactionUpdater(
     /** The enabled sources, read at update time so a switch takes effect at once. */
-    private val sources: () -> List<Source>,
+    private val sources: () -> List<SourceEntry>,
     private val accountRepository: AccountRepository,
     private val accountSourceRepository: AccountSourceRepository,
     private val emailRepository: EmailRepository,
@@ -126,7 +126,7 @@ class TransactionUpdater(
      * installed since then has no assignment yet and goes last rather than
      * being ignored.
      */
-    private suspend fun sourcesFor(account: EmailAccount): List<Source> {
+    private suspend fun sourcesFor(account: EmailAccount): List<SourceEntry> {
         val installed = sources()
         val assignments = accountSourceRepository.forAccount(account.id).first()
         if (assignments.isEmpty()) return installed
@@ -461,7 +461,7 @@ class TransactionUpdater(
     private suspend fun reread(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        sources: List<Source>,
+        sources: List<SourceEntry>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -485,7 +485,7 @@ class TransactionUpdater(
     private suspend fun parseStored(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        sources: List<Source>,
+        sources: List<SourceEntry>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -531,7 +531,7 @@ class TransactionUpdater(
     private suspend fun parse(
         email: StoredEmail,
         message: Email,
-        sources: List<Source>,
+        sources: List<SourceEntry>,
         force: Boolean = false,
     ): Parsed {
         val candidates = if (force) sources else sources.filter { it.id !in email.triedSourceIds }

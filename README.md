@@ -33,9 +33,9 @@ it holds no knowledge of any bank's email format.
 | Bank Jago | payments, transfers, Jago Partner, debit card purchases |
 | Bank Mandiri | Livin' receipts — QR payments, e-money top ups, SBN orders |
 
-Adding one is a directory with a class and an icon in it — no build file, no
-registration, and the list the app reads is generated at compile time. See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Adding one is a directory: a build file naming the bank, an icon, and a class
+that reads the mail. Nothing registers it — the list the app reads is generated
+at compile time. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it keeps
 
@@ -60,9 +60,9 @@ Currently IDR only, and sync is manual pull-to-refresh.
 
 `source/core/` is a plain Kotlin module — no Android on its classpath, so a
 source cannot fetch, schedule, or reach a token even by accident. A bank module
-is an Android library only because it carries its own icon, and it has no build
-file: everything about it is derived from where it sits. `data/` knows source
-ids only as strings.
+is an Android library only because it carries its own icon, and its build file
+says only which bank it is: everything else about being a source is derived from
+where the directory sits. `data/` knows source ids only as strings.
 
 The KSP processor that assembles the source list lives in `source/core/` too, in
 a source set of its own so that it can name the contract as classes without

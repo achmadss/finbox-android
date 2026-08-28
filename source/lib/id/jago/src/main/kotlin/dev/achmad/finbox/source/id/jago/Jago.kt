@@ -23,9 +23,6 @@ import dev.achmad.finbox.source.core.util.Receipt
 @SourceEntrypoint
 class Jago : EmailSource {
 
-    override val id = "jago"
-    override val name = "Bank Jago"
-    override val icon = R.drawable.jago_icon
 
 
     override val query = EmailQuery.from("noreply@jago.com")

@@ -27,9 +27,6 @@ import dev.achmad.finbox.source.core.util.Receipt
 @SourceEntrypoint
 class Bni : EmailSource {
 
-    override val id = "bni"
-    override val name = "Bank BNI"
-    override val icon = R.drawable.bni_icon
 
 
     // One address for everything; the subject names the method.

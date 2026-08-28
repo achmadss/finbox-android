@@ -38,7 +38,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.features.source.detail.SourceDetailScreen
 import dev.achmad.finbox.theme.AppTheme
 
@@ -137,7 +137,7 @@ private fun SourceListItem(
  * than a blank row here.
  */
 @Composable
-fun SourceIcon(source: Source, modifier: Modifier = Modifier) {
+fun SourceIcon(source: SourceEntry, modifier: Modifier = Modifier) {
     Image(painter = painterResource(source.icon), contentDescription = null, modifier = modifier)
 }
 

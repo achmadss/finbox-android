@@ -114,7 +114,7 @@ dependencies {
     // down: a source left out would build, test green, and never be asked for
     // anything.
     rootProject.subprojects
-        .filter { it.path.startsWith(":source:lib:") }
+        .filter { it.parent?.parent?.name == "lib" }
         .forEach { implementation(project(it.path)) }
 
     // Assembles GeneratedSources from every source on the classpath. Only :app

@@ -9,7 +9,7 @@ import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.source.SourceManager
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -78,7 +78,7 @@ class TransactionsScreenModel(
 ) : ScreenModel {
 
     /** The sources that run — what a transaction's `sourceId` points at. */
-    val sources: StateFlow<List<Source>> = sourceManager.enabled
+    val sources: StateFlow<List<SourceEntry>> = sourceManager.enabled
 
     /**
      * Every source switched off.

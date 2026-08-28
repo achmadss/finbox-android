@@ -5,7 +5,7 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.core.preference.SourcePreferences
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -38,7 +38,7 @@ class SourceDetailScreenModel(
      */
     @Immutable
     data class State(
-        val source: Source?,
+        val source: SourceEntry?,
         val enabled: Boolean,
     )
 }

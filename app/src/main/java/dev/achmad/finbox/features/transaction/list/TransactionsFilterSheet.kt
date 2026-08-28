@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.theme.components.CheckboxItem
 import dev.achmad.finbox.theme.components.CollapsibleBox
 import dev.achmad.finbox.theme.components.SettingsItemsPaddings
@@ -34,7 +34,7 @@ import dev.achmad.finbox.R
 fun TransactionsFilterSheet(
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    sources: List<Source>,
+    sources: List<SourceEntry>,
     onFilterChange: (TransactionFilter) -> Unit,
     onDismiss: () -> Unit,
 ) {

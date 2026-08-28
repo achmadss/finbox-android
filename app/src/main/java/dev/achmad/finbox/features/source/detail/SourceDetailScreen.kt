@@ -38,7 +38,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.finbox.R
 import dev.achmad.finbox.source.core.email.EmailSource
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.features.source.list.SourceIcon
 import dev.achmad.finbox.theme.AppTheme
 
@@ -139,9 +139,9 @@ fun SourceDetailScreenContent(
  * only kind so far, so this is one check; a second is one more.
  */
 @Composable
-private fun SourceRow(source: Source) {
+private fun SourceRow(source: SourceEntry) {
     val sources = buildList {
-        if (source is EmailSource) add(stringResource(R.string.source_email))
+        if (source.source is EmailSource) add(stringResource(R.string.source_email))
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(

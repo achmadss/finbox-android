@@ -6,7 +6,7 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,7 +40,7 @@ class AccountDetailsScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
     /** The sources that run — what an assignment's `sourceId` points at. */
-    val sources: StateFlow<List<Source>> = sourceManager.enabled
+    val sources: StateFlow<List<SourceEntry>> = sourceManager.enabled
 
     fun setSyncEnabled(enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }

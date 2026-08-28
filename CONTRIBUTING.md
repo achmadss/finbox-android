@@ -1,8 +1,7 @@
 # Contributing
 
-Adding a bank means creating one directory. No build file, no registration, no
-list to edit: every directory under `source/lib/` is a module, and everything
-annotated `@SourceEntrypoint` is in the app.
+Adding a bank means creating one directory: a build file naming it, an icon, and
+a class that reads the mail. No registration and no list to edit.
 
 **The trade this makes, so you know it up front: a bank ships with the app.**
 Sources used to be separate APKs, published to their own repository and
@@ -15,32 +14,58 @@ against a problem this project does not have.
 ## Add a source
 
 ```
-source/
-    core/                    the contract, plain Kotlin — Source, EmailSource, Receipt
-                             (and, in a source set of its own, the KSP processor)
-    lib/id/jago/             one source, and the only thing you add
-        src/main/kotlin/dev/achmad/finbox/source/id/jago/Jago.kt
-        src/main/res/drawable-<density>/jago_icon.png
-        src/test/kotlin/dev/achmad/finbox/source/id/jago/JagoTest.kt
-        src/test/resources/jago/*.txt
+source/lib/id/jago/
+    build.gradle.kts
+    src/main/res/mipmap-<density>/ic_launcher.png
+    src/main/kotlin/dev/achmad/finbox/source/id/jago/Jago.kt
+    src/test/kotlin/dev/achmad/finbox/source/id/jago/JagoTest.kt
+    src/test/resources/jago/*.txt
 ```
 
 `id` is the ISO 3166-1 alpha-2 country the bank operates in, and `jago` is the
-source's id. Both come from the directory: the module's namespace, its resource
-prefix and its Gradle path are derived from where it sits, so a bank that moves
-country moves directory and nothing else has to agree.
+source's id. The directory is how a source is found: its Gradle path, its
+namespace and its resource prefix all come from where it sits, so a bank that
+moves country moves directory and nothing else has to agree. Nothing registers
+it — every directory under `source/lib/<country>/` is a module.
 
-**The class:**
+**1. Declare it** in `build.gradle.kts`:
+
+```kotlin
+source {
+    id = "jago"
+    name = "Bank Jago"
+}
+```
+
+Both are required and the build fails without them. `id` has to match the
+directory name, which the build checks: the directory is how a source is found,
+the id is what the database stores on every transaction and in `account_source`,
+and two words for one thing is how they drift. Renaming it costs a reimport.
+
+Everything else about being a source — the Android library plugin, the
+namespace, the processor, the test dependencies — is configured centrally, so
+the rest of this file is only ever what this one bank needs on top.
+
+**2. Add the icon** at `src/main/res/mipmap-<density>/ic_launcher.png`. This is
+the ordinary launcher-icon layout, and the same one an extension in Tachiyomi's
+`extensions-source` uses, so a set copies in unchanged. It is required: a source
+with no icon fails the build rather than showing a blank row.
+
+You never reference it. Every source's resources merge into one app and
+`ic_launcher` is the name the app's own launcher icon already answers to — an
+app resource beats a library one, so four sources declaring it would every one
+of them render finbox's icon. The build copies yours to
+`drawable-<density>/<id>_icon.png` and the generated registry points at that.
+Anything *else* you put under `src/main/res/` has to carry the `<id>_` prefix
+for the same reason; AGP warns when it does not.
+
+**3. Write the class:**
 
 ```kotlin
 package dev.achmad.finbox.source.id.jago
 
 @SourceEntrypoint
 class Jago : EmailSource {
-
-    override val id = "jago"
-    override val name = "Bank Jago"
-    override val icon = R.drawable.jago_icon
 
     override val query = EmailQuery.from("noreply@jago.com")
 
@@ -49,20 +74,14 @@ class Jago : EmailSource {
 ```
 
 That is the registration. A KSP processor collects every `@SourceEntrypoint`
-into the list the app reads, across module boundaries, so there is no second
-file to edit and no way to write a source that quietly never runs. Exactly one
-per module — two would both be valid and the module would really be two modules.
+into the list the app reads, across module boundaries, so there is no list to
+edit and no way to write a source that quietly never runs. Exactly one per
+module — two would both be valid and the module would really be two modules.
 
-The `id` is short, lowercase and chosen once: it names the directory, the
-resource prefix and the test resources, and it is stored on every transaction
-and in `account_source`. Renaming it costs a reimport. Write it out; do not
-derive it from the class or package name, or a refactor could rename it for you.
-
-**The icon** is the one thing that makes a source an Android module rather than
-plain Kotlin. It must be prefixed with the source's id — every source's
-resources merge into one app, so four modules each shipping `icon.png` would
-collapse to whichever linked last, silently, looking like a UI bug rather than a
-build one. AGP warns on anything in the module that is not prefixed.
+The class carries no id, no name and no icon. Those are the build file's, and a
+class that also declared them would be a second place for them to be wrong. What
+is left is the reading of one bank's mail, which is the only part that needs a
+person.
 
 **What you implement is what you declare.** `EmailSource` carries
 `@SourceProvider`, which is how a source kind says the app has something that can

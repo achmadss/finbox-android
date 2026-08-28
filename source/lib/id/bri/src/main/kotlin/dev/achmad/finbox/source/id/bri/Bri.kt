@@ -22,9 +22,6 @@ import dev.achmad.finbox.source.core.util.Receipt
 @SourceEntrypoint
 class Bri : EmailSource {
 
-    override val id = "bri"
-    override val name = "Bank BRI"
-    override val icon = R.drawable.bri_icon
 
 
     // One address for every notification.
