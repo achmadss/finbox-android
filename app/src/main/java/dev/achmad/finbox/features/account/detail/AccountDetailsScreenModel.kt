@@ -6,7 +6,7 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.core.extension.LoadedExtension
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,14 +33,14 @@ class AccountDetailsScreenModel(
 
     /**
      * Which extensions this account has switched off, not on: an extension with no row runs, and
-     * an account with no rows at all runs everything installed.
+     * an account with no rows at all runs everything the app ships.
      */
     val disabled: StateFlow<Set<String>> = accountExtensionRepository.forAccount(id)
         .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.extensionId } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
-    /** Extensions currently loaded — what an assignment's `extensionId` points at. */
-    val extensions: StateFlow<List<LoadedExtension>> = extensionManager.extensionsFlow
+    /** The extensions that run — what an assignment's `extensionId` points at. */
+    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
 
     fun setSyncEnabled(enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }

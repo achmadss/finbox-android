@@ -9,7 +9,7 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.LoadedExtension
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineExtensionQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
@@ -33,8 +33,8 @@ import kotlinx.coroutines.withContext
  * Keeps the ledger of transactions up to date from Gmail.
  */
 class TransactionUpdater(
-    /** The installed extensions, read at update time so an install takes effect at once. */
-    private val extensions: () -> List<LoadedExtension>,
+    /** The enabled extensions, read at update time so a switch takes effect at once. */
+    private val extensions: () -> List<Extension>,
     private val accountRepository: AccountRepository,
     private val accountExtensionRepository: AccountExtensionRepository,
     private val emailRepository: EmailRepository,
@@ -125,7 +125,7 @@ class TransactionUpdater(
      * installed since then has no assignment yet and goes last rather than
      * being ignored.
      */
-    private suspend fun extensionsFor(account: EmailAccount): List<LoadedExtension> {
+    private suspend fun extensionsFor(account: EmailAccount): List<Extension> {
         val installed = extensions()
         val assignments = accountExtensionRepository.forAccount(account.id).first()
         if (assignments.isEmpty()) return installed
@@ -460,7 +460,7 @@ class TransactionUpdater(
     private suspend fun reread(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        extensions: List<LoadedExtension>,
+        extensions: List<Extension>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -484,7 +484,7 @@ class TransactionUpdater(
     private suspend fun parseStored(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        extensions: List<LoadedExtension>,
+        extensions: List<Extension>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -530,7 +530,7 @@ class TransactionUpdater(
     private suspend fun parse(
         email: StoredEmail,
         message: Email,
-        extensions: List<LoadedExtension>,
+        extensions: List<Extension>,
         force: Boolean = false,
     ): Parsed {
         val candidates = if (force) extensions else extensions.filter { it.id !in email.triedExtensionIds }

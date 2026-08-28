@@ -9,7 +9,7 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.LoadedExtension
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import androidx.compose.runtime.Immutable
@@ -50,14 +50,14 @@ class AccountsScreenModel(
             }
             .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** Extensions currently loaded — what an assignment's `extensionId` points at. */
-    val extensions: StateFlow<List<LoadedExtension>> = extensionManager.extensionsFlow
+    /** The extensions that run — what an assignment's `extensionId` points at. */
+    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
 
     val rows: StateFlow<List<AccountRow>> =
         combine(accounts, disabledByAccount, extensions) { accounts, disabled, extensions ->
             accounts.map { account ->
                 val off = disabled[account.id].orEmpty()
-                // Counted off the installed extensions, not off the rows: an extension with
+                // Counted off the shipped extensions, not off the rows: an extension with
                 // no row of its own is one this account reads with.
                 AccountRow(account = account, extensionCount = extensions.count { it.id !in off })
             }

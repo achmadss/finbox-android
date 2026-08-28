@@ -26,6 +26,6 @@ val preferenceModule = module {
     single<SyncPreferences> { SyncPreferences(preferenceStore = get()) }
     single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
     single<ExtensionPreferences> {
-        ExtensionPreferences(preferenceStore = get(), context = androidContext())
+        ExtensionPreferences(preferenceStore = get())
     }
 }

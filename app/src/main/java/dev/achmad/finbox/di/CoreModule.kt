@@ -1,12 +1,6 @@
 package dev.achmad.finbox.di
 
-import dev.achmad.finbox.core.extension.ExtensionIndex
-import dev.achmad.finbox.core.extension.ExtensionInstaller
-import dev.achmad.finbox.core.extension.ExtensionLoader
-import dev.achmad.finbox.core.extension.ExtensionTrust
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
-import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
@@ -63,33 +57,10 @@ val coreModule = module {
     }
     single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
-    single<ExtensionTrust> { ExtensionTrust(preferenceStore = get()) }
-    single<ExtensionLoader> { ExtensionLoader(context = androidContext(), trust = get()) }
-    single<ExtensionIndex> { ExtensionIndex(client = get()) }
-    single<ExtensionInstaller> {
-        ExtensionInstaller(
-            context = androidContext(),
-            client = get(),
-        )
-    }
     single<ExtensionManager> {
         ExtensionManager(
-            context = androidContext(),
+            preferences = get(),
             transactionUpdateManager = get(),
-            loader = get(),
-            installer = get(),
-            index = get(),
-            repository = get(),
-            trust = get(),
-        )
-    }
-    single<ExtensionUpdateNotifier> { ExtensionUpdateNotifier(context = androidContext()) }
-    single<ExtensionUpdateChecker> {
-        ExtensionUpdateChecker(
-            notifier = get(),
-            manager = get(),
-            updatePreferences = get(),
-            preferenceStore = get()
         )
     }
     single<AppUpdateChecker> {
@@ -101,7 +72,7 @@ val coreModule = module {
     }
     single<TransactionUpdater> {
         TransactionUpdater(
-            extensions = { get<ExtensionManager>().extensions },
+            extensions = { get<ExtensionManager>().enabledNow() },
             accountRepository = get(),
             accountExtensionRepository = get(),
             emailRepository = get(),

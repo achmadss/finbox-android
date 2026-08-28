@@ -8,7 +8,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -26,17 +25,12 @@ class TransactionUpdateJob(
 ) : CoroutineWorker(context, params) {
 
     private val updater: TransactionUpdater by injectLazy()
-    private val extensionManager: ExtensionManager by injectLazy()
     private val notifier by lazy { TransactionUpdateNotifier(applicationContext) }
 
     override suspend fun doWork(): Result = try {
         // Held here so a refresh or a re-index is always visibly acknowledged:
         // a run with nothing to do would otherwise finish before the banner shows.
         delay(1.seconds)
-        // The registry only fills on reload, and a worker often runs in a process
-        // with no screen: without it the update downloads mail no extension sees.
-        extensionManager.reload()
-
         val parseOnly = inputData.getBoolean(TransactionUpdateWork.PARSE_ONLY, false)
         val reparseExtensionIds = inputData
             .getStringArray(TransactionUpdateWork.REPARSE_EXTENSIONS)
