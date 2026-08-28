@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
 }
 
-// The parser API, published as a library so finbox-parser can
+// The parser API, published as a library so finbox-extension can
 // compile against it instead of keeping its own copy of these types.
 //
 // Parsers depend on it with `compileOnly`: the real classes come from the
@@ -67,7 +67,7 @@ publishing {
     }
 }
 
-// No publishing repository is declared: finbox-parser resolves this from
+// No publishing repository is declared: finbox-extension resolves this from
 // JitPack, which builds it on demand from a tag or a commit hash (jitpack.yml)
 // and needs no account or token from anyone building there. Local iteration
 // goes through publishToMavenLocal, which needs no credentials either.

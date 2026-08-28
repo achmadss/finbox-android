@@ -8,9 +8,9 @@ package dev.achmad.finbox.core
  */
 object FinboxConfig {
 
-    /** The single parser repo index (see finbox-parser). */
+    /** The single parser repo index (see finbox-extension). */
     const val PARSER_INDEX_URL =
-        "https://raw.githubusercontent.com/achmadss/finbox-parser/main/repo/index.json"
+        "https://raw.githubusercontent.com/achmadss/finbox-extension/main/repo/index.json"
 
     /** Where a newer build of the app itself is published. */
     const val APP_RELEASES_URL =

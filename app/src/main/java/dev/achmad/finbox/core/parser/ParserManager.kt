@@ -46,7 +46,7 @@ class ParserManager(
     /** Load failures by file name, shown in the UI. */
     val loadErrors: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap())
 
-    /** Repo index entries fetched from finbox-parser. */
+    /** Repo index entries fetched from finbox-extension. */
     val available: MutableStateFlow<List<AvailableParser>> = MutableStateFlow(emptyList())
 
     val installed: StateFlow<List<InstalledParser>> = repository.parsers()

@@ -15,7 +15,7 @@ quietly; there is no review queue to work through.
 
 1. **Connect a mailbox.** Google OAuth, `gmail.readonly`, no password stored.
 2. **Install parsers.** Each provider — BRI, Jago — is a small separate APK
-   from [finbox-parser](https://github.com/achmadss/finbox-parser),
+   from [finbox-extension](https://github.com/achmadss/finbox-extension),
    verified by hash and loaded in-process. Installing one is what teaches the
    app to read that bank.
 3. **Import.** The first sync walks the mailbox for mail the installed parsers
@@ -48,7 +48,7 @@ Currently IDR only, and sync is manual pull-to-refresh.
 
 `:parser-api` is what parsers compile against. JitPack builds it on demand
 from any tag or commit (see `jitpack.yml`), published as
-`com.github.achmadss:finbox-android`, so finbox-parser can be cloned and
+`com.github.achmadss:finbox-android`, so finbox-extension can be cloned and
 built by anyone — no checkout of this repo, no account, no token.
 
 ## Status
