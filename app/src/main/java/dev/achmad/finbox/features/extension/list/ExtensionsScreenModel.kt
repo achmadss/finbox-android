@@ -9,6 +9,8 @@ import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.extension.InstallStep
+import dev.achmad.finbox.core.extension.InstalledExtensionInfo
+import dev.achmad.finbox.core.preference.ExtensionPreferences
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.delay
@@ -21,6 +23,7 @@ class ExtensionsScreenModel(
     private val manager: ExtensionManager = inject(),
     private val extensionUpdateNotifier: ExtensionUpdateNotifier = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
+    private val preferences: ExtensionPreferences = inject(),
 ) : StateScreenModel<ExtensionsScreenModel.State>(State()) {
 
     init {
@@ -30,8 +33,18 @@ class ExtensionsScreenModel(
                 manager.available,
                 manager.loadErrors,
                 manager.installSteps,
-            ) { installed, available, errors, downloads ->
-                groupExtensions(installed, available, errors, downloads)
+                manager.untrusted,
+                preferences.enabledCountries().changes(),
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                groupExtensions(
+                    installed = values[0] as List<InstalledExtension>,
+                    available = values[1] as List<AvailableExtension>,
+                    errors = values[2] as Map<String, String>,
+                    downloads = values[3] as Map<String, InstallStep>,
+                    untrusted = values[4] as List<InstalledExtensionInfo>,
+                    countries = values[5] as Set<String>,
+                )
             }.collect { fresh ->
                 mutableState.update { fresh.copy(isRefreshing = it.isRefreshing) }
             }
@@ -52,6 +65,21 @@ class ExtensionsScreenModel(
             }
         }
     }
+
+    /** The user allowing an extension's signer, after which it loads. */
+    fun trust(pkg: String) {
+        screenModelScope.launch { manager.trustExtension(pkg) }
+    }
+
+    fun setCountries(countries: Set<String>) {
+        preferences.enabledCountries().set(countries)
+    }
+
+    /** Every country the index offers, so the filter lists real options. */
+    fun availableCountries(): List<String> =
+        manager.available.value.map { it.country }.filter { it.isNotEmpty() }.distinct().sorted()
+
+    fun enabledCountries(): Set<String> = preferences.enabledCountries().get()
 
     fun refresh() {
         screenModelScope.launch {
@@ -97,9 +125,12 @@ class ExtensionsScreenModel(
         val updates: List<ExtensionUiModel.Installed> = emptyList(),
         val installed: List<ExtensionUiModel.Installed> = emptyList(),
         val available: List<ExtensionUiModel.Available> = emptyList(),
+        /** Installed, listed, and not running until the user allows the signer. */
+        val untrusted: List<InstalledExtensionInfo> = emptyList(),
         val errors: Map<String, String> = emptyMap(),
     ) {
-        val isEmpty = updates.isEmpty() && installed.isEmpty() && available.isEmpty() && errors.isEmpty()
+        val isEmpty = updates.isEmpty() && installed.isEmpty() && available.isEmpty() &&
+            untrusted.isEmpty() && errors.isEmpty()
     }
 }
 
@@ -108,11 +139,19 @@ class ExtensionsScreenModel(
  * extension with a newer index entry moves out of "installed" into "updates"; the
  * index entry for something already installed is not offered again.
  */
+/**
+ * @param countries which countries the *available* list is narrowed to. The
+ *   installed list is never narrowed: someone who deliberately installed a
+ *   foreign bank had a reason, and hiding it would silently orphan their
+ *   transactions.
+ */
 fun groupExtensions(
     installed: List<InstalledExtension>,
     available: List<AvailableExtension>,
     errors: Map<String, String>,
     downloads: Map<String, InstallStep>,
+    untrusted: List<InstalledExtensionInfo> = emptyList(),
+    countries: Set<String> = emptySet(),
 ): ExtensionsScreenModel.State {
     val installedItems = installed
         .map { extension ->
@@ -131,6 +170,10 @@ fun groupExtensions(
         installed = installedItems.filter { it.update == null },
         available = available
             .filter { entry -> installed.none { it.pkg == entry.pkg } }
+            // An entry naming no country is always shown: it is a gap in the
+            // index rather than an extension for somewhere else, and hiding it
+            // would make a tooling bug look like an empty repo.
+            .filter { countries.isEmpty() || it.country.isEmpty() || it.country in countries }
             .map {
                 ExtensionUiModel.Available(
                     extension = it,
@@ -138,6 +181,7 @@ fun groupExtensions(
                 )
             }
             .sortedBy { it.name.lowercase() },
+        untrusted = untrusted,
         errors = errors,
     )
 }

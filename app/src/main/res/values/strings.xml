@@ -200,6 +200,11 @@
     <string name="extensions_empty">Nothing to show. Pull to refresh.</string>
     <string name="extensions_header_updates">Update pending</string>
     <string name="extensions_header_installed">Installed</string>
+    <string name="extensions_header_untrusted">Not trusted</string>
+    <string name="extensions_untrusted_info">These are installed but not running. An extension reads your email, so finbox will only run one whose signature you have allowed.</string>
+    <string name="extensions_untrusted_action">Trust and load</string>
+    <string name="extensions_untrusted_no_signature">Signature could not be read</string>
+    <string name="extensions_filter">Filter by country</string>
     <string name="extensions_header_available">Available</string>
     <string name="extensions_header_errors">Failed to load</string>
     <string name="extension_load_error">%1$s: %2$s</string>

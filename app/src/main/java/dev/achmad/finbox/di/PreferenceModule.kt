@@ -1,6 +1,7 @@
 package dev.achmad.finbox.di
 
 import android.content.Context
+import dev.achmad.finbox.core.preference.ExtensionPreferences
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.core.preference.UiPreferences
@@ -24,4 +25,7 @@ val preferenceModule = module {
     single<UiPreferences> { UiPreferences(preferenceStore = get()) }
     single<SyncPreferences> { SyncPreferences(preferenceStore = get()) }
     single<UpdatePreferences> { UpdatePreferences(preferenceStore = get()) }
+    single<ExtensionPreferences> {
+        ExtensionPreferences(preferenceStore = get(), context = androidContext())
+    }
 }

@@ -24,6 +24,15 @@ import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.Checkbox
+import dev.achmad.finbox.core.extension.InstalledExtensionInfo
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,6 +97,10 @@ object ExtensionsScreen : Screen {
             onUpdateAll = model::updateAll,
             onCancelInstall = model::cancelInstall,
             onUninstall = model::uninstall,
+            onTrust = model::trust,
+            countries = model.availableCountries(),
+            enabledCountries = model.enabledCountries(),
+            onSetCountries = model::setCountries,
         )
     }
 }
@@ -104,8 +117,13 @@ fun ExtensionsScreenContent(
     onUpdateAll: () -> Unit = {},
     onCancelInstall: (String) -> Unit = {},
     onUninstall: (String) -> Unit = {},
+    onTrust: (String) -> Unit = {},
+    countries: List<String> = emptyList(),
+    enabledCountries: Set<String> = emptySet(),
+    onSetCountries: (Set<String>) -> Unit = {},
 ) {
     var confirmUninstall by remember { mutableStateOf<ExtensionUiModel.Installed?>(null) }
+    var filtering by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -115,6 +133,15 @@ fun ExtensionsScreenContent(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                    }
+                },
+                actions = {
+                    // Only when there is a choice to make: one country in the
+                    // index means the filter can only hide things.
+                    if (countries.size > 1) {
+                        IconButton(onClick = { filtering = true }) {
+                            Icon(Icons.Filled.FilterList, stringResource(R.string.extensions_filter))
+                        }
                     }
                 },
             )
@@ -144,6 +171,7 @@ fun ExtensionsScreenContent(
                 }
                 else -> ExtensionContent(
                     state = state,
+                    onClickTrust = onTrust,
                     onClickItem = { item ->
                         when (item) {
                             is ExtensionUiModel.Installed -> onOpenExtension(item.pkg)
@@ -174,6 +202,15 @@ fun ExtensionsScreenContent(
                 )
             }
         }
+
+        if (filtering) {
+            CountryFilterDialog(
+                countries = countries,
+                enabled = enabledCountries,
+                onDismiss = { filtering = false },
+                onConfirm = { onSetCountries(it); filtering = false },
+            )
+        }
     }
 
     confirmUninstall?.let { item ->
@@ -188,6 +225,7 @@ fun ExtensionsScreenContent(
 @Composable
 private fun ExtensionContent(
     state: ExtensionsScreenModel.State,
+    onClickTrust: (String) -> Unit,
     onClickItem: (ExtensionUiModel) -> Unit,
     onLongClickItem: (ExtensionUiModel) -> Unit,
     onClickAction: (ExtensionUiModel) -> Unit,
@@ -217,6 +255,23 @@ private fun ExtensionContent(
             extensionItems(state.available, onClickItem, onLongClickItem, onClickAction, onClickCancel)
         }
 
+        if (state.untrusted.isNotEmpty()) {
+            item(key = "header-untrusted", contentType = "header") {
+                ExtensionHeader(stringResource(R.string.extensions_header_untrusted))
+            }
+            item(key = "untrusted-why", contentType = "note") {
+                Text(
+                    text = stringResource(R.string.extensions_untrusted_info),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            items(state.untrusted, key = { "untrusted-${it.pkg}" }) { info ->
+                UntrustedExtensionRow(info = info, onTrust = { onClickTrust(info.pkg) })
+            }
+        }
+
         if (state.errors.isNotEmpty()) {
             item(key = "header-errors", contentType = "header") { ExtensionHeader(stringResource(R.string.extensions_header_errors)) }
             items(state.errors.toList(), key = { "error-${it.first}" }) { (file, reason) ->
@@ -227,6 +282,90 @@ private fun ExtensionContent(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Which countries' extensions the browse list offers.
+ *
+ * Only the available list is narrowed. The installed list never is: someone who
+ * deliberately installed a foreign bank had a reason, and hiding it would
+ * silently orphan the transactions it wrote.
+ */
+@Composable
+private fun CountryFilterDialog(
+    countries: List<String>,
+    enabled: Set<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (Set<String>) -> Unit,
+) {
+    var picked by remember { mutableStateOf(enabled) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.extensions_filter)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                countries.forEach { country ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                picked = if (country in picked) picked - country else picked + country
+                            }
+                            .padding(vertical = 8.dp),
+                    ) {
+                        Checkbox(checked = country in picked, onCheckedChange = null)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(countryLabel(country))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(picked) }) { Text(stringResource(R.string.action_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+/** The country's own name where the platform knows it, the code where it does not. */
+private fun countryLabel(code: String): String =
+    java.util.Locale.Builder().setRegion(code).build()
+        .getDisplayCountry(java.util.Locale.getDefault())
+        .ifEmpty { code }
+
+/**
+ * An extension that is installed but not running.
+ *
+ * The signature is shown in full rather than summarised: it is the only thing
+ * distinguishing this build from someone else's with the same package name, and
+ * a user who wants to check it against the author has nothing else to compare.
+ */
+@Composable
+private fun UntrustedExtensionRow(
+    info: InstalledExtensionInfo,
+    onTrust: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(text = info.name, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = info.pkg,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = info.signature.ifEmpty { stringResource(R.string.extensions_untrusted_no_signature) },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Button(
+            onClick = onTrust,
+            // Nothing to trust: a package whose certificate could not be read
+            // stays inert, because there is no signer to allow.
+            enabled = info.signature.isNotEmpty(),
+        ) {
+            Text(stringResource(R.string.extensions_untrusted_action))
         }
     }
 }
