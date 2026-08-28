@@ -11,6 +11,8 @@ plugins {
 // `apiVersion` on every change, and keep it in step with the app's
 // FinboxConfig.LIB_VERSION — plus MIN_LIB_VERSION when the change breaks
 // already-published parsers, as removing a field does.
+//
+// Only the fallback for a local publishToMavenLocal, though: see `version`.
 val apiVersion = "1.0"
 
 // JitPack's coordinates for this repo, matched exactly so a locally published
@@ -19,7 +21,14 @@ val apiVersion = "1.0"
 // `...finbox-android:parser-api` — splitting the API into its own repo (as
 // Tachiyomi does with extensions-lib) is what would earn a nicer name.
 group = "com.github.achmadss"
-version = apiVersion
+
+// JitPack builds whatever git ref was asked for and passes it as -Pversion,
+// expecting the build to publish under that ref. Hardcoding apiVersion worked
+// only while the tag and apiVersion happened to be the same string; ask for a
+// commit hash and the build publishes "1.0", so the lookup finds nothing. That
+// is the wall finbox.apiRef hits from the other side, and neither half works
+// alone. Local publishToMavenLocal passes nothing, so it falls back.
+version = providers.gradleProperty("version").getOrElse(apiVersion)
 
 android {
     namespace = "dev.achmad.finbox.parser"
