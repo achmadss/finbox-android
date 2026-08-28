@@ -24,8 +24,6 @@
     <string name="category">Category</string>
     <string name="description">Description</string>
     <string name="merchant">Merchant</string>
-    <string name="version">Version</string>
-    <string name="size">Size</string>
     <string name="language">Language</string>
     <string name="sync">Sync</string>
     <string name="direction_outgoing">Expense</string>
@@ -61,9 +59,6 @@
     <string name="action_retry">Retry</string>
     <string name="action_install">Install</string>
     <string name="action_download">Download</string>
-    <string name="action_update">Update</string>
-    <string name="action_update_all">Update all</string>
-    <string name="action_uninstall">Uninstall</string>
     <string name="action_discard">Discard</string>
     <string name="action_keep_editing">Keep editing</string>
     <string name="action_add_account">Add account</string>
@@ -98,11 +93,6 @@
     <string name="app_update_download_error">Could not download the update</string>
     <string name="app_update_up_to_date">Finbox is up to date</string>
     <string name="app_update_check_failed">Could not check for app updates</string>
-    <string name="extension_updates">Extension updates</string>
-    <plurals name="extension_update_available">
-        <item quantity="one">%1$d extension update available</item>
-        <item quantity="other">%1$d extension updates available</item>
-    </plurals>
 
     <!-- Onboarding -->
     <string name="onboarding_auth_title">From inbox to transactions</string>
@@ -117,13 +107,6 @@
     <string name="onboarding_notification_note">You can skip notifications and Finbox will continue working normally. You just won\'t receive updates outside the app.</string>
     <string name="onboarding_notification_allow">Allow Notifications</string>
     <string name="onboarding_notification_skip">Not now</string>
-    <string name="onboarding_extensions_subtitle">Install at least one extension to start:</string>
-    <string name="onboarding_extensions_install">Install and Continue</string>
-    <string name="onboarding_extensions_installing">Installing…</string>
-    <string name="onboarding_extensions_select_all">Select all</string>
-    <string name="onboarding_extensions_info">An extension tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
-    <string name="onboarding_extensions_install_failed">Could not install %1$s</string>
-    <string name="onboarding_extensions_load_failed">%1$s installed but could not be loaded. It was probably built against a different extension API.</string>
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
     <string name="onboarding_exit_confirm">Exit</string>
@@ -131,16 +114,16 @@
     <!-- Transactions screen -->
     <string name="transactions_empty">Nothing this month</string>
     <string name="transactions_empty_info">Transactions parsed out of your email show up here.</string>
-    <string name="transactions_empty_no_extension">No extensions installed</string>
-    <string name="transactions_empty_no_extension_info">finbox reads receipts through a bank extension. Install one for your bank to start building a ledger.</string>
-    <string name="transactions_empty_no_extension_action">Browse extensions</string>
+    <string name="transactions_empty_no_extension">Every extension is off</string>
+    <string name="transactions_empty_no_extension_info">finbox reads receipts through a bank extension, and all of them are switched off. Turn on the one for your bank to start building a ledger.</string>
+    <string name="transactions_empty_no_extension_action">Open extensions</string>
     <string name="transactions_empty_filtered">Nothing matches the filter</string>
     <string name="transactions_empty_filtered_info">Loosen the filter, or pick another month.</string>
 
     <!-- Transaction filter sheet -->
     <string name="filter_section_count">%1$s (%2$d)</string>
     <string name="filter_sort_by">Sort by</string>
-    <string name="filter_no_extensions">No extensions installed</string>
+    <string name="filter_no_extensions">No extensions turned on</string>
     <string name="filter_no_accounts">No accounts added</string>
 
     <!-- Transaction screen -->
@@ -197,32 +180,13 @@
     <string name="pref_check_app_updates_now">Check for app updates now</string>
 
     <!-- Extensions screen -->
-    <string name="extensions_empty">Nothing to show. Pull to refresh.</string>
-    <string name="extensions_header_updates">Update pending</string>
-    <string name="extensions_header_installed">Installed</string>
-    <string name="extensions_header_untrusted">Not trusted</string>
-    <string name="extensions_untrusted_info">These are installed but not running. An extension reads your email, so finbox will only run one whose signature you have allowed.</string>
-    <string name="extensions_untrusted_action">Trust and load</string>
-    <string name="extensions_untrusted_no_signature">Signature could not be read</string>
-    <string name="extensions_filter">Filter by country</string>
-    <string name="extensions_header_available">Available</string>
-    <string name="extensions_header_errors">Failed to load</string>
-    <string name="extension_load_error">%1$s: %2$s</string>
-    <string name="extension_version_name">v%1$s</string>
-    <string name="extension_step_pending">Pending</string>
-    <string name="extension_step_downloading">Downloading</string>
-    <string name="extension_step_installing">Installing</string>
-    <string name="extension_step_ongoing">%1$s…</string>
-    <string name="extension_badge_failed">FAILED</string>
-    <string name="extension_badge_disabled">DISABLED</string>
-    <string name="uninstall_extension">Uninstall extension</string>
-    <string name="uninstall_extension_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
 
     <!-- Extension info screen -->
     <!-- ponytail: stub copy until stage 3 builds the source list. -->
-    <string name="extension_sources_not_built">Sources are not shown yet. This screen is rebuilt in a later stage.</string>
-    <string name="extension_retry_update">Retry update</string>
-    <string name="extension_update_to">Update to v%1$s</string>
+    <string name="extension_reads">Reads</string>
+    <string name="source_email">Email</string>
+    <string name="source_none">Nothing</string>
+    <string name="extension_unknown">No extension with that id.</string>
 
     <!-- Accounts screen -->
     <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>
@@ -235,7 +199,7 @@
 
     <!-- Account info screen -->
     <string name="account_sync_summ">Read new transactions from this mailbox</string>
-    <string name="account_no_extensions">No extensions installed. Install an extension first.</string>
+    <string name="account_no_extensions">Every extension is off. Turn one on first.</string>
 
     <!-- Categories. What the money was for, the app's own vocabulary. -->
     <string name="category_uncategorized">Uncategorized</string>

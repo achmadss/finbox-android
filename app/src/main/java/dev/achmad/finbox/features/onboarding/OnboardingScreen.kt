@@ -31,7 +31,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.features.onboarding.content.OnboardingAiContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
 import dev.achmad.finbox.features.settings.llm.SettingsLlmProviderScreen

@@ -9,7 +9,7 @@ import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.LoadedExtension
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -77,28 +77,20 @@ class TransactionsScreenModel(
     private val transactionUpdateManager: TransactionUpdateManager = inject()
 ) : ScreenModel {
 
-    /** Extensions currently loaded — what a transaction's `extensionId` points at. */
-    val extensions: StateFlow<List<LoadedExtension>> = extensionManager.extensionsFlow
-
-    val extensionUpdates: StateFlow<Int> = extensionManager.updatesCount
+    /** The extensions that run — what a transaction's `extensionId` points at. */
+    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
 
     /**
-     * Nothing installed that could read mail.
+     * Every extension switched off.
      *
-     * Drives the setup prompt on an empty ledger. Read from the installed rows
-     * rather than the loaded registry, so an extension that is installed but
-     * switched off or untrusted still counts as present — the user knows about
-     * it, and telling them to install one would be wrong.
+     * Drives the prompt on an empty ledger. It used to mean "none installed",
+     * which cannot happen now — four ship in the APK — so what is left worth
+     * saying is that the user has turned them all off and nothing will read
+     * their mail.
      */
-    val hasNoExtensions: StateFlow<Boolean> = extensionManager.installed
+    val noEnabledExtensions: StateFlow<Boolean> = extensionManager.enabled
         .map { it.isEmpty() }
         .stateIn(screenModelScope, SharingStarted.Eagerly, false)
-
-    init {
-        // The registry only fills on reload, and opening straight onto this screen means nothing
-        // has done that yet — the filter sheet would offer no extensions. Idempotent and cheap.
-        screenModelScope.launch { extensionManager.reload() }
-    }
 
     private val picked = MutableStateFlow<YearMonth?>(null)
 

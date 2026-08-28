@@ -48,9 +48,8 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
-import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
@@ -69,7 +68,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
-    private val extensionUpdateChecker: ExtensionUpdateChecker by injectLazy()
+    private val extensionManager: ExtensionManager by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
     private val transactionUpdateStatus: TransactionUpdateStatus by injectLazy()
 
@@ -156,12 +155,17 @@ class MainActivity : AppCompatActivity() {
         isReady = true
     }
 
-    /** Each checker throttles itself to a day, so this is cheap on most starts. */
+    /**
+     * The app checker throttles itself to a day, so this is cheap on most starts.
+     *
+     * The re-parse is not a check for anything: extensions ship in this APK, so
+     * a versionCode it has not seen means they may read differently now.
+     */
     @Composable
     private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
-            runCatching { extensionUpdateChecker.checkForUpdates() }
-                .onFailure { Log.e("Extensions", "Extension update check failed", it) }
+            runCatching { extensionManager.reparseIfAppUpdated(BuildConfig.VERSION_CODE) }
+                .onFailure { Log.e("Extensions", "Re-parse after app update failed", it) }
             appUpdateChecker.checkAndNotify()
         }
     }
@@ -183,10 +187,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleIntentAction(intent: Intent, navigator: Navigator) {
         when (intent.action) {
-            // Onboarding has to finish before there is anywhere sensible to land.
-            ExtensionUpdateNotifier.ACTION_OPEN_EXTENSIONS -> {
-                if (navigator.lastItem is TransactionsScreen) navigator.push(ExtensionsScreen)
-            }
             // The list is the root, so whatever was open on top of it goes.
             TransactionUpdateNotifier.ACTION_OPEN_TRANSACTIONS -> {
                 if (navigator.items.firstOrNull() is TransactionsScreen) navigator.popUntilRoot()

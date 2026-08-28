@@ -250,11 +250,6 @@ object SettingsScreen : Screen {
                     },
                 ),
                 Preference.PreferenceItem.SwitchPreference(
-                    preference = preferences.checkExtensionUpdates(),
-                    title = stringResource(R.string.extension_updates),
-                    subtitle = stringResource(R.string.pref_check_updates_summ),
-                ),
-                Preference.PreferenceItem.SwitchPreference(
                     preference = preferences.checkAppUpdates(),
                     title = stringResource(R.string.app_updates),
                     subtitle = stringResource(R.string.pref_check_updates_summ),

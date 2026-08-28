@@ -4,78 +4,41 @@ import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.core.extension.InstallStep
-import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
-import dev.achmad.finbox.features.extension.list.ExtensionUiModel
+import dev.achmad.finbox.core.preference.ExtensionPreferences
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.util.koin.inject
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ExtensionDetailScreenModel(
-    private val pkg: String,
+    private val id: String,
     private val manager: ExtensionManager = inject(),
-    private val transactionUpdateManager: TransactionUpdateManager = inject(),
-) : StateScreenModel<ExtensionDetailScreenModel.State>(State()) {
+    preferences: ExtensionPreferences = inject(),
+) : StateScreenModel<ExtensionDetailScreenModel.State>(
+    State(extension = manager.all.firstOrNull { it.id == id }, enabled = manager.isEnabled(id)),
+) {
 
     init {
         screenModelScope.launch {
-            combine(
-                manager.installed,
-                manager.available,
-                manager.extensionsFlow,
-                manager.installSteps,
-            ) { installed, available, _, steps ->
-                installed.firstOrNull { it.pkg == pkg }?.let { extension ->
-                    ExtensionUiModel.Installed(
-                        extension = extension,
-                        update = available.firstOrNull {
-                            it.pkg == pkg && it.versionCode > extension.versionCode
-                        },
-                        // The manager runs the install, so its progress is the
-                        // truth here — including one started from the other screen.
-                        installStep = steps[pkg] ?: InstallStep.Idle,
-                    )
-                }
-            }.collect { item ->
-                mutableState.update {
-                    it.copy(
-                        extension = item,
-                        // The installed APK on disk, asked of the package
-                        // manager: there is no file of the app's own any more.
-                        sizeBytes = item?.extension?.pkg?.let { manager.apkSizeOf(it) },
-                    )
-                }
-            }
+            preferences.disabledExtensions().changes()
+                .map { id !in it }
+                .collect { enabled -> mutableState.update { it.copy(enabled = enabled) } }
         }
     }
 
-    fun setEnabled(enabled: Boolean) {
-        screenModelScope.launch {
-            manager.setEnabled(pkg, enabled)
-            transactionUpdateManager.reparseNow()
-        }
-    }
-
-    /** Runs in the manager, so leaving this screen does not cancel the download. */
-    fun update() = manager.update(pkg)
+    fun setEnabled(enabled: Boolean) = manager.setEnabled(id, enabled)
 
     /**
-     * Leaving is the screen's job, not this one's: popping first would cancel
-     * [screenModelScope] with the APK half removed.
+     * A null [extension] is an id nothing answers to.
+     *
+     * Reachable only from a stale navigation entry now that the list is a
+     * constant, but a screen that renders nothing rather than crashing is worth
+     * the one null check.
      */
-    fun uninstall() {
-        screenModelScope.launch {
-            manager.remove(pkg)
-            mutableState.update { it.copy(uninstalled = true) }
-        }
-    }
-
     @Immutable
     data class State(
-        val extension: ExtensionUiModel.Installed? = null,
-        /** The APK on disk. Null while the row has no file recorded yet. */
-        val sizeBytes: Long? = null,
-        val uninstalled: Boolean = false,
+        val extension: Extension?,
+        val enabled: Boolean,
     )
 }

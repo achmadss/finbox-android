@@ -10,8 +10,6 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.llm.TransactionClassifier
-import dev.achmad.finbox.core.extension.InstallStep
-import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
@@ -26,7 +24,6 @@ import dev.achmad.finbox.util.permission.PermissionHelper
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
     private val accountRepository: AccountRepository = inject(),
-    private val extensionManager: ExtensionManager = inject(),
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),

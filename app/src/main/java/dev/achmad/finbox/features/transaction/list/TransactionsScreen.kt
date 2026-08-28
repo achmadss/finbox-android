@@ -77,7 +77,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.core.extension.LoadedExtension
+import dev.achmad.finbox.extension.Extension
 import dev.achmad.finbox.features.account.list.AccountsScreen
 import dev.achmad.finbox.features.extension.list.ExtensionsScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
@@ -131,10 +131,9 @@ object TransactionsScreen : Screen {
         val latest by model.latest.collectAsState()
         val loading by model.loading.collectAsState()
         val filter by model.filter.collectAsState()
-        val hasNoExtensions by model.hasNoExtensions.collectAsState()
+        val noEnabledExtensions by model.noEnabledExtensions.collectAsState()
         val accounts by model.accounts.collectAsState()
         val extensions by model.extensions.collectAsState()
-        val extensionUpdates by model.extensionUpdates.collectAsState()
         val selected by model.selected.collectAsState()
 
         TransactionsScreenContent(
@@ -147,7 +146,6 @@ object TransactionsScreen : Screen {
             filter = filter,
             accounts = accounts,
             extensions = extensions,
-            extensionUpdates = extensionUpdates,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
@@ -159,7 +157,7 @@ object TransactionsScreen : Screen {
             onSetCategory = model::setCategory,
             onOpenAccounts = { navigator.push(AccountsScreen) },
             onOpenExtensions = { navigator.push(ExtensionsScreen) },
-            hasNoExtensions = hasNoExtensions,
+            noEnabledExtensions = noEnabledExtensions,
             onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
@@ -177,17 +175,16 @@ fun TransactionsScreenContent(
     loading: Boolean,
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    extensions: List<LoadedExtension>,
+    extensions: List<Extension>,
     /** Extensions with a newer build in the repo index. */
-    extensionUpdates: Int = 0,
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,
     onFilterChange: (TransactionFilter) -> Unit,
     onOpenTransaction: (Transaction) -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenExtensions: () -> Unit,
-    /** Nothing installed that could read mail; the empty ledger says so. */
-    hasNoExtensions: Boolean = false,
+    /** Every extension switched off; the empty ledger says so. */
+    noEnabledExtensions: Boolean = false,
     onOpenSettings: () -> Unit,
     /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
     selected: Set<String> = emptySet(),
@@ -270,7 +267,6 @@ fun TransactionsScreenContent(
                     AppBar.OverflowAction(
                         title = stringResource(R.string.extensions),
                         icon = Icons.Outlined.Extension,
-                        badge = extensionUpdates,
                         onClick = onOpenExtensions,
                     ),
                     AppBar.OverflowAction(
@@ -396,7 +392,7 @@ fun TransactionsScreenContent(
                         use24Hour = use24Hour,
                         transactions = monthly[months[index]].orEmpty(),
                         filtered = filter.isActive,
-                        hasNoExtensions = hasNoExtensions,
+                        noEnabledExtensions = noEnabledExtensions,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
                         extensionNames = extensionNames,
@@ -416,7 +412,7 @@ private fun MonthPage(
     use24Hour: Boolean,
     transactions: List<Transaction>,
     filtered: Boolean,
-    hasNoExtensions: Boolean,
+    noEnabledExtensions: Boolean,
     grouped: Boolean,
     extensionNames: Map<String, String>,
     onOpenExtensions: () -> Unit,
@@ -462,10 +458,10 @@ private fun MonthPage(
         when {
             transactions.isEmpty() -> EmptyTransactions(
                 filtered = filtered,
-                // Both conditions, never either: no extensions *and* no rows.
-                // Someone who uninstalled one still has a ledger, and hiding it
-                // behind a setup screen would read as having lost it.
-                needsExtension = hasNoExtensions && !filtered,
+                // Both conditions, never either: everything off *and* no rows.
+                // Someone who switched one off still has a ledger, and hiding it
+                // behind a prompt would read as having lost it.
+                needsExtension = noEnabledExtensions && !filtered,
                 onOpenExtensions = onOpenExtensions,
             )
             grouped -> TransactionList(
