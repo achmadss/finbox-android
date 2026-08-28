@@ -10,9 +10,9 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
 import dev.achmad.finbox.core.llm.TransactionClassifier
-import dev.achmad.finbox.core.parser.AvailableParser
-import dev.achmad.finbox.core.parser.InstallStep
-import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.core.extension.AvailableExtension
+import dev.achmad.finbox.core.extension.InstallStep
+import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
@@ -29,7 +29,7 @@ import dev.achmad.finbox.util.permission.PermissionHelper
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
     private val accountRepository: AccountRepository = inject(),
-    private val parserManager: ParserManager = inject(),
+    private val extensionManager: ExtensionManager = inject(),
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
@@ -39,8 +39,8 @@ class OnboardingScreenModel(
     init {
         screenModelScope.launch {
             // What's on disk decides which step is next, and the index fills the
-            // parser list; neither is known when the screen is constructed.
-            runCatching { parserManager.reload() }
+            // extension list; neither is known when the screen is constructed.
+            runCatching { extensionManager.reload() }
             next()
 
             // Sign-in finishes in the browser and lands in AuthCallbackActivity.
@@ -53,10 +53,10 @@ class OnboardingScreenModel(
         // The step renders what the state holds, so the published list is folded
         // in here rather than read from the composition.
         screenModelScope.launch {
-            parserManager.available.collect { available ->
+            extensionManager.available.collect { available ->
                 val current = state.value
-                if (current is State.InstallParsers) {
-                    mutableState.value = current.copy(parsers = available)
+                if (current is State.InstallExtensions) {
+                    mutableState.value = current.copy(extensions = available)
                 }
             }
         }
@@ -112,40 +112,40 @@ class OnboardingScreenModel(
         }
     }
 
-    fun onRefreshParsers() = refreshIndex(settle = 1.seconds)
+    fun onRefreshExtensions() = refreshIndex(settle = 1.seconds)
 
-    fun onInstallParsers(requested: List<AvailableParser>) {
+    fun onInstallExtensions(requested: List<AvailableExtension>) {
         screenModelScope.launch {
-            val current = state.value as? State.InstallParsers ?: State.InstallParsers()
+            val current = state.value as? State.InstallExtensions ?: State.InstallExtensions()
             mutableState.value = current.copy(isInstalling = true)
             Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
             // The manager runs the installs, so leaving mid-download does not cancel one; this
             // step only waits for each to land: loaded, or failed with a reason on the row.
-            requested.forEach { parserManager.install(it) }
+            requested.forEach { extensionManager.install(it) }
             // Wait on the install jobs, not the registry: an APK that installs but fails to load
             // never reaches the registry, so waiting there would hang on "Installing" forever.
-            parserManager.installSteps.first { steps ->
+            extensionManager.installSteps.first { steps ->
                 requested.all { steps[it.pkg].let { step -> step == null || step == InstallStep.Error } }
             }
 
-            val steps = parserManager.installSteps.value
-            requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
-                toastHelper.show(R.string.onboarding_parsers_install_failed, parser.name)
+            val steps = extensionManager.installSteps.value
+            requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { extension ->
+                toastHelper.show(R.string.onboarding_extensions_install_failed, extension.name)
             }
             // An APK can install and still not load — a lib version this build does
-            // not support, a missing parser class, or an API that changed under it.
+            // not support, a missing extension class, or an API that changed under it.
             // Say so — the install itself succeeded.
-            val loaded = parserManager.installedInfo.value
+            val loaded = extensionManager.installedInfo.value
             requested.filter { steps[it.pkg] != InstallStep.Error && it.pkg !in loaded }
-                .forEach { parser ->
-                    Log.e("Onboarding", "${parser.pkg} installed but did not load")
+                .forEach { extension ->
+                    Log.e("Onboarding", "${extension.pkg} installed but did not load")
                     toastHelper.show(
-                        R.string.onboarding_parsers_load_failed,
-                        parser.name,
+                        R.string.onboarding_extensions_load_failed,
+                        extension.name,
                         duration = Toast.LENGTH_LONG,
                     )
                 }
-            parserManager.loadErrors.value.forEach { (file, reason) ->
+            extensionManager.loadErrors.value.forEach { (file, reason) ->
                 Log.e("Onboarding", "$file did not load: $reason")
             }
             next()
@@ -163,7 +163,7 @@ class OnboardingScreenModel(
             mutableState.value = resolved
             // What's published changes without the app hearing about it, so the
             // list is fetched on arrival rather than once per screen model.
-            if (resolved is State.InstallParsers) refreshIndex()
+            if (resolved is State.InstallExtensions) refreshIndex()
             return
         }
         // Nothing left to ask: remember that, and start the first import on the
@@ -172,7 +172,7 @@ class OnboardingScreenModel(
         // The schedule turns itself away until that flag is set, so it is asked for here
         // rather than waiting for the next app start.
         transactionUpdateManager.schedule()
-        // Not a user refresh: a parser install a moment earlier may still have a re-read running.
+        // Not a user refresh: an extension install a moment earlier may still have a re-read running.
         transactionUpdateManager.runNow(userInitiated = false)
         mutableState.value = State.Done
     }
@@ -180,8 +180,8 @@ class OnboardingScreenModel(
     private suspend fun resolve(): State? = when {
         accountRepository.all().isEmpty() -> State.SignIn()
         !notificationSettled() -> State.NotificationPermission
-        parserManager.installedInfo.value.isEmpty() ->
-            State.InstallParsers(parsers = parserManager.available.value)
+        extensionManager.installedInfo.value.isEmpty() ->
+            State.InstallExtensions(extensions = extensionManager.available.value)
         // Last, and the only step that asks for nothing: a provider already set
         // up, or the offer already made, both count as settled.
         !classifier.isConfigured() && !preferences.aiPromptSeen().get() -> State.SetupAi
@@ -195,15 +195,15 @@ class OnboardingScreenModel(
             // A pull passes a settle time: the fetch is one small request, and without
             // it the indicator blinks in and back out before it reads as a refresh.
             delay(settle)
-            runCatching { parserManager.refreshIndex() }
-                .onFailure { Log.e("Onboarding", "Parser index fetch failed", it) }
+            runCatching { extensionManager.refreshIndex() }
+                .onFailure { Log.e("Onboarding", "Extension index fetch failed", it) }
             setLoading(false)
         }
     }
 
     private fun setLoading(loading: Boolean) {
         val current = state.value
-        if (current is State.InstallParsers) {
+        if (current is State.InstallExtensions) {
             mutableState.value = current.copy(isLoading = loading)
         }
     }
@@ -230,9 +230,9 @@ class OnboardingScreenModel(
 
         /** Nothing here is required. */
         object SetupAi: State()
-        data class InstallParsers(
+        data class InstallExtensions(
             /** What the index is offering. Carried here so the step draws from state alone. */
-            val parsers: List<AvailableParser> = emptyList(),
+            val extensions: List<AvailableExtension> = emptyList(),
             val isLoading: Boolean = false,
             val isInstalling: Boolean = false,
         ): State()

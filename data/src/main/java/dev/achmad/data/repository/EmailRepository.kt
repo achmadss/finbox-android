@@ -22,10 +22,10 @@ class EmailRepository(
         db.emailQueries.SELECTUnparsed().executeAsList().map { it.toModel() }
     }
 
-    /** Emails one of [parserIds] claimed — what a change to it re-reads. */
-    suspend fun parsedBy(parserIds: Collection<Long>): List<StoredEmail> = withContext(Dispatchers.IO) {
-        if (parserIds.isEmpty()) return@withContext emptyList()
-        db.emailQueries.SELECTByParser(parserIds).executeAsList().map { it.toModel() }
+    /** Emails one of [extensionIds] claimed — what a change to it re-reads. */
+    suspend fun parsedBy(extensionIds: Collection<Long>): List<StoredEmail> = withContext(Dispatchers.IO) {
+        if (extensionIds.isEmpty()) return@withContext emptyList()
+        db.emailQueries.SELECTByExtension(extensionIds).executeAsList().map { it.toModel() }
     }
 
     /** Stores the emails that aren't here yet, returning how many were new. */
@@ -46,8 +46,8 @@ class EmailRepository(
                     subject = email.subject,
                     date = email.date,
                     body = email.body,
-                    tried_parser_ids = email.triedParserIds.joinToString(" "),
-                    parsed_by_parser_id = email.parsedByParserId,
+                    tried_extension_ids = email.triedExtensionIds.joinToString(" "),
+                    parsed_by_extension_id = email.parsedByExtensionId,
                     fetched_at = email.fetchedAt,
                 )
             }
@@ -63,8 +63,8 @@ class EmailRepository(
                 db.emailQueries.SETParseState(
                     thread_id = email.threadId,
                     body = email.body,
-                    tried_parser_ids = email.triedParserIds.joinToString(" "),
-                    parsed_by_parser_id = email.parsedByParserId,
+                    tried_extension_ids = email.triedExtensionIds.joinToString(" "),
+                    parsed_by_extension_id = email.parsedByExtensionId,
                     account_id = email.accountId,
                     message_id = email.messageId,
                 )
@@ -85,8 +85,8 @@ class EmailRepository(
                     subject = email.subject,
                     date = email.date,
                     body = email.body,
-                    tried_parser_ids = email.triedParserIds.joinToString(" "),
-                    parsed_by_parser_id = email.parsedByParserId,
+                    tried_extension_ids = email.triedExtensionIds.joinToString(" "),
+                    parsed_by_extension_id = email.parsedByExtensionId,
                     fetched_at = email.fetchedAt,
                 )
             }
@@ -106,8 +106,8 @@ class EmailRepository(
         subject = subject,
         date = date,
         body = body,
-        triedParserIds = tried_parser_ids.split(" ").mapNotNull(String::toLongOrNull),
-        parsedByParserId = parsed_by_parser_id,
+        triedExtensionIds = tried_extension_ids.split(" ").mapNotNull(String::toLongOrNull),
+        parsedByExtensionId = parsed_by_extension_id,
         fetchedAt = fetched_at,
     )
 }

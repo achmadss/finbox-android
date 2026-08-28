@@ -2,21 +2,21 @@ package dev.achmad.data.model
 
 /**
  * Which way the money went — all the app itself knows. What a provider calls
- * it is the parser's vocabulary and lives in [Transaction.method].
+ * it is the extension's vocabulary and lives in [Transaction.method].
  */
 enum class TransactionDirection {
     INCOMING,
     OUTGOING,
 }
 
-/** One transaction a parser read out of an email. */
+/** One transaction an extension read out of an email. */
 data class Transaction(
     val accountId: String,
-    val parserId: Long,
+    val extensionId: Long,
     /** The [StoredEmail] this was parsed from. */
     val emailMessageId: String,
     /**
-     * Which of the transactions this email yielded, in parser order. Part of
+     * Which of the transactions this email yielded, in extension order. Part of
      * [id], so it survives a re-read: skipping a dismissed row must not
      * renumber the rest.
      */
@@ -29,8 +29,8 @@ data class Transaction(
     val currency: String?,
     val direction: TransactionDirection?,
     /**
-     * The key of one of the parser's declared methods. Null on a hand-entered
-     * row, which no parser claimed.
+     * The key of one of the extension's declared methods. Null on a hand-entered
+     * row, which no extension claimed.
      */
     val method: String?,
     /**
@@ -63,14 +63,14 @@ data class Transaction(
     val edited: Boolean get() = editedAt != null
 
     /**
-     * A stable identity that does not change when the parser version changes.
+     * A stable identity that does not change when the extension version changes.
      *
      * Keyed on the message, not the thread: a thread can carry unrelated mail
      * and different transactions, so collapsing one loses money. Two messages
      * reporting the same transaction are merged later by reference — see
      * [dev.achmad.data.repository.TransactionRepository.upsertAll].
      */
-    val id: String get() = "$accountId:message:$emailMessageId:$parserId:$index"
+    val id: String get() = "$accountId:message:$emailMessageId:$extensionId:$index"
 
     /** When it happened, falling back to when it was stored. */
     val timestamp: Long get() = date ?: createdAt

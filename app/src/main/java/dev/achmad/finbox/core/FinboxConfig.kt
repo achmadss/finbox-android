@@ -8,8 +8,8 @@ package dev.achmad.finbox.core
  */
 object FinboxConfig {
 
-    /** The single parser repo index (see finbox-extension). */
-    const val PARSER_INDEX_URL =
+    /** The single extension repo index (see finbox-extension). */
+    const val EXTENSION_INDEX_URL =
         "https://raw.githubusercontent.com/achmadss/finbox-extension/main/repo/index.json"
 
     /** Where a newer build of the app itself is published. */
@@ -34,19 +34,19 @@ object FinboxConfig {
     const val USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     /**
-     * The parser API this app ships. A parser declares it via `finbox.parser.lib`,
+     * The extension API this app ships. An extension declares it via `finbox.extension.lib`,
      * or by the leading components of its versionName ("1.0.5" -> 1.0).
      */
     const val LIB_VERSION = 1.0
 
     /**
-     * The oldest parser API still loadable. Raising it orphans every APK below it,
+     * The oldest extension API still loadable. Raising it orphans every APK below it,
      * so it moves only on a breaking change.
      */
     const val MIN_LIB_VERSION = 1.0
 
     /**
-     * Whether a parser API version is one this app can load.
+     * Whether an extension API version is one this app can load.
      *
      * The tolerance absorbs the float widening of an APK's reported version:
      * 1.2f reads back as 1.2000000476837158.

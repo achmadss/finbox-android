@@ -61,7 +61,7 @@ class SettingsScreenModel(
         screenModelScope.launch { transactionUpdateManager.runNow() }
     }
 
-    /** Hands stored mail to the current parsers again, in the background. */
+    /** Hands stored mail to the current extensions again, in the background. */
     fun reindexTransactions() {
         screenModelScope.launch { transactionUpdateManager.reparseNow() }
     }
@@ -73,8 +73,8 @@ class SettingsScreenModel(
     fun rescheduleFetch() = transactionUpdateManager.schedule()
 
     /**
-     * Forced, so neither the daily throttle nor the switch swallows it. Parsers
-     * have no equivalent here: their list refreshes whenever the parsers screen
+     * Forced, so neither the daily throttle nor the switch swallows it. Extensions
+     * have no equivalent here: their list refreshes whenever the extensions screen
      * opens.
      */
     fun checkAppUpdateNow() {

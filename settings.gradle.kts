@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "Finbox"
 include(":app")
 include(":data")
-include(":parser-api")
+include(":extension-api")

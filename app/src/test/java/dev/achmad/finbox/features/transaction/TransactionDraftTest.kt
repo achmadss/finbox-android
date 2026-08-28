@@ -14,7 +14,7 @@ class TransactionDraftTest {
 
     private val transaction = Transaction(
         accountId = "a1",
-        parserId = 1L,
+        extensionId = 1L,
         emailMessageId = "m1",
         index = 0,
         threadId = "th1",

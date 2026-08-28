@@ -5,11 +5,11 @@ import android.util.Log
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.repository.AccountParserRepository
+import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.LoadedParser
+import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.extension.LoadedExtension
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import androidx.compose.runtime.Immutable
@@ -23,43 +23,43 @@ import kotlinx.coroutines.launch
 @Immutable
 data class AccountRow(
     val account: EmailAccount,
-    val parserCount: Int,
+    val extensionCount: Int,
 )
 
 class AccountsScreenModel(
     private val accountRepository: AccountRepository = inject(),
-    private val accountParserRepository: AccountParserRepository = inject(),
+    private val accountExtensionRepository: AccountExtensionRepository = inject(),
     private val tokenStore: GmailTokenStore = inject(),
     private val authManager: GmailAuthManager = inject(),
-    private val parserManager: ParserManager = inject(),
+    private val extensionManager: ExtensionManager = inject(),
 ) : ScreenModel {
 
     val accounts: StateFlow<List<EmailAccount>> = accountRepository.accounts()
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
-     * Which parsers each account has switched off, not on: a parser with no row runs, and
+     * Which extensions each account has switched off, not on: an extension with no row runs, and
      * an account with no rows at all runs everything installed.
      */
     val disabledByAccount: StateFlow<Map<String, Set<Long>>> =
-        accountParserRepository.allAssignments()
+        accountExtensionRepository.allAssignments()
             .map { list ->
                 list.filterNot { it.enabled }
-                    .groupBy({ it.accountId }, { it.parserId })
+                    .groupBy({ it.accountId }, { it.extensionId })
                     .mapValues { it.value.toSet() }
             }
             .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** Parsers currently loaded — what an assignment's `parserId` points at. */
-    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
+    /** Extensions currently loaded — what an assignment's `extensionId` points at. */
+    val extensions: StateFlow<List<LoadedExtension>> = extensionManager.extensionsFlow
 
     val rows: StateFlow<List<AccountRow>> =
-        combine(accounts, disabledByAccount, parsers) { accounts, disabled, parsers ->
+        combine(accounts, disabledByAccount, extensions) { accounts, disabled, extensions ->
             accounts.map { account ->
                 val off = disabled[account.id].orEmpty()
-                // Counted off the installed parsers, not off the rows: a parser with
+                // Counted off the installed extensions, not off the rows: an extension with
                 // no row of its own is one this account reads with.
-                AccountRow(account = account, parserCount = parsers.count { it.id !in off })
+                AccountRow(account = account, extensionCount = extensions.count { it.id !in off })
             }
         }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -80,7 +80,7 @@ class AccountsScreenModel(
     fun remove(id: String) {
         screenModelScope.launch {
             accountRepository.delete(id)
-            accountParserRepository.deleteForAccount(id)
+            accountExtensionRepository.deleteForAccount(id)
             // A removed account keeping a live refresh token is a token nothing will ever use.
             tokenStore.clear(id)
         }

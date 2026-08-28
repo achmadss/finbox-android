@@ -17,21 +17,21 @@ class FinboxConfigTest {
     }
 
     @Test
-    fun `a parser built for a newer API is refused`() {
+    fun `an extension built for a newer API is refused`() {
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION + 0.1))
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.LIB_VERSION + 1.0))
     }
 
     @Test
-    fun `a parser below the floor is refused`() {
+    fun `an extension below the floor is refused`() {
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION - 0.1))
         assertFalse(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION - 1.0))
     }
 
     @Test
-    fun `raising the shipped version alone keeps published parsers loadable`() {
+    fun `raising the shipped version alone keeps published extensions loadable`() {
         // The whole point of a floor: this is what an already-installed
-        // parser looks like after the app moves on without it.
+        // extension looks like after the app moves on without it.
         assertTrue(FinboxConfig.MIN_LIB_VERSION <= FinboxConfig.LIB_VERSION)
         assertTrue(FinboxConfig.supportsLibVersion(FinboxConfig.MIN_LIB_VERSION))
     }

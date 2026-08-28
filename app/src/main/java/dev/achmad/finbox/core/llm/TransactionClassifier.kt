@@ -38,7 +38,7 @@ class TransactionClassifier(
         if (batch.isEmpty()) return@runCatching Classified(emptyMap(), 0, 0, 0)
 
         // Local indices as ids, mapped back here. Real transaction ids look like
-        // accountId:message:messageId:parserId:index, and every character of
+        // accountId:message:messageId:extensionId:index, and every character of
         // that is a chance for a model to garble one.
         val prompt = batch.mapIndexed { index, signature -> render(index, signature) }
             .joinToString("\n")

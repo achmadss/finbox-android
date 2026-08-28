@@ -8,8 +8,8 @@ import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.LoadedParser
+import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.extension.LoadedExtension
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -28,14 +28,14 @@ enum class TransactionSort { DATE, AMOUNT }
 /** An empty set means "no restriction", so the default filter lets everything through. */
 data class TransactionFilter(
     val directions: Set<TransactionDirection> = emptySet(),
-    val parserIds: Set<Long> = emptySet(),
+    val extensionIds: Set<Long> = emptySet(),
     val accountIds: Set<String> = emptySet(),
     val sort: TransactionSort = TransactionSort.DATE,
     val descending: Boolean = true,
 ) {
     val isActive: Boolean
         get() = directions.isNotEmpty() ||
-            parserIds.isNotEmpty() ||
+            extensionIds.isNotEmpty() ||
             accountIds.isNotEmpty() ||
             sort != TransactionSort.DATE ||
             !descending
@@ -43,7 +43,7 @@ data class TransactionFilter(
     fun applyTo(transactions: List<Transaction>): List<Transaction> {
         val kept = transactions.filter {
             (directions.isEmpty() || it.direction in directions) &&
-                (parserIds.isEmpty() || it.parserId in parserIds) &&
+                (extensionIds.isEmpty() || it.extensionId in extensionIds) &&
                 (accountIds.isEmpty() || it.accountId in accountIds)
         }
         val sorted = when (sort) {
@@ -73,19 +73,19 @@ internal fun monthRange(
 class TransactionsScreenModel(
     private val transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
-    private val parserManager: ParserManager = inject(),
+    private val extensionManager: ExtensionManager = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject()
 ) : ScreenModel {
 
-    /** Parsers currently loaded — what a transaction's `parserId` points at. */
-    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
+    /** Extensions currently loaded — what a transaction's `extensionId` points at. */
+    val extensions: StateFlow<List<LoadedExtension>> = extensionManager.extensionsFlow
 
-    val parserUpdates: StateFlow<Int> = parserManager.updatesCount
+    val extensionUpdates: StateFlow<Int> = extensionManager.updatesCount
 
     init {
         // The registry only fills on reload, and opening straight onto this screen means nothing
-        // has done that yet — the filter sheet would offer no parsers. Idempotent and cheap.
-        screenModelScope.launch { parserManager.reload() }
+        // has done that yet — the filter sheet would offer no extensions. Idempotent and cheap.
+        screenModelScope.launch { extensionManager.reload() }
     }
 
     private val picked = MutableStateFlow<YearMonth?>(null)

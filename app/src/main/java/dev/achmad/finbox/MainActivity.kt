@@ -48,13 +48,13 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import dev.achmad.finbox.core.parser.ParserUpdateChecker
+import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
-import dev.achmad.finbox.core.parser.ParserUpdateNotifier
+import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
-import dev.achmad.finbox.features.parser.list.ParsersScreen
+import dev.achmad.finbox.features.extension.list.ExtensionsScreen
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppThemeFromPreferences
@@ -69,7 +69,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
-    private val parserUpdateChecker: ParserUpdateChecker by injectLazy()
+    private val extensionUpdateChecker: ExtensionUpdateChecker by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
     private val transactionUpdateStatus: TransactionUpdateStatus by injectLazy()
 
@@ -160,8 +160,8 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
-            runCatching { parserUpdateChecker.checkForUpdates() }
-                .onFailure { Log.e("Parsers", "Parser update check failed", it) }
+            runCatching { extensionUpdateChecker.checkForUpdates() }
+                .onFailure { Log.e("Extensions", "Extension update check failed", it) }
             appUpdateChecker.checkAndNotify()
         }
     }
@@ -184,8 +184,8 @@ class MainActivity : AppCompatActivity() {
     private fun handleIntentAction(intent: Intent, navigator: Navigator) {
         when (intent.action) {
             // Onboarding has to finish before there is anywhere sensible to land.
-            ParserUpdateNotifier.ACTION_OPEN_PARSERS -> {
-                if (navigator.lastItem is TransactionsScreen) navigator.push(ParsersScreen)
+            ExtensionUpdateNotifier.ACTION_OPEN_EXTENSIONS -> {
+                if (navigator.lastItem is TransactionsScreen) navigator.push(ExtensionsScreen)
             }
             // The list is the root, so whatever was open on top of it goes.
             TransactionUpdateNotifier.ACTION_OPEN_TRANSACTIONS -> {

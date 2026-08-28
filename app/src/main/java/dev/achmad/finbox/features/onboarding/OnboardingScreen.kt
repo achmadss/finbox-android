@@ -31,11 +31,11 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.parser.AvailableParser
+import dev.achmad.finbox.core.extension.AvailableExtension
 import dev.achmad.finbox.features.onboarding.content.OnboardingAiContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
 import dev.achmad.finbox.features.settings.llm.SettingsLlmProviderScreen
-import dev.achmad.finbox.features.onboarding.content.OnboardingInstallParsersContent
+import dev.achmad.finbox.features.onboarding.content.OnboardingInstallExtensionsContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingNotificationPermissionContent
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import dev.achmad.finbox.theme.AppTheme
@@ -92,8 +92,8 @@ object OnboardingScreen: Screen {
             },
             onClickAllowNotification = notificationPermission::launchPermissionRequest,
             onNotificationPromptSettled = screenModel::onNotificationPromptSettled,
-            onRefreshParsers = screenModel::onRefreshParsers,
-            onInstallParsers = screenModel::onInstallParsers,
+            onRefreshExtensions = screenModel::onRefreshExtensions,
+            onInstallExtensions = screenModel::onInstallExtensions,
             onSetupAi = { navigator.push(SettingsLlmProviderScreen(null)) },
             onSkipAi = screenModel::onAiPromptSettled,
             onExit = { activity?.finish() },
@@ -107,8 +107,8 @@ fun OnboardingScreenContent(
     onClickSignIn: () -> Unit = {},
     onClickAllowNotification: () -> Unit = {},
     onNotificationPromptSettled: () -> Unit = {},
-    onRefreshParsers: () -> Unit = {},
-    onInstallParsers: (List<AvailableParser>) -> Unit = {},
+    onRefreshExtensions: () -> Unit = {},
+    onInstallExtensions: (List<AvailableExtension>) -> Unit = {},
     onSetupAi: () -> Unit = {},
     onSkipAi: () -> Unit = {},
     onExit: () -> Unit = {},
@@ -174,13 +174,13 @@ fun OnboardingScreenContent(
             is OnboardingScreenModel.State.SetupAi -> {
                 OnboardingAiContent(onClickSetup = onSetupAi, onSkip = onSkipAi)
             }
-            is OnboardingScreenModel.State.InstallParsers -> {
-                OnboardingInstallParsersContent(
-                    parsers = onboardingState.parsers,
+            is OnboardingScreenModel.State.InstallExtensions -> {
+                OnboardingInstallExtensionsContent(
+                    extensions = onboardingState.extensions,
                     loading = onboardingState.isLoading,
                     installing = onboardingState.isInstalling,
-                    onRefresh = onRefreshParsers,
-                    onClickInstallParsers = onInstallParsers,
+                    onRefresh = onRefreshExtensions,
+                    onClickInstallExtensions = onInstallExtensions,
                 )
             }
         }
@@ -205,10 +205,10 @@ private fun OnboardingNotificationPreview() {
 
 @Preview
 @Composable
-private fun OnboardingInstallParsersPreview() {
+private fun OnboardingInstallExtensionsPreview() {
     AppTheme {
         OnboardingScreenContent(
-            state = OnboardingScreenModel.State.InstallParsers(parsers = emptyList()),
+            state = OnboardingScreenModel.State.InstallExtensions(extensions = emptyList()),
         )
     }
 }

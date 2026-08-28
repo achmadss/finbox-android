@@ -53,7 +53,7 @@ import dev.achmad.finbox.features.transaction.pickableCategories
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionMethod
+import dev.achmad.finbox.extension.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
@@ -74,7 +74,7 @@ import dev.achmad.finbox.R
 
 /**
  * Edits one transaction. The ids, timestamps, and the deleted flag belong to the
- * parser and the database, so they stay out of the form; currency and reference
+ * extension and the database, so they stay out of the form; currency and reference
  * are editable but not offered here.
  */
 data class TransactionEditScreen(private val id: String) : Screen {
@@ -456,7 +456,7 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
             ) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            // A row the parser found no date for is a real state, so it has to be reachable.
+            // A row the extension found no date for is a real state, so it has to be reachable.
             TextButton(
                 onClick = {
                     onSelect(null)
@@ -501,7 +501,7 @@ private fun TimePickerDialog(
 }
 
 /**
- * The methods the row's parser declares, plus None. A method the parser dropped stays in the
+ * The methods the row's extension declares, plus None. A method the extension dropped stays in the
  * list while it is the one selected, so opening the picker cannot quietly discard it.
  */
 @Composable
@@ -576,7 +576,7 @@ internal fun Transaction.toDraft() = Draft(
 )
 
 /**
- * Blank means "the parser found nothing", i.e. null — the same as an untouched row.
+ * Blank means "the extension found nothing", i.e. null — the same as an untouched row.
  * Fields the form does not offer keep whatever the row already holds.
  */
 internal fun Draft.applyTo(transaction: Transaction): Transaction {
@@ -615,7 +615,7 @@ private fun TransactionEditPreview() {
         TransactionEditScreenContent(
             draft = Transaction(
                 accountId = "preview",
-                parserId = 1L,
+                extensionId = 1L,
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,

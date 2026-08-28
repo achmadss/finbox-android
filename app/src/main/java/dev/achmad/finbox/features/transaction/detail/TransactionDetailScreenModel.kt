@@ -6,8 +6,8 @@ import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.signature
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.parser.TransactionMethod
+import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.extension.TransactionMethod
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ import kotlin.collections.orEmpty
 class TransactionDetailScreenModel(
     private val id: String,
     private val repository: TransactionRepository = inject(),
-    parserManager: ParserManager = inject(),
+    extensionManager: ExtensionManager = inject(),
 ) : ScreenModel {
 
     /**
@@ -32,13 +32,13 @@ class TransactionDetailScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
 
     /**
-     * What the method picker offers: the methods declared by the parser that read this row.
-     * Empty until the registry loads, and empty for a row whose parser is gone — the
+     * What the method picker offers: the methods declared by the extension that read this row.
+     * Empty until the registry loads, and empty for a row whose extension is gone — the
      * picker then only offers what the row already has.
      */
     val methods: StateFlow<List<TransactionMethod>> =
-        combine(transaction, parserManager.parsersFlow) { transaction, parsers ->
-            parsers.firstOrNull { it.id == transaction?.parserId }?.methods().orEmpty()
+        combine(transaction, extensionManager.extensionsFlow) { transaction, extensions ->
+            extensions.firstOrNull { it.id == transaction?.extensionId }?.methods().orEmpty()
         }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     fun save(edited: Transaction) {

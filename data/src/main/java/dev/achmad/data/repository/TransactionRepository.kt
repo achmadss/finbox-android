@@ -48,12 +48,12 @@ class TransactionRepository(
     }
 
     /**
-     * Writes parsed transactions, updating parser-owned fields for an existing id.
+     * Writes parsed transactions, updating extension-owned fields for an existing id.
      *
      * A re-parsed message refreshes the rows it already wrote. The same
-     * reference from the same parser in another message is the same transaction,
+     * reference from the same extension in another message is the same transaction,
      * and the row already stored wins. Rows the user edited are skipped: their
-     * version wins over anything a parser reads.
+     * version wins over anything an extension reads.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
@@ -61,7 +61,7 @@ class TransactionRepository(
                 val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
                     ?: transaction.reference?.let { reference ->
                         db.transactionQueries
-                            .SELECTByReference(transaction.accountId, transaction.parserId, reference)
+                            .SELECTByReference(transaction.accountId, transaction.extensionId, reference)
                             .executeAsOneOrNull()
                     }
                 when {
@@ -183,12 +183,12 @@ class TransactionRepository(
     }
 
     /**
-     * Drops everything a parser parsed under one method — what switching that method
+     * Drops everything an extension parsed under one method — what switching that method
      * off means, since a re-parse will not write them back.
      */
-    suspend fun deleteByMethod(parserIds: Collection<Long>, method: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteByMethod(extensionIds: Collection<Long>, method: String) = withContext(Dispatchers.IO) {
         db.transaction {
-            parserIds.forEach { db.transactionQueries.DELETEByMethod(it, method) }
+            extensionIds.forEach { db.transactionQueries.DELETEByMethod(it, method) }
         }
     }
 
@@ -208,7 +208,7 @@ class TransactionRepository(
     private fun insert(transaction: Transaction) = db.transactionQueries.INSERTOrReplace(
         id = transaction.id,
         account_id = transaction.accountId,
-        parser_id = transaction.parserId,
+        extension_id = transaction.extensionId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -228,7 +228,7 @@ class TransactionRepository(
     )
 
     private fun updateParsed(transaction: Transaction, id: String) = db.transactionQueries.UPDATEParsedById(
-        parser_id = transaction.parserId,
+        extension_id = transaction.extensionId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -245,7 +245,7 @@ class TransactionRepository(
 
     private fun Transactions.toModel() = Transaction(
         accountId = account_id,
-        parserId = parser_id,
+        extensionId = extension_id,
         emailMessageId = email_message_id,
         // The model derives its id from these fields; the stored id is the only
         // record of the number.

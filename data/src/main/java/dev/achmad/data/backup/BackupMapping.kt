@@ -1,9 +1,9 @@
 package dev.achmad.data.backup
 
-import dev.achmad.data.model.AccountParser
+import dev.achmad.data.model.AccountExtension
 import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.model.InstalledParser
+import dev.achmad.data.model.InstalledExtension
 import dev.achmad.data.model.StoredEmail
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
@@ -22,16 +22,16 @@ internal fun BackupAccount.toModel() = EmailAccount(
     lastSyncAt, lastHistoryId, syncQuery, importCursor, importedBackTo,
 )
 
-internal fun AccountParser.toBackup() = BackupAssignment(accountId, parserId, enabled, position)
+internal fun AccountExtension.toBackup() = BackupAssignment(accountId, extensionId, enabled, position)
 
-internal fun BackupAssignment.toModel() = AccountParser(accountId, parserId, enabled, position)
+internal fun BackupAssignment.toModel() = AccountExtension(accountId, extensionId, enabled, position)
 
-internal fun InstalledParser.toBackup() = BackupParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
+internal fun InstalledExtension.toBackup() = BackupExtension(
+    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
 )
 
-internal fun BackupParser.toModel() = InstalledParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
+internal fun BackupExtension.toModel() = InstalledExtension(
+    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, extensionIds, enabled,
 )
 
 internal fun StoredEmail.toBackup() = BackupEmail(
@@ -41,8 +41,8 @@ internal fun StoredEmail.toBackup() = BackupEmail(
     from = from,
     subject = subject,
     date = date,
-    triedParserIds = triedParserIds,
-    parsedByParserId = parsedByParserId,
+    triedExtensionIds = triedExtensionIds,
+    parsedByExtensionId = parsedByExtensionId,
     fetchedAt = fetchedAt,
 )
 
@@ -54,17 +54,17 @@ internal fun BackupEmail.toModel() = StoredEmail(
     subject = subject,
     date = date,
     // Bodies are deliberately not backed up: they are most of the database and
-    // get refetched when a parser change re-reads them.
+    // get refetched when an extension change re-reads them.
     body = null,
-    triedParserIds = triedParserIds,
-    parsedByParserId = parsedByParserId,
+    triedExtensionIds = triedExtensionIds,
+    parsedByExtensionId = parsedByExtensionId,
     fetchedAt = fetchedAt,
 )
 
 internal fun Transaction.toBackup() = BackupTransaction(
     id = id,
     accountId = accountId,
-    parserId = parserId,
+    extensionId = extensionId,
     emailMessageId = emailMessageId,
     threadId = threadId,
     reference = reference,
@@ -85,7 +85,7 @@ internal fun Transaction.toBackup() = BackupTransaction(
 
 internal fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
-    parserId = parserId,
+    extensionId = extensionId,
     emailMessageId = emailMessageId,
     // The backup carries the whole id, so an old file restores under the
     // identity it had.

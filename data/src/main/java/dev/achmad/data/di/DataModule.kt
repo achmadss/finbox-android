@@ -4,10 +4,10 @@ import dev.achmad.data.backup.BackupManager
 import dev.achmad.data.db.DatabaseFactory
 import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.export.CsvExport
-import dev.achmad.data.repository.AccountParserRepository
+import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.InstalledParserRepository
+import dev.achmad.data.repository.InstalledExtensionRepository
 import dev.achmad.data.repository.ClassificationRunRepository
 import dev.achmad.data.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
@@ -18,8 +18,8 @@ val dataModule = module {
     single { FinboxDatabase(DatabaseFactory.createDriver(androidContext())) }
 
     single { AccountRepository(get()) }
-    single { AccountParserRepository(get()) }
-    single { InstalledParserRepository(get()) }
+    single { AccountExtensionRepository(get()) }
+    single { InstalledExtensionRepository(get()) }
     single { EmailRepository(get()) }
     single { TransactionRepository(get()) }
     single { ClassificationRunRepository(get()) }

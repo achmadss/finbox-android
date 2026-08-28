@@ -1,12 +1,12 @@
 package dev.achmad.finbox.di
 
-import dev.achmad.finbox.core.parser.ParserIndex
-import dev.achmad.finbox.core.parser.ParserInstaller
-import dev.achmad.finbox.core.preference.ParserMethodPreference
-import dev.achmad.finbox.core.parser.ParserLoader
-import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.ParserUpdateChecker
-import dev.achmad.finbox.core.parser.ParserUpdateNotifier
+import dev.achmad.finbox.core.extension.ExtensionIndex
+import dev.achmad.finbox.core.extension.ExtensionInstaller
+import dev.achmad.finbox.core.preference.ExtensionMethodPreference
+import dev.achmad.finbox.core.extension.ExtensionLoader
+import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
+import dev.achmad.finbox.core.extension.ExtensionUpdateNotifier
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
@@ -63,17 +63,17 @@ val coreModule = module {
     }
     single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
-    single<ParserLoader> { ParserLoader(androidContext()) }
-    single<ParserIndex> { ParserIndex(client = get()) }
-    single<ParserInstaller> {
-        ParserInstaller(
+    single<ExtensionLoader> { ExtensionLoader(androidContext()) }
+    single<ExtensionIndex> { ExtensionIndex(client = get()) }
+    single<ExtensionInstaller> {
+        ExtensionInstaller(
             client = get(),
             loader = get()
         )
     }
-    single<ParserMethodPreference> { ParserMethodPreference(preferenceStore = get()) }
-    single<ParserManager> {
-        ParserManager(
+    single<ExtensionMethodPreference> { ExtensionMethodPreference(preferenceStore = get()) }
+    single<ExtensionManager> {
+        ExtensionManager(
             transactionUpdateManager = get(),
             loader = get(),
             installer = get(),
@@ -82,9 +82,9 @@ val coreModule = module {
             methodPreference = get()
         )
     }
-    single<ParserUpdateNotifier> { ParserUpdateNotifier(context = androidContext()) }
-    single<ParserUpdateChecker> {
-        ParserUpdateChecker(
+    single<ExtensionUpdateNotifier> { ExtensionUpdateNotifier(context = androidContext()) }
+    single<ExtensionUpdateChecker> {
+        ExtensionUpdateChecker(
             notifier = get(),
             manager = get(),
             updatePreferences = get(),
@@ -100,9 +100,9 @@ val coreModule = module {
     }
     single<TransactionUpdater> {
         TransactionUpdater(
-            parsers = { get<ParserManager>().parsers },
+            extensions = { get<ExtensionManager>().extensions },
             accountRepository = get(),
-            accountParserRepository = get(),
+            accountExtensionRepository = get(),
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),

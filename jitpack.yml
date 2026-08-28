@@ -1,4 +1,4 @@
-# JitPack builds :parser-api on demand, so finbox-extension can compile
+# JitPack builds :extension-api on demand, so finbox-extension can compile
 # against a published API without a checkout of this repo — and without any
 # credentials, which is what makes outside contributions there possible.
 #
@@ -8,4 +8,4 @@ jdk:
   - openjdk21
 
 install:
-  - ./gradlew :parser-api:publishToMavenLocal
+  - ./gradlew :extension-api:publishToMavenLocal

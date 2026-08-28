@@ -22,10 +22,10 @@ fun buildWindowQuery(
 }.joinToString(" ")
 
 /**
- * ORs what each parser asks for into one search. Null when any parser names no
+ * ORs what each extension asks for into one search. Null when any extension names no
  * sender: its mail would be excluded by the others' filters.
  */
-fun combineParserQueries(queries: List<String>): String? {
+fun combineExtensionQueries(queries: List<String>): String? {
     val trimmed = queries.map { it.trim() }
     if (trimmed.isEmpty() || trimmed.any { it.isEmpty() }) return null
     return trimmed.distinct().joinToString(" OR ") { "($it)" }

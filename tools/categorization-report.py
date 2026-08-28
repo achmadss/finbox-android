@@ -154,9 +154,9 @@ def agreement(rows):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", type=pathlib.Path, help="a database file instead of a device")
-    args = parser.parse_args()
+    extension = argparse.ArgumentExtension(description=__doc__)
+    extension.add_argument("--db", type=pathlib.Path, help="a database file instead of a device")
+    args = extension.parse_args()
 
     path = args.db or pull()
     connection = sqlite3.connect(path)

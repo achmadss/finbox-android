@@ -2,10 +2,10 @@ package dev.achmad.data.backup
 
 import android.content.Context
 import android.net.Uri
-import dev.achmad.data.repository.AccountParserRepository
+import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.InstalledParserRepository
+import dev.achmad.data.repository.InstalledExtensionRepository
 import dev.achmad.data.repository.TransactionRepository
 import java.io.InputStream
 import java.io.OutputStream
@@ -26,8 +26,8 @@ import kotlinx.serialization.json.Json
 class BackupManager(
     private val context: Context,
     private val accounts: AccountRepository,
-    private val assignments: AccountParserRepository,
-    private val parsers: InstalledParserRepository,
+    private val assignments: AccountExtensionRepository,
+    private val extensions: InstalledExtensionRepository,
     private val emails: EmailRepository,
     private val transactions: TransactionRepository,
 ) {
@@ -58,7 +58,7 @@ class BackupManager(
             createdAt = System.currentTimeMillis(),
             accounts = accounts.all().map { it.toBackup() },
             assignments = assignments.all().map { it.toBackup() },
-            parsers = parsers.all().map { it.toBackup() },
+            extensions = extensions.all().map { it.toBackup() },
             emails = emails.all().map { it.toBackup() },
             transactions = transactions.all().map { it.toBackup() },
         )
@@ -76,7 +76,7 @@ class BackupManager(
             "Backup format ${data.version} is newer than this app understands"
         }
         accounts.replaceAll(data.accounts.map { it.toModel() })
-        parsers.replaceAll(data.parsers.map { it.toModel() })
+        extensions.replaceAll(data.extensions.map { it.toModel() })
         assignments.replaceAll(data.assignments.map { it.toModel() })
         emails.replaceAll(data.emails.map { it.toModel() })
         transactions.replaceAll(data.transactions.map { it.toModel() })

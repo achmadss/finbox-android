@@ -1,0 +1,29 @@
+CREATE TABLE account_extension (
+    account_id TEXT NOT NULL,
+    extension_id INTEGER NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    position INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (account_id, extension_id)
+);
+
+SELECTForAccount:
+SELECT * FROM account_extension WHERE account_id = :accountId ORDER BY position;
+
+SELECTForAccountAndExtension:
+SELECT * FROM account_extension WHERE account_id = :accountId AND extension_id = :extensionId;
+
+SELECTAll:
+SELECT * FROM account_extension ORDER BY position;
+
+INSERTOrReplace:
+INSERT OR REPLACE INTO account_extension(account_id, extension_id, enabled, position)
+VALUES (:accountId, :extensionId, :enabled, :position);
+
+DELETEForAccount:
+DELETE FROM account_extension WHERE account_id = :accountId;
+
+SETEnabled:
+UPDATE account_extension SET enabled = :enabled WHERE account_id = :accountId AND extension_id = :extensionId;
+
+DELETEAllAssignments:
+DELETE FROM account_extension;

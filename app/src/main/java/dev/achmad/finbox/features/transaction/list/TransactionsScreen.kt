@@ -76,9 +76,9 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.core.parser.LoadedParser
+import dev.achmad.finbox.core.extension.LoadedExtension
 import dev.achmad.finbox.features.account.list.AccountsScreen
-import dev.achmad.finbox.features.parser.list.ParsersScreen
+import dev.achmad.finbox.features.extension.list.ExtensionsScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.theme.components.AppBar
@@ -131,8 +131,8 @@ object TransactionsScreen : Screen {
         val loading by model.loading.collectAsState()
         val filter by model.filter.collectAsState()
         val accounts by model.accounts.collectAsState()
-        val parsers by model.parsers.collectAsState()
-        val parserUpdates by model.parserUpdates.collectAsState()
+        val extensions by model.extensions.collectAsState()
+        val extensionUpdates by model.extensionUpdates.collectAsState()
         val selected by model.selected.collectAsState()
 
         TransactionsScreenContent(
@@ -144,8 +144,8 @@ object TransactionsScreen : Screen {
             loading = loading,
             filter = filter,
             accounts = accounts,
-            parsers = parsers,
-            parserUpdates = parserUpdates,
+            extensions = extensions,
+            extensionUpdates = extensionUpdates,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
@@ -156,7 +156,7 @@ object TransactionsScreen : Screen {
             onClearSelection = model::clearSelection,
             onSetCategory = model::setCategory,
             onOpenAccounts = { navigator.push(AccountsScreen) },
-            onOpenParsers = { navigator.push(ParsersScreen) },
+            onOpenExtensions = { navigator.push(ExtensionsScreen) },
             onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
@@ -174,15 +174,15 @@ fun TransactionsScreenContent(
     loading: Boolean,
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    parsers: List<LoadedParser>,
-    /** Parsers with a newer build in the repo index. */
-    parserUpdates: Int = 0,
+    extensions: List<LoadedExtension>,
+    /** Extensions with a newer build in the repo index. */
+    extensionUpdates: Int = 0,
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,
     onFilterChange: (TransactionFilter) -> Unit,
     onOpenTransaction: (Transaction) -> Unit,
     onOpenAccounts: () -> Unit,
-    onOpenParsers: () -> Unit,
+    onOpenExtensions: () -> Unit,
     onOpenSettings: () -> Unit,
     /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
     selected: Set<String> = emptySet(),
@@ -209,17 +209,17 @@ fun TransactionsScreenContent(
         )
     }
 
-    // Keyed on the method alone, not on the parser: a parser id carries its version, so
+    // Keyed on the method alone, not on the extension: an extension id carries its version, so
     // rows written by an older build would otherwise lose their name. Empty until the
-    // registry loads, and empty for a method a parser dropped, so the rows fall through
+    // registry loads, and empty for a method an extension dropped, so the rows fall through
     // to the description.
-    // ponytail: two parsers declaring the same key show one name — per-parser if that lands.
-    val methodNames = remember(parsers) {
-        parsers.flatMap { it.methods() }.associate { it.key to it.name }
+    // ponytail: two extensions declaring the same key show one name — per-extension if that lands.
+    val methodNames = remember(extensions) {
+        extensions.flatMap { it.methods() }.associate { it.key to it.name }
     }
     // By id here, because that is all a transaction stores. A row parsed by an earlier
-    // build of a parser is filed under that build's id and goes unnamed, same as the filter.
-    val parserNames = remember(parsers) { parsers.associate { it.id to it.name } }
+    // build of an extension is filed under that build's id and goes unnamed, same as the filter.
+    val extensionNames = remember(extensions) { extensions.associate { it.id to it.name } }
 
     if (showMonthPicker) {
         MonthYearPickerSheet(
@@ -238,7 +238,7 @@ fun TransactionsScreenContent(
         TransactionsFilterSheet(
             filter = filter,
             accounts = accounts,
-            parsers = parsers,
+            extensions = extensions,
             onFilterChange = onFilterChange,
             onDismiss = { showFilterBottomSheet = false },
         )
@@ -271,10 +271,10 @@ fun TransactionsScreenContent(
                         onClick = onOpenAccounts,
                     ),
                     AppBar.OverflowAction(
-                        title = stringResource(R.string.parsers),
+                        title = stringResource(R.string.extensions),
                         icon = Icons.Outlined.Extension,
-                        badge = parserUpdates,
-                        onClick = onOpenParsers,
+                        badge = extensionUpdates,
+                        onClick = onOpenExtensions,
                     ),
                     AppBar.OverflowAction(
                         title = stringResource(R.string.label_settings),
@@ -402,7 +402,7 @@ fun TransactionsScreenContent(
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
                         methodNames = methodNames,
-                        parserNames = parserNames,
+                        extensionNames = extensionNames,
                         onOpenTransaction = onOpenTransaction,
                         selected = selected,
                         onToggleSelection = onToggleSelection,
@@ -420,7 +420,7 @@ private fun MonthPage(
     filtered: Boolean,
     grouped: Boolean,
     methodNames: Map<String, String>,
-    parserNames: Map<Long, String>,
+    extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -433,7 +433,7 @@ private fun MonthPage(
         transactions.forEach { transaction ->
             val amount = transaction.amount ?: 0L
             // Same rule the rows use for their sign: only an expense counts as money
-            // out, so a row whose parser left the direction unset lands with income.
+            // out, so a row whose extension left the direction unset lands with income.
             if (transaction.direction == TransactionDirection.OUTGOING) out += amount else income += amount
         }
         out to income
@@ -463,11 +463,11 @@ private fun MonthPage(
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
             grouped -> TransactionList(
-                use24Hour, transactions, methodNames, parserNames, onOpenTransaction,
+                use24Hour, transactions, methodNames, extensionNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
             else -> FlatTransactionList(
-                use24Hour, transactions, methodNames, parserNames, onOpenTransaction,
+                use24Hour, transactions, methodNames, extensionNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
         }
@@ -621,7 +621,7 @@ private fun TransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
     methodNames: Map<String, String>,
-    parserNames: Map<Long, String>,
+    extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -659,12 +659,12 @@ private fun TransactionList(
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
                             val method = methodNames[transaction.method]
-                            val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
+                            val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
                             TransactionRow(
                                 use24Hour = use24Hour,
                                 transaction = transaction,
                                 method = method,
-                                parser = parser,
+                                extension = extension,
                                 selected = transaction.id in selected,
                                 selecting = selected.isNotEmpty(),
                                 onClick = { onOpenTransaction(transaction) },
@@ -687,7 +687,7 @@ private fun FlatTransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
     methodNames: Map<String, String>,
-    parserNames: Map<Long, String>,
+    extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -707,12 +707,12 @@ private fun FlatTransactionList(
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
                     val method = methodNames[transaction.method]
-                    val parser = parserNames[transaction.parserId] ?: stringResource(R.string.unknown)
+                    val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
                     TransactionRow(
                         use24Hour = use24Hour,
                         transaction = transaction,
                         method = method,
-                        parser = parser,
+                        extension = extension,
                         selected = transaction.id in selected,
                         selecting = selected.isNotEmpty(),
                         showDay = true,
@@ -733,7 +733,7 @@ private fun TransactionRow(
     use24Hour: Boolean,
     transaction: Transaction,
     method: String?,
-    parser: String,
+    extension: String,
     selected: Boolean = false,
     /** Whether anything at all is selected: a tap then picks rather than opens. */
     selecting: Boolean = false,
@@ -760,7 +760,7 @@ private fun TransactionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                // The parser's own word for it — "QRIS Payment", not the `QRIS` key stored
+                // The extension's own word for it — "QRIS Payment", not the `QRIS` key stored
                 // with the row.
                 text = method
                     ?: transaction.description
@@ -771,7 +771,7 @@ private fun TransactionRow(
                 overflow = TextOverflow.Ellipsis,
             )
             val subtitle = buildList {
-                add(parser)
+                add(extension)
                 // Small and quiet on purpose — this is a ledger, not a diff view.
                 // The detail screen is where it says when.
                 if (transaction.edited) add(stringResource(R.string.label_edited))
@@ -901,7 +901,7 @@ private fun TransactionsScreenPreview() {
         direction: TransactionDirection = TransactionDirection.OUTGOING,
     ) = Transaction(
         accountId = "preview",
-        parserId = 1L,
+        extensionId = 1L,
         emailMessageId = "message-$index",
         index = index,
         threadId = null,
@@ -943,13 +943,13 @@ private fun TransactionsScreenPreview() {
             loading = false,
             filter = TransactionFilter(),
             accounts = emptyList(),
-            parsers = emptyList(),
+            extensions = emptyList(),
             onRefresh = {},
             onMonthChange = {},
             onFilterChange = {},
             onOpenTransaction = {},
             onOpenAccounts = {},
-            onOpenParsers = {},
+            onOpenExtensions = {},
             onOpenSettings = {},
         )
     }
@@ -969,13 +969,13 @@ private fun TransactionsScreenEmptyPreview() {
             loading = false,
             filter = TransactionFilter(),
             accounts = emptyList(),
-            parsers = emptyList(),
+            extensions = emptyList(),
             onRefresh = {},
             onMonthChange = {},
             onFilterChange = {},
             onOpenTransaction = {},
             onOpenAccounts = {},
-            onOpenParsers = {},
+            onOpenExtensions = {},
             onOpenSettings = {},
         )
     }

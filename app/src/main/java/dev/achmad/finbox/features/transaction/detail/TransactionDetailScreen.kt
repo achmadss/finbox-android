@@ -40,7 +40,7 @@ import dev.achmad.finbox.features.transaction.categoryLabel
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionMethod
+import dev.achmad.finbox.extension.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
@@ -174,8 +174,8 @@ private fun TransactionView(
     }
     HorizontalDivider()
     Field(stringResource(R.string.direction), transaction.direction?.let { stringResource(it.labelRes) })
-    // The parser's own word for the method, falling back to the stored key when its
-    // parser is gone or dropped it.
+    // The extension's own word for the method, falling back to the stored key when its
+    // extension is gone or dropped it.
     Field(stringResource(R.string.method), methods.nameOf(transaction.method) ?: transaction.method)
     Field(stringResource(R.string.category), categoryLabel(transaction.category))
     Field(stringResource(R.string.description), transaction.description)
@@ -211,7 +211,7 @@ private fun TransactionDetailPreview() {
         TransactionDetailScreenContent(
             transaction = Transaction(
                 accountId = "preview",
-                parserId = 1L,
+                extensionId = 1L,
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,

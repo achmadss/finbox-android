@@ -58,7 +58,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
         val model = rememberScreenModel(tag = id) { AccountDetailsScreenModel(id) }
         val account by model.account.collectAsState()
         val disabled by model.disabled.collectAsState()
-        val parsers by model.parsers.collectAsState()
+        val extensions by model.extensions.collectAsState()
 
         // Gone only once it has been here: a null at the start is the first read still running.
         var everLoaded by remember { mutableStateOf(false) }
@@ -68,28 +68,28 @@ data class AccountDetailsScreen(private val id: String) : Screen {
 
         AccountDetailsScreenContent(
             account = account,
-            parsers = parsers.map { ParserToggle(it.id, it.name, enabled = it.id !in disabled) },
+            extensions = extensions.map { ExtensionToggle(it.id, it.name, enabled = it.id !in disabled) },
             use24Hour = rememberUse24HourClock(),
             onBack = navigator::pop,
             onSyncEnabledChange = model::setSyncEnabled,
-            onParserEnabledChange = model::setParserEnabled,
+            onExtensionEnabledChange = model::setExtensionEnabled,
             onRemove = model::remove,
         )
     }
 }
 
-data class ParserToggle(val id: Long, val name: String, val enabled: Boolean)
+data class ExtensionToggle(val id: Long, val name: String, val enabled: Boolean)
 
 /** Null [account] is the first read still running. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailsScreenContent(
     account: EmailAccount?,
-    parsers: List<ParserToggle>,
+    extensions: List<ExtensionToggle>,
     use24Hour: Boolean,
     onBack: () -> Unit = {},
     onSyncEnabledChange: (Boolean) -> Unit = {},
-    onParserEnabledChange: (Long, Boolean) -> Unit = { _, _ -> },
+    onExtensionEnabledChange: (Long, Boolean) -> Unit = { _, _ -> },
     onRemove: () -> Unit = {},
 ) {
     var confirmRemove by remember { mutableStateOf(false) }
@@ -121,8 +121,8 @@ fun AccountDetailsScreenContent(
         ) {
             DetailsHeader(
                 account = account,
-                parsers = parsers.count { it.enabled },
-                totalParsers = parsers.size,
+                extensions = extensions.count { it.enabled },
+                totalExtensions = extensions.size,
                 use24Hour = use24Hour,
                 onClickRemove = { confirmRemove = true },
             )
@@ -135,24 +135,24 @@ fun AccountDetailsScreenContent(
             )
             HorizontalDivider()
             Text(
-                text = stringResource(R.string.parsers),
+                text = stringResource(R.string.extensions),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
             )
-            if (parsers.isEmpty()) {
+            if (extensions.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.account_no_parsers),
+                    text = stringResource(R.string.account_no_extensions),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
             }
-            parsers.forEach { parser ->
+            extensions.forEach { extension ->
                 SwitchRow(
-                    title = parser.name,
-                    checked = parser.enabled,
-                    onCheckedChange = { onParserEnabledChange(parser.id, it) },
+                    title = extension.name,
+                    checked = extension.enabled,
+                    onCheckedChange = { onExtensionEnabledChange(extension.id, it) },
                 )
             }
             HorizontalDivider()
@@ -171,8 +171,8 @@ fun AccountDetailsScreenContent(
 @Composable
 private fun DetailsHeader(
     account: EmailAccount,
-    parsers: Int,
-    totalParsers: Int,
+    extensions: Int,
+    totalExtensions: Int,
     use24Hour: Boolean,
     onClickRemove: () -> Unit,
 ) {
@@ -278,9 +278,9 @@ private fun AccountDetailsPreview() {
                 updatedAt = 1_700_000_000_000L,
                 lastSyncAt = 1_700_000_000_000L,
             ),
-            parsers = listOf(
-                ParserToggle(1L, "Jago", enabled = true),
-                ParserToggle(2L, "BRI", enabled = false),
+            extensions = listOf(
+                ExtensionToggle(1L, "Jago", enabled = true),
+                ExtensionToggle(2L, "BRI", enabled = false),
             ),
             use24Hour = true,
         )
@@ -291,6 +291,6 @@ private fun AccountDetailsPreview() {
 @Composable
 private fun AccountDetailsLoadingPreview() {
     AppTheme {
-        AccountDetailsScreenContent(account = null, parsers = emptyList(), use24Hour = true)
+        AccountDetailsScreenContent(account = null, extensions = emptyList(), use24Hour = true)
     }
 }

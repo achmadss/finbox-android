@@ -9,7 +9,7 @@ data class BackupData(
     val createdAt: Long = 0L,
     val accounts: List<BackupAccount> = emptyList(),
     val assignments: List<BackupAssignment> = emptyList(),
-    val parsers: List<BackupParser> = emptyList(),
+    val extensions: List<BackupExtension> = emptyList(),
     val emails: List<BackupEmail> = emptyList(),
     val transactions: List<BackupTransaction> = emptyList(),
 )
@@ -33,13 +33,13 @@ data class BackupAccount(
 @Serializable
 data class BackupAssignment(
     val accountId: String,
-    val parserId: Long,
+    val extensionId: Long,
     val enabled: Boolean = true,
     val position: Int = 0,
 )
 
 @Serializable
-data class BackupParser(
+data class BackupExtension(
     val pkg: String,
     val provider: String,
     val name: String,
@@ -48,7 +48,7 @@ data class BackupParser(
     val versionName: String,
     val libVersion: String,
     val sha256: String,
-    val parserIds: List<Long> = emptyList(),
+    val extensionIds: List<Long> = emptyList(),
     val enabled: Boolean = true,
 )
 
@@ -60,8 +60,8 @@ data class BackupEmail(
     val from: String = "",
     val subject: String = "",
     val date: Long = 0L,
-    val triedParserIds: List<Long> = emptyList(),
-    val parsedByParserId: Long? = null,
+    val triedExtensionIds: List<Long> = emptyList(),
+    val parsedByExtensionId: Long? = null,
     val fetchedAt: Long = 0L,
 )
 
@@ -69,7 +69,7 @@ data class BackupEmail(
 data class BackupTransaction(
     val id: String,
     val accountId: String,
-    val parserId: Long,
+    val extensionId: Long,
     val emailMessageId: String,
     val threadId: String? = null,
     val reference: String? = null,

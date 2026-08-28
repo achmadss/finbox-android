@@ -17,7 +17,7 @@
     <string name="transaction">Transaction</string>
     <string name="transactions">Transactions</string>
     <string name="accounts">Accounts</string>
-    <string name="parsers">Parsers</string>
+    <string name="extensions">Extensions</string>
     <string name="direction">Direction</string>
     <string name="method">Method</string>
     <string name="amount">Amount</string>
@@ -37,7 +37,7 @@
     <string name="label_settings">Settings</string>
     <string name="label_edit_transaction">Edit transaction</string>
     <string name="label_account_info">Account info</string>
-    <string name="label_parser_info">Parser info</string>
+    <string name="label_extension_info">Extension info</string>
     <string name="label_select_period">Select period</string>
 
     <!-- Shared labels -->
@@ -100,10 +100,10 @@
     <string name="app_update_download_error">Could not download the update</string>
     <string name="app_update_up_to_date">Finbox is up to date</string>
     <string name="app_update_check_failed">Could not check for app updates</string>
-    <string name="parser_updates">Parser updates</string>
-    <plurals name="parser_update_available">
-        <item quantity="one">%1$d parser update available</item>
-        <item quantity="other">%1$d parser updates available</item>
+    <string name="extension_updates">Extension updates</string>
+    <plurals name="extension_update_available">
+        <item quantity="one">%1$d extension update available</item>
+        <item quantity="other">%1$d extension updates available</item>
     </plurals>
 
     <!-- Onboarding -->
@@ -119,13 +119,13 @@
     <string name="onboarding_notification_note">You can skip notifications and Finbox will continue working normally. You just won\'t receive updates outside the app.</string>
     <string name="onboarding_notification_allow">Allow Notifications</string>
     <string name="onboarding_notification_skip">Not now</string>
-    <string name="onboarding_parsers_subtitle">Install at least one parser to start:</string>
-    <string name="onboarding_parsers_install">Install and Continue</string>
-    <string name="onboarding_parsers_installing">Installing…</string>
-    <string name="onboarding_parsers_select_all">Select all</string>
-    <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
-    <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
-    <string name="onboarding_parsers_load_failed">%1$s installed but could not be loaded. It was probably built against a different parser API.</string>
+    <string name="onboarding_extensions_subtitle">Install at least one extension to start:</string>
+    <string name="onboarding_extensions_install">Install and Continue</string>
+    <string name="onboarding_extensions_installing">Installing…</string>
+    <string name="onboarding_extensions_select_all">Select all</string>
+    <string name="onboarding_extensions_info">An extension tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
+    <string name="onboarding_extensions_install_failed">Could not install %1$s</string>
+    <string name="onboarding_extensions_load_failed">%1$s installed but could not be loaded. It was probably built against a different extension API.</string>
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
     <string name="onboarding_exit_confirm">Exit</string>
@@ -139,7 +139,7 @@
     <!-- Transaction filter sheet -->
     <string name="filter_section_count">%1$s (%2$d)</string>
     <string name="filter_sort_by">Sort by</string>
-    <string name="filter_no_parsers">No parsers installed</string>
+    <string name="filter_no_extensions">No extensions installed</string>
     <string name="filter_no_accounts">No accounts added</string>
 
     <!-- Transaction screen -->
@@ -195,43 +195,43 @@
     <string name="pref_check_updates_summ">Check once a day when the app opens</string>
     <string name="pref_check_app_updates_now">Check for app updates now</string>
 
-    <!-- Parsers screen -->
-    <string name="parsers_empty">Nothing to show. Pull to refresh.</string>
-    <string name="parsers_header_updates">Update pending</string>
-    <string name="parsers_header_installed">Installed</string>
-    <string name="parsers_header_available">Available</string>
-    <string name="parsers_header_errors">Failed to load</string>
-    <string name="parser_load_error">%1$s: %2$s</string>
-    <string name="parser_version_name">v%1$s</string>
-    <string name="parser_step_pending">Pending</string>
-    <string name="parser_step_downloading">Downloading</string>
-    <string name="parser_step_installing">Installing</string>
-    <string name="parser_step_ongoing">%1$s…</string>
-    <string name="parser_badge_failed">FAILED</string>
-    <string name="parser_badge_disabled">DISABLED</string>
-    <string name="uninstall_parser">Uninstall parser</string>
-    <string name="uninstall_parser_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
+    <!-- Extensions screen -->
+    <string name="extensions_empty">Nothing to show. Pull to refresh.</string>
+    <string name="extensions_header_updates">Update pending</string>
+    <string name="extensions_header_installed">Installed</string>
+    <string name="extensions_header_available">Available</string>
+    <string name="extensions_header_errors">Failed to load</string>
+    <string name="extension_load_error">%1$s: %2$s</string>
+    <string name="extension_version_name">v%1$s</string>
+    <string name="extension_step_pending">Pending</string>
+    <string name="extension_step_downloading">Downloading</string>
+    <string name="extension_step_installing">Installing</string>
+    <string name="extension_step_ongoing">%1$s…</string>
+    <string name="extension_badge_failed">FAILED</string>
+    <string name="extension_badge_disabled">DISABLED</string>
+    <string name="uninstall_extension">Uninstall extension</string>
+    <string name="uninstall_extension_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
 
-    <!-- Parser info screen -->
-    <string name="parser_transaction_methods">Transaction methods</string>
-    <string name="parser_retry_update">Retry update</string>
-    <string name="parser_update_to">Update to v%1$s</string>
-    <string name="parser_summary_expense_only">Expense only</string>
-    <string name="parser_summary_income_only">Income only</string>
-    <string name="parser_summary_multi_method">Multi method</string>
+    <!-- Extension info screen -->
+    <string name="extension_transaction_methods">Transaction methods</string>
+    <string name="extension_retry_update">Retry update</string>
+    <string name="extension_update_to">Update to v%1$s</string>
+    <string name="extension_summary_expense_only">Expense only</string>
+    <string name="extension_summary_income_only">Income only</string>
+    <string name="extension_summary_multi_method">Multi method</string>
 
     <!-- Accounts screen -->
     <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>
-    <plurals name="account_parser_count">
-        <item quantity="one">%1$d parser</item>
-        <item quantity="other">%1$d parsers</item>
+    <plurals name="account_extension_count">
+        <item quantity="one">%1$d extension</item>
+        <item quantity="other">%1$d extensions</item>
     </plurals>
     <string name="account_badge_sync_off">SYNC OFF</string>
-    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its parser choices go. Transactions already read from it stay.</string>
+    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its extension choices go. Transactions already read from it stay.</string>
 
     <!-- Account info screen -->
     <string name="account_sync_summ">Read new transactions from this mailbox</string>
-    <string name="account_no_parsers">No parsers installed. Install a parser first.</string>
+    <string name="account_no_extensions">No extensions installed. Install an extension first.</string>
 
     <!-- Categories. What the money was for, the app's own vocabulary. -->
     <string name="category_uncategorized">Uncategorized</string>
