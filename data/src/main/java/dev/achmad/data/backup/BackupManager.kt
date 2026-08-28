@@ -67,6 +67,7 @@ class BackupManager(
 
     private suspend fun read(input: InputStream): BackupData = withContext(Dispatchers.IO) {
         val text = GZIPInputStream(input).use { it.readBytes().decodeToString() }
+        requireRestorable(text)
         json.decodeFromString<BackupData>(text)
     }
 

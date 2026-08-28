@@ -14,7 +14,7 @@ class TransactionDraftTest {
 
     private val transaction = Transaction(
         accountId = "a1",
-        extensionId = 1L,
+        extensionId = "dev.achmad.finbox.extension.test",
         emailMessageId = "m1",
         index = 0,
         threadId = "th1",
@@ -23,7 +23,6 @@ class TransactionDraftTest {
         amount = 24_000L,
         currency = "IDR",
         direction = TransactionDirection.OUTGOING,
-        method = "QRIS",
         categoryName = TransactionCategory.FOOD.name,
         categorySource = null,
         description = "Kopi Kenangan",

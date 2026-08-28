@@ -13,7 +13,7 @@ CREATE TABLE email (
     -- Space separated extension ids that have already looked at this email.
     tried_extension_ids TEXT NOT NULL DEFAULT '',
     -- The extension that claimed it, NULL while unparsed.
-    parsed_by_extension_id INTEGER,
+    parsed_by_extension_id TEXT,
     fetched_at INTEGER NOT NULL,
     PRIMARY KEY (account_id, message_id)
 );

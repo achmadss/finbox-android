@@ -413,7 +413,7 @@ class TransactionUpdater(
      * @return how many transactions were written.
      */
     suspend fun reparseExtensions(
-        extensionIds: Set<Long>,
+        extensionIds: Set<String>,
         onProgress: suspend (Progress) -> Unit = {},
     ): Int {
         if (extensionIds.isEmpty()) return 0
@@ -443,7 +443,7 @@ class TransactionUpdater(
      *
      * @return 0 — nothing is parsed here, the next refresh does it.
      */
-    private suspend fun releaseBodiless(emails: List<StoredEmail>, extensionIds: Set<Long>): Int {
+    private suspend fun releaseBodiless(emails: List<StoredEmail>, extensionIds: Set<String>): Int {
         if (emails.isEmpty()) return 0
         emailRepository.updateAll(
             emails.map {
@@ -563,7 +563,6 @@ class TransactionUpdater(
                     direction = runCatching {
                         TransactionDirection.valueOf(transaction.direction.name)
                     }.getOrNull(),
-                    method = null,
                     // Import never classifies: a row lands uncategorized and the
                     // classify pass picks it up later, so a classifier that is
                     // unavailable, slow or wrong can never fail an import.

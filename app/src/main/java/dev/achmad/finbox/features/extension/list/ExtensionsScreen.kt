@@ -448,7 +448,7 @@ private fun ExtensionsScreenPreview() {
                             versionName = "1.2.0",
                             libVersion = "1.0",
                             sha256 = "0".repeat(64),
-                            extensionIds = listOf(1L),
+                            extensionIds = listOf("dev.achmad.finbox.extension.preview"),
                             enabled = true,
                         ),
                         update = AvailableExtension(
@@ -474,7 +474,7 @@ private fun ExtensionsScreenPreview() {
                             versionName = "1.0.1",
                             libVersion = "1.0",
                             sha256 = "0".repeat(64),
-                            extensionIds = listOf(2L),
+                            extensionIds = listOf("dev.achmad.finbox.extension.preview2"),
                             enabled = true,
                         ),
                         update = null,

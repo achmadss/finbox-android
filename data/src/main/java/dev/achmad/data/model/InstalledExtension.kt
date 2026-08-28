@@ -8,6 +8,6 @@ data class InstalledExtension(
     val versionName: String,
     val libVersion: String,
     val sha256: String,
-    val extensionIds: List<Long>,
+    val extensionIds: List<String>,
     val enabled: Boolean,
 )

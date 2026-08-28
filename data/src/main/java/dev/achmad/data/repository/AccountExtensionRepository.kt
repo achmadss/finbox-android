@@ -50,7 +50,7 @@ class AccountExtensionRepository(
         Unit
     }
 
-    suspend fun setEnabled(accountId: String, extensionId: Long, enabled: Boolean) =
+    suspend fun setEnabled(accountId: String, extensionId: String, enabled: Boolean) =
         withContext(Dispatchers.IO) {
             val existing = db.accountExtensionQueries
                 .SELECTForAccountAndExtension(accountId, extensionId)
@@ -68,7 +68,7 @@ class AccountExtensionRepository(
             Unit
         }
 
-    suspend fun reorder(accountId: String, extensionIds: List<Long>) =
+    suspend fun reorder(accountId: String, extensionIds: List<String>) =
         withContext(Dispatchers.IO) {
             db.accountExtensionQueries.DELETEForAccount(accountId)
             extensionIds.forEachIndexed { index, extensionId ->

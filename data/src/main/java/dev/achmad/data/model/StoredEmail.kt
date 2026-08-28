@@ -16,9 +16,9 @@ data class StoredEmail(
     /** The body as the provider sent it, html where there is any. */
     val body: String?,
     /** Every extension that has looked, so an update only re-reads what is new to one. */
-    val triedExtensionIds: List<Long>,
+    val triedExtensionIds: List<String>,
     /** The extension that claimed it, null while unparsed. */
-    val parsedByExtensionId: Long?,
+    val parsedByExtensionId: String?,
     val fetchedAt: Long,
 ) {
     val parsed: Boolean get() = parsedByExtensionId != null

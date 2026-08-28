@@ -104,7 +104,6 @@ class TransactionClassifier(
     private fun render(index: Int, signature: Signature): String = buildString {
         append(index).append(". ")
         append("direction=").append(signature.direction?.name ?: "UNKNOWN")
-        signature.method?.let { append(" | how=").append(it) }
         signature.merchant?.let { append(" | counterparty=").append(it) }
         signature.description?.let { append(" | note=").append(it) }
     }

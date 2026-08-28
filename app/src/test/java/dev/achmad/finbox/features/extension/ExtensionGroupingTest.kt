@@ -18,7 +18,7 @@ class ExtensionGroupingTest {
         versionName = "1.0",
         libVersion = "1.0",
         sha256 = "",
-        extensionIds = listOf(1),
+        extensionIds = listOf("dev.achmad.finbox.extension.test"),
         enabled = true,
     )
 

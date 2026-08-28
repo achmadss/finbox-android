@@ -489,7 +489,6 @@ internal data class Draft(
     val date: Long?,
     val amount: String,
     val direction: TransactionDirection?,
-    val method: String?,
     val category: TransactionCategory?,
     val description: String,
     val merchant: String,
@@ -499,7 +498,6 @@ internal fun Transaction.toDraft() = Draft(
     date = date,
     amount = amount?.toString().orEmpty(),
     direction = direction,
-    method = method,
     category = category,
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
@@ -514,7 +512,6 @@ internal fun Draft.applyTo(transaction: Transaction): Transaction {
         date = date,
         amount = amount.trim().toLongOrNull(),
         direction = direction,
-        method = method,
         description = description.blankToNull(),
         merchant = merchant.blankToNull(),
     )
@@ -545,7 +542,7 @@ private fun TransactionEditPreview() {
         TransactionEditScreenContent(
             draft = Transaction(
                 accountId = "preview",
-                extensionId = 1L,
+                extensionId = "dev.achmad.finbox.extension.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,
@@ -554,7 +551,6 @@ private fun TransactionEditPreview() {
                 amount = 125_000,
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
-                method = "QRIS",
                 categoryName = TransactionCategory.FOOD.name,
                 categorySource = CategorySource.AI,
                 description = "Coffee and a croissant",

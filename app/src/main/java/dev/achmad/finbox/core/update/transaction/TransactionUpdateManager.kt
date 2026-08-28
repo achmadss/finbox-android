@@ -97,7 +97,7 @@ class TransactionUpdateManager(
      */
     suspend fun reparseNow(
         includeParsed: Boolean = false,
-        extensionIds: Set<Long> = emptySet(),
+        extensionIds: Set<String> = emptySet(),
         userInitiated: Boolean = true,
     ) = enqueueOneTime(
         parseOnly = true,
@@ -111,7 +111,7 @@ class TransactionUpdateManager(
      * [reparseNow] would not look at them.
      */
     suspend fun reparseExtensionsNow(
-        extensionIds: Set<Long>,
+        extensionIds: Set<String>,
         userInitiated: Boolean = true,
     ) {
         if (extensionIds.isEmpty()) return
@@ -120,7 +120,7 @@ class TransactionUpdateManager(
 
     private suspend fun enqueueOneTime(
         parseOnly: Boolean,
-        extensionIds: Set<Long> = emptySet(),
+        extensionIds: Set<String> = emptySet(),
         userInitiated: Boolean = true,
     ) {
         requestMutex.withLock {
@@ -142,7 +142,7 @@ class TransactionUpdateManager(
                         setInputData(
                             workDataOf(
                                 TransactionUpdateWork.PARSE_ONLY to parseOnly,
-                                TransactionUpdateWork.REPARSE_EXTENSIONS to extensionIds.toLongArray(),
+                                TransactionUpdateWork.REPARSE_EXTENSIONS to extensionIds.toTypedArray(),
                             ),
                         )
                     }

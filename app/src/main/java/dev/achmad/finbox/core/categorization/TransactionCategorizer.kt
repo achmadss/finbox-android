@@ -198,7 +198,6 @@ class TransactionCategorizer(
                     transactionId = row.id,
                     merchant = row.merchant,
                     description = row.description,
-                    method = row.method,
                     direction = row.direction,
                     amount = row.amount,
                     date = row.date,

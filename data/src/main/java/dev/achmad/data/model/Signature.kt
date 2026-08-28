@@ -22,7 +22,6 @@ data class Signature(
     val merchant: String?,
     val description: String?,
     val direction: TransactionDirection?,
-    val method: String?,
 ) {
     /**
      * Whether there is anything here at all to send.
@@ -38,7 +37,7 @@ data class Signature(
      * no point spending a call on.
      */
     val isComplete: Boolean
-        get() = merchant != null || description != null || method != null
+        get() = merchant != null || description != null
 }
 
 /**
@@ -58,5 +57,4 @@ fun Transaction.signature() = Signature(
     merchant = normalizeForSignature(merchant),
     description = normalizeForSignature(description),
     direction = direction,
-    method = normalizeForSignature(method),
 )

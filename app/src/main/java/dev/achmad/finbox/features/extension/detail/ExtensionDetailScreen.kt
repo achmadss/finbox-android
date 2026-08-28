@@ -304,7 +304,7 @@ private fun ExtensionDetailPreview() {
                         versionName = "1.2.0",
                         libVersion = "1.0",
                         sha256 = "0".repeat(64),
-                        extensionIds = listOf(1L),
+                        extensionIds = listOf("dev.achmad.finbox.extension.preview"),
                         enabled = true,
                     ),
                     update = null,

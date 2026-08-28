@@ -8,7 +8,7 @@ enum class ClassificationOrigin {
     /** Answered already, by the user or by an earlier run, and reused for free. */
     CACHED,
 
-    /** Never sent: the receipt carried no merchant, note or method to send. */
+    /** Never sent: the receipt carried no merchant and no note to send. */
     NO_INPUT,
     ;
 
@@ -29,7 +29,6 @@ data class ClassificationResult(
     val transactionId: String,
     val merchant: String?,
     val description: String?,
-    val method: String?,
     val direction: TransactionDirection?,
     val amount: Long?,
     val date: Long?,

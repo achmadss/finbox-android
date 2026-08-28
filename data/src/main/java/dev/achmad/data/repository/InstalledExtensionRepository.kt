@@ -73,7 +73,7 @@ class InstalledExtensionRepository(
         versionName = version_name,
         libVersion = lib_version,
         sha256 = sha256,
-        extensionIds = Json.decodeFromString<List<Long>>(extension_ids),
+        extensionIds = Json.decodeFromString<List<String>>(extension_ids),
         enabled = enabled != 0L,
     )
 }

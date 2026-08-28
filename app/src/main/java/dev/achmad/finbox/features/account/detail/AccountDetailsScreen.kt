@@ -78,7 +78,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
     }
 }
 
-data class ExtensionToggle(val id: Long, val name: String, val enabled: Boolean)
+data class ExtensionToggle(val id: String, val name: String, val enabled: Boolean)
 
 /** Null [account] is the first read still running. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +89,7 @@ fun AccountDetailsScreenContent(
     use24Hour: Boolean,
     onBack: () -> Unit = {},
     onSyncEnabledChange: (Boolean) -> Unit = {},
-    onExtensionEnabledChange: (Long, Boolean) -> Unit = { _, _ -> },
+    onExtensionEnabledChange: (String, Boolean) -> Unit = { _, _ -> },
     onRemove: () -> Unit = {},
 ) {
     var confirmRemove by remember { mutableStateOf(false) }
@@ -279,8 +279,8 @@ private fun AccountDetailsPreview() {
                 lastSyncAt = 1_700_000_000_000L,
             ),
             extensions = listOf(
-                ExtensionToggle(1L, "Jago", enabled = true),
-                ExtensionToggle(2L, "BRI", enabled = false),
+                ExtensionToggle("dev.achmad.finbox.extension.jago", "Jago", enabled = true),
+                ExtensionToggle("dev.achmad.finbox.extension.bri", "BRI", enabled = false),
             ),
             use24Hour = true,
         )

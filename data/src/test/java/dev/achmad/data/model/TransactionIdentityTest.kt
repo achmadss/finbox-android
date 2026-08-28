@@ -8,7 +8,7 @@ class TransactionIdentityTest {
 
     private fun transaction(messageId: String, index: Int) = Transaction(
         accountId = "account",
-        extensionId = 1L,
+        extensionId = "dev.achmad.finbox.extension.test",
         emailMessageId = messageId,
         index = index,
         threadId = "thread",
@@ -17,7 +17,6 @@ class TransactionIdentityTest {
         amount = null,
         currency = null,
         direction = null,
-        method = null,
         categoryName = null,
         categorySource = null,
         description = null,

@@ -1,9 +1,6 @@
 package dev.achmad.data.model
 
-/**
- * Which way the money went — all the app itself knows. What a provider calls
- * it is the extension's vocabulary and lives in [Transaction.method].
- */
+/** Which way the money went — all the app itself knows. */
 enum class TransactionDirection {
     INCOMING,
     OUTGOING,
@@ -12,7 +9,8 @@ enum class TransactionDirection {
 /** One transaction an extension read out of an email. */
 data class Transaction(
     val accountId: String,
-    val extensionId: Long,
+    /** The package name of the extension that read this. */
+    val extensionId: String,
     /** The [StoredEmail] this was parsed from. */
     val emailMessageId: String,
     /**
@@ -28,11 +26,6 @@ data class Transaction(
     val amount: Long?,
     val currency: String?,
     val direction: TransactionDirection?,
-    /**
-     * The key of one of the extension's declared methods. Null on a hand-entered
-     * row, which no extension claimed.
-     */
-    val method: String?,
     /**
      * A [TransactionCategory] name, or null when nothing has decided yet.
      *

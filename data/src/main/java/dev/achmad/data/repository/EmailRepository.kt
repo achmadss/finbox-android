@@ -23,7 +23,7 @@ class EmailRepository(
     }
 
     /** Emails one of [extensionIds] claimed — what a change to it re-reads. */
-    suspend fun parsedBy(extensionIds: Collection<Long>): List<StoredEmail> = withContext(Dispatchers.IO) {
+    suspend fun parsedBy(extensionIds: Collection<String>): List<StoredEmail> = withContext(Dispatchers.IO) {
         if (extensionIds.isEmpty()) return@withContext emptyList()
         db.emailQueries.SELECTByExtension(extensionIds).executeAsList().map { it.toModel() }
     }
@@ -106,7 +106,7 @@ class EmailRepository(
         subject = subject,
         date = date,
         body = body,
-        triedExtensionIds = tried_extension_ids.split(" ").mapNotNull(String::toLongOrNull),
+        triedExtensionIds = tried_extension_ids.split(" ").filter { it.isNotEmpty() },
         parsedByExtensionId = parsed_by_extension_id,
         fetchedAt = fetched_at,
     )

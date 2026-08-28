@@ -410,7 +410,7 @@ private fun MonthPage(
     transactions: List<Transaction>,
     filtered: Boolean,
     grouped: Boolean,
-    extensionNames: Map<Long, String>,
+    extensionNames: Map<String, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -610,7 +610,7 @@ private fun RowScope.MonthStep(
 private fun TransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    extensionNames: Map<Long, String>,
+    extensionNames: Map<String, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -673,7 +673,7 @@ private fun TransactionList(
 private fun FlatTransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    extensionNames: Map<Long, String>,
+    extensionNames: Map<String, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -884,7 +884,7 @@ private fun TransactionsScreenPreview() {
         direction: TransactionDirection = TransactionDirection.OUTGOING,
     ) = Transaction(
         accountId = "preview",
-        extensionId = 1L,
+        extensionId = "dev.achmad.finbox.extension.preview",
         emailMessageId = "message-$index",
         index = index,
         threadId = null,
@@ -898,7 +898,6 @@ private fun TransactionsScreenPreview() {
         description = merchant,
         merchant = merchant,
         createdAt = at,
-        method = null,
         updatedAt = at,
         editedAt = null,
         deleted = false,

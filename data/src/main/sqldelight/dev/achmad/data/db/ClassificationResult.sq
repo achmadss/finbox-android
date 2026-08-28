@@ -13,7 +13,6 @@ CREATE TABLE classification_result (
     -- not rewrite the evidence for a decision taken before it.
     merchant TEXT,
     description TEXT,
-    method TEXT,
     direction TEXT,
     -- Kept only so the list reads as transactions rather than as strings.
     amount INTEGER,
@@ -37,10 +36,10 @@ ORDER BY category, merchant, description;
 
 INSERTResult:
 INSERT OR REPLACE INTO classification_result(
-    run_id, transaction_id, merchant, description, method, direction,
+    run_id, transaction_id, merchant, description, direction,
     amount, date, category, origin
 )
-VALUES (:run_id, :transaction_id, :merchant, :description, :method, :direction,
+VALUES (:run_id, :transaction_id, :merchant, :description, :direction,
     :amount, :date, :category, :origin);
 
 DELETEAllResults:

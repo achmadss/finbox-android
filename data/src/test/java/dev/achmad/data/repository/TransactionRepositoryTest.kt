@@ -217,7 +217,7 @@ class TransactionRepositoryTest {
         amount: Long = 25_000,
     ) = Transaction(
         accountId = "account",
-        extensionId = 1L,
+        extensionId = "dev.achmad.finbox.extension.test",
         emailMessageId = "message-$index",
         index = index,
         threadId = null,
@@ -226,7 +226,6 @@ class TransactionRepositoryTest {
         amount = amount,
         currency = "IDR",
         direction = TransactionDirection.OUTGOING,
-        method = "QRIS",
         categoryName = null,
         categorySource = null,
         description = description,

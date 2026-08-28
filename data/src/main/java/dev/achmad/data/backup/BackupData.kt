@@ -33,7 +33,7 @@ data class BackupAccount(
 @Serializable
 data class BackupAssignment(
     val accountId: String,
-    val extensionId: Long,
+    val extensionId: String,
     val enabled: Boolean = true,
     val position: Int = 0,
 )
@@ -47,7 +47,7 @@ data class BackupExtension(
     val versionName: String,
     val libVersion: String,
     val sha256: String,
-    val extensionIds: List<Long> = emptyList(),
+    val extensionIds: List<String> = emptyList(),
     val enabled: Boolean = true,
 )
 
@@ -59,8 +59,8 @@ data class BackupEmail(
     val from: String = "",
     val subject: String = "",
     val date: Long = 0L,
-    val triedExtensionIds: List<Long> = emptyList(),
-    val parsedByExtensionId: Long? = null,
+    val triedExtensionIds: List<String> = emptyList(),
+    val parsedByExtensionId: String? = null,
     val fetchedAt: Long = 0L,
 )
 
@@ -68,7 +68,7 @@ data class BackupEmail(
 data class BackupTransaction(
     val id: String,
     val accountId: String,
-    val extensionId: Long,
+    val extensionId: String,
     val emailMessageId: String,
     val threadId: String? = null,
     val reference: String? = null,
@@ -76,7 +76,6 @@ data class BackupTransaction(
     val amount: Long? = null,
     val currency: String? = null,
     val direction: String? = null,
-    val method: String? = null,
     val category: String? = null,
     val categorySource: String? = null,
     val description: String? = null,
@@ -92,3 +91,27 @@ const val BACKUP_FILE_EXTENSION = "finboxbackup"
 
 /** Bumped when a released format can no longer be read as-is. */
 const val FORMAT_VERSION = 1
+
+/**
+ * What a backup taken before parsers became extensions calls the field that is
+ * now `extensionId`.
+ *
+ * The version number does not separate the two — the format changed without a
+ * bump, per the pre-release rule — so the field name is what identifies it.
+ */
+private const val PRE_REFACTOR_KEY = "\"parserId\""
+
+const val PRE_REFACTOR_MESSAGE =
+    "This backup was taken before parsers became extensions and cannot be restored. " +
+        "Its emails would have to be fetched from Gmail again."
+
+/**
+ * Refuses a pre-refactor backup by name, before kotlinx reports a missing field
+ * nobody can act on.
+ *
+ * `ignoreUnknownKeys` would drop every `parserId` silently and restore a ledger
+ * whose rows belong to no extension, which is worse than refusing. There is no
+ * shim: a `@JsonNames("parserId")` left in to survive one transition is exactly
+ * the kind of thing still there in two years.
+ */
+fun requireRestorable(text: String) = require(PRE_REFACTOR_KEY !in text) { PRE_REFACTOR_MESSAGE }

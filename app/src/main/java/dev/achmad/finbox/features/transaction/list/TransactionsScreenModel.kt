@@ -28,7 +28,7 @@ enum class TransactionSort { DATE, AMOUNT }
 /** An empty set means "no restriction", so the default filter lets everything through. */
 data class TransactionFilter(
     val directions: Set<TransactionDirection> = emptySet(),
-    val extensionIds: Set<Long> = emptySet(),
+    val extensionIds: Set<String> = emptySet(),
     val accountIds: Set<String> = emptySet(),
     val sort: TransactionSort = TransactionSort.DATE,
     val descending: Boolean = true,

@@ -88,8 +88,7 @@ class ExtensionLoader(
             LoadResult.Success(
                 info,
                 LoadedExtension(
-                    id = extensionIdOf(info.pkg),
-                    pkg = info.pkg,
+                    id = info.pkg,
                     name = info.name,
                     source = source,
                 ),

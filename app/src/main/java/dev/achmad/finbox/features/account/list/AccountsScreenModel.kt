@@ -41,7 +41,7 @@ class AccountsScreenModel(
      * Which extensions each account has switched off, not on: an extension with no row runs, and
      * an account with no rows at all runs everything installed.
      */
-    val disabledByAccount: StateFlow<Map<String, Set<Long>>> =
+    val disabledByAccount: StateFlow<Map<String, Set<String>>> =
         accountExtensionRepository.allAssignments()
             .map { list ->
                 list.filterNot { it.enabled }

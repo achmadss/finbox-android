@@ -39,7 +39,7 @@ class TransactionUpdateJob(
 
         val parseOnly = inputData.getBoolean(TransactionUpdateWork.PARSE_ONLY, false)
         val reparseExtensionIds = inputData
-            .getLongArray(TransactionUpdateWork.REPARSE_EXTENSIONS)
+            .getStringArray(TransactionUpdateWork.REPARSE_EXTENSIONS)
             ?.toSet()
             .orEmpty()
         val needsForeground = parseOnly || updater.isImporting()

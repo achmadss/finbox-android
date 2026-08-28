@@ -35,7 +35,7 @@ class AccountDetailsScreenModel(
      * Which extensions this account has switched off, not on: an extension with no row runs, and
      * an account with no rows at all runs everything installed.
      */
-    val disabled: StateFlow<Set<Long>> = accountExtensionRepository.forAccount(id)
+    val disabled: StateFlow<Set<String>> = accountExtensionRepository.forAccount(id)
         .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.extensionId } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
@@ -46,7 +46,7 @@ class AccountDetailsScreenModel(
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }
     }
 
-    fun setExtensionEnabled(extensionId: Long, enabled: Boolean) {
+    fun setExtensionEnabled(extensionId: String, enabled: Boolean) {
         screenModelScope.launch { accountExtensionRepository.setEnabled(id, extensionId, enabled) }
     }
 

@@ -65,7 +65,7 @@ class ExtensionManager(
     private val reparseWanted = AtomicBoolean(false)
 
     /** The enabled extensions, by id. */
-    private val knownExtensions: LinkedHashMap<Long, LoadedExtension> = LinkedHashMap()
+    private val knownExtensions: LinkedHashMap<String, LoadedExtension> = LinkedHashMap()
 
     /** Observable, so a screen built before the registry was loaded still sees the extensions. */
     private val _extensionsFlow = MutableStateFlow<List<LoadedExtension>>(emptyList())
@@ -218,7 +218,7 @@ class ExtensionManager(
         _extensionsFlow.value = knownExtensions.values.toList()
     }
 
-    fun getById(extensionId: Long): LoadedExtension? = knownExtensions[extensionId]
+    fun getById(extensionId: String): LoadedExtension? = knownExtensions[extensionId]
 }
 
 fun List<AvailableExtension>.hasUpdateFor(extension: InstalledExtension): Boolean =

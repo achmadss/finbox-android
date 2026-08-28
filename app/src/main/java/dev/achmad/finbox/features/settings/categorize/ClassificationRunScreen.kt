@@ -138,10 +138,7 @@ data class ClassificationRunScreen(private val runId: Long) : Screen {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            val evidence = listOfNotNull(
-                result.merchant?.let { result.description },
-                result.method,
-            )
+            val evidence = listOfNotNull(result.merchant, result.description)
             if (evidence.isNotEmpty()) {
                 Text(
                     text = evidence.joinToString(" · "),

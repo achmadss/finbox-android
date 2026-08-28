@@ -203,7 +203,7 @@ private fun TransactionDetailPreview() {
         TransactionDetailScreenContent(
             transaction = Transaction(
                 accountId = "preview",
-                extensionId = 1L,
+                extensionId = "dev.achmad.finbox.extension.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,
@@ -217,7 +217,6 @@ private fun TransactionDetailPreview() {
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,
-                method = null,
                 updatedAt = 1_700_000_000_000L,
                 editedAt = null,
                 deleted = false,
