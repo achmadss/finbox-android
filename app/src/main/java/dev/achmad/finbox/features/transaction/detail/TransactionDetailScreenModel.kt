@@ -6,7 +6,7 @@ import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.signature
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +19,7 @@ import kotlin.collections.orEmpty
 class TransactionDetailScreenModel(
     private val id: String,
     private val repository: TransactionRepository = inject(),
-    extensionManager: ExtensionManager = inject(),
+    sourceManager: SourceManager = inject(),
 ) : ScreenModel {
 
     /**

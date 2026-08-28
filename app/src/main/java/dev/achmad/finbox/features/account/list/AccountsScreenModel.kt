@@ -5,11 +5,11 @@ import android.util.Log
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.util.koin.inject
-import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.extension.Extension
+import dev.achmad.finbox.core.source.SourceManager
+import dev.achmad.finbox.source.core.Source
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.gmail.GmailTokenStore
 import androidx.compose.runtime.Immutable
@@ -23,43 +23,43 @@ import kotlinx.coroutines.launch
 @Immutable
 data class AccountRow(
     val account: EmailAccount,
-    val extensionCount: Int,
+    val sourceCount: Int,
 )
 
 class AccountsScreenModel(
     private val accountRepository: AccountRepository = inject(),
-    private val accountExtensionRepository: AccountExtensionRepository = inject(),
+    private val accountSourceRepository: AccountSourceRepository = inject(),
     private val tokenStore: GmailTokenStore = inject(),
     private val authManager: GmailAuthManager = inject(),
-    private val extensionManager: ExtensionManager = inject(),
+    private val sourceManager: SourceManager = inject(),
 ) : ScreenModel {
 
     val accounts: StateFlow<List<EmailAccount>> = accountRepository.accounts()
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
-     * Which extensions each account has switched off, not on: an extension with no row runs, and
+     * Which sources each account has switched off, not on: a source with no row runs, and
      * an account with no rows at all runs everything installed.
      */
     val disabledByAccount: StateFlow<Map<String, Set<String>>> =
-        accountExtensionRepository.allAssignments()
+        accountSourceRepository.allAssignments()
             .map { list ->
                 list.filterNot { it.enabled }
-                    .groupBy({ it.accountId }, { it.extensionId })
+                    .groupBy({ it.accountId }, { it.sourceId })
                     .mapValues { it.value.toSet() }
             }
             .stateIn(screenModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** The extensions that run — what an assignment's `extensionId` points at. */
-    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
+    /** The sources that run — what an assignment's `sourceId` points at. */
+    val sources: StateFlow<List<Source>> = sourceManager.enabled
 
     val rows: StateFlow<List<AccountRow>> =
-        combine(accounts, disabledByAccount, extensions) { accounts, disabled, extensions ->
+        combine(accounts, disabledByAccount, sources) { accounts, disabled, sources ->
             accounts.map { account ->
                 val off = disabled[account.id].orEmpty()
-                // Counted off the shipped extensions, not off the rows: an extension with
+                // Counted off the shipped sources, not off the rows: a source with
                 // no row of its own is one this account reads with.
-                AccountRow(account = account, extensionCount = extensions.count { it.id !in off })
+                AccountRow(account = account, sourceCount = sources.count { it.id !in off })
             }
         }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -80,7 +80,7 @@ class AccountsScreenModel(
     fun remove(id: String) {
         screenModelScope.launch {
             accountRepository.delete(id)
-            accountExtensionRepository.deleteForAccount(id)
+            accountSourceRepository.deleteForAccount(id)
             // A removed account keeping a live refresh token is a token nothing will ever use.
             tokenStore.clear(id)
         }

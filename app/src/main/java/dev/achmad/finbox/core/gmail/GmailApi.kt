@@ -1,7 +1,7 @@
 package dev.achmad.finbox.core.gmail
 
 import android.util.Base64
-import dev.achmad.finbox.extension.core.source.email.model.Email
+import dev.achmad.finbox.source.core.email.Email
 import dev.achmad.finbox.core.gmail.model.HistoryResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
 import dev.achmad.finbox.core.gmail.model.MessageRef
@@ -48,7 +48,7 @@ interface GmailApi {
         pageToken: String? = null,
     ): HistoryResponse
 
-    /** The full message, normalized for extensions. */
+    /** The full message, normalized for sources. */
     suspend fun getEmail(accountId: String, messageId: String): Email
 
     companion object {

@@ -5,16 +5,17 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.normalizedThreadId
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.extension.Extension
+import dev.achmad.finbox.source.core.Source
 import dev.achmad.finbox.core.gmail.GmailApi
-import dev.achmad.finbox.core.gmail.combineExtensionQueries
+import dev.achmad.finbox.core.gmail.combineSourceQueries
 import dev.achmad.finbox.core.gmail.model.MessageRef
 import dev.achmad.finbox.util.network.HttpException
-import dev.achmad.finbox.extension.core.source.email.model.Email
+import dev.achmad.finbox.source.core.email.Email
+import dev.achmad.finbox.source.core.email.email
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -33,10 +34,10 @@ import kotlinx.coroutines.withContext
  * Keeps the ledger of transactions up to date from Gmail.
  */
 class TransactionUpdater(
-    /** The enabled extensions, read at update time so a switch takes effect at once. */
-    private val extensions: () -> List<Extension>,
+    /** The enabled sources, read at update time so a switch takes effect at once. */
+    private val sources: () -> List<Source>,
     private val accountRepository: AccountRepository,
-    private val accountExtensionRepository: AccountExtensionRepository,
+    private val accountSourceRepository: AccountSourceRepository,
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
@@ -117,36 +118,36 @@ class TransactionUpdater(
     private class Counts(val parsed: Int)
 
     /**
-     * The extensions this account parses with, in the order it wants them tried.
+     * The sources this account parses with, in the order it wants them tried.
      *
      * An account that has never been configured uses everything installed. Once
-     * it has, an extension turned off there is skipped — and skipped without being
-     * marked tried, so turning it back on re-reads the mail it missed. An extension
+     * it has, a source turned off there is skipped — and skipped without being
+     * marked tried, so turning it back on re-reads the mail it missed. A source
      * installed since then has no assignment yet and goes last rather than
      * being ignored.
      */
-    private suspend fun extensionsFor(account: EmailAccount): List<Extension> {
-        val installed = extensions()
-        val assignments = accountExtensionRepository.forAccount(account.id).first()
+    private suspend fun sourcesFor(account: EmailAccount): List<Source> {
+        val installed = sources()
+        val assignments = accountSourceRepository.forAccount(account.id).first()
         if (assignments.isEmpty()) return installed
 
-        val position = assignments.associate { it.extensionId to it.position }
-        val disabled = assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.extensionId }
+        val position = assignments.associate { it.sourceId to it.position }
+        val disabled = assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.sourceId }
         return installed
             .filterNot { it.id in disabled }
             .sortedBy { position[it.id] ?: Int.MAX_VALUE }
     }
 
     /**
-     * The Gmail search for this account: what its extensions ask for, plus any
+     * The Gmail search for this account: what its sources ask for, plus any
      * narrowing set on the account itself.
      *
-     * An extension that names no sender wants everything, and then nothing can be
-     * excluded — filtering the list would silently skip that extension's mail.
+     * A source that names no sender wants everything, and then nothing can be
+     * excluded — filtering the list would silently skip that source's mail.
      */
     private suspend fun narrowFor(account: EmailAccount): String? {
-        val fromSources = combineExtensionQueries(
-            extensionsFor(account).mapNotNull { it.email?.query?.value },
+        val fromSources = combineSourceQueries(
+            sourcesFor(account).mapNotNull { it.email?.query?.value },
         ) ?: return account.syncQuery
         return listOfNotNull(account.syncQuery?.takeIf { it.isNotBlank() }, fromSources)
             .joinToString(" ")
@@ -295,12 +296,12 @@ class TransactionUpdater(
         before: Long?,
         onBatchParsed: suspend (Int) -> Unit = {},
     ): Counts {
-        val extensions = extensionsFor(account)
+        val sources = sourcesFor(account)
         val stored = emailRepository.forAccount(account.id).associateBy { it.messageId }
 
         val todo = messageRefs.distinctBy { it.id }.filter { ref ->
             val email = stored[ref.id] ?: return@filter true
-            !email.parsed && extensions.any { it.id !in email.triedExtensionIds }
+            !email.parsed && sources.any { it.id !in email.triedSourceIds }
         }
         if (todo.isEmpty()) return Counts(0)
 
@@ -353,11 +354,11 @@ class TransactionUpdater(
                                     subject = message.subject,
                                     date = message.date,
                                     body = body,
-                                    triedExtensionIds = emptyList(),
-                                    parsedByExtensionId = null,
+                                    triedSourceIds = emptyList(),
+                                    parsedBySourceId = null,
                                     fetchedAt = System.currentTimeMillis(),
                                 )
-                            parse(email, message, extensions)
+                            parse(email, message, sources)
                         }
                     }.awaitAll()
                 }
@@ -379,57 +380,57 @@ class TransactionUpdater(
     }
 
     /**
-     * Re-reads the mail the installed extensions haven't all tried — what a newly
-     * installed or updated extension needs. Nearly free: bodies are parsed in
+     * Re-reads the mail the installed sources haven't all tried — what a newly
+     * installed or updated source needs. Nearly free: bodies are parsed in
      * place; only mail fetched before bodies were kept costs a 20-unit
      * download, which backfills the body once per email ever.
      *
      * @return how many transactions were written.
      */
     suspend fun parseUnparsed(onProgress: suspend (Progress) -> Unit = {}): Int {
-        if (extensions().isEmpty()) return 0
+        if (sources().isEmpty()) return 0
 
         var parsed = 0
         for ((accountId, emails) in emailRepository.unparsed().groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
-            val extensions = extensionsFor(account)
+            val sources = sourcesFor(account)
             val pending = emails.filter { email ->
-                extensions.any { it.id !in email.triedExtensionIds }
+                sources.any { it.id !in email.triedSourceIds }
             }
             if (pending.isEmpty()) continue
             parsed += lockFor(accountId).withLock {
-                reread(account, pending, extensions, force = false, onProgress)
+                reread(account, pending, sources, force = false, onProgress)
             }
         }
         return parsed
     }
 
     /**
-     * Re-reads mail one of [extensionIds] already claimed.
+     * Re-reads mail one of [sourceIds] already claimed.
      *
      * Switching a transaction method back on needs this: those emails are parsed,
      * so nothing above would look at them again.
      *
      * @return how many transactions were written.
      */
-    suspend fun reparseExtensions(
-        extensionIds: Set<String>,
+    suspend fun reparseSources(
+        sourceIds: Set<String>,
         onProgress: suspend (Progress) -> Unit = {},
     ): Int {
-        if (extensionIds.isEmpty()) return 0
+        if (sourceIds.isEmpty()) return 0
 
         var parsed = 0
-        for ((accountId, emails) in emailRepository.parsedBy(extensionIds).groupBy { it.accountId }) {
+        for ((accountId, emails) in emailRepository.parsedBy(sourceIds).groupBy { it.accountId }) {
             val account = accountRepository.getById(accountId) ?: continue
-            val extensions = extensionsFor(account).filter { it.id in extensionIds }
-            if (extensions.isEmpty()) continue
+            val sources = sourcesFor(account).filter { it.id in sourceIds }
+            if (sources.isEmpty()) continue
 
             val (stored, bodiless) = emails.partition { !it.body.isNullOrBlank() }
             parsed += lockFor(accountId).withLock {
-                // No thread filter and forced past triedExtensionIds: the extension that
+                // No thread filter and forced past triedSourceIds: the source that
                 // claimed these emails is the one meant to read them again.
-                parseStored(account, stored, extensions, force = true, onProgress) +
-                    releaseBodiless(bodiless, extensionIds)
+                parseStored(account, stored, sources, force = true, onProgress) +
+                    releaseBodiless(bodiless, sourceIds)
             }
         }
         return parsed
@@ -443,13 +444,13 @@ class TransactionUpdater(
      *
      * @return 0 — nothing is parsed here, the next refresh does it.
      */
-    private suspend fun releaseBodiless(emails: List<StoredEmail>, extensionIds: Set<String>): Int {
+    private suspend fun releaseBodiless(emails: List<StoredEmail>, sourceIds: Set<String>): Int {
         if (emails.isEmpty()) return 0
         emailRepository.updateAll(
             emails.map {
                 it.copy(
-                    triedExtensionIds = it.triedExtensionIds - extensionIds,
-                    parsedByExtensionId = null,
+                    triedSourceIds = it.triedSourceIds - sourceIds,
+                    parsedBySourceId = null,
                 )
             },
         )
@@ -460,12 +461,12 @@ class TransactionUpdater(
     private suspend fun reread(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        extensions: List<Extension>,
+        sources: List<Source>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
         val (stored, missing) = emails.partition { !it.body.isNullOrBlank() }
-        return parseStored(account, stored, extensions, force, onProgress) +
+        return parseStored(account, stored, sources, force, onProgress) +
             ingest(
                 account,
                 missing.sortedByDescending { it.date }
@@ -484,7 +485,7 @@ class TransactionUpdater(
     private suspend fun parseStored(
         account: EmailAccount,
         emails: List<StoredEmail>,
-        extensions: List<Extension>,
+        sources: List<Source>,
         force: Boolean,
         onProgress: suspend (Progress) -> Unit,
     ): Int {
@@ -496,7 +497,7 @@ class TransactionUpdater(
             val results = withContext(Dispatchers.Default) {
                 coroutineScope {
                     batch.map { email ->
-                        async { parse(email, email.asExtensionEmail(), extensions, force) }
+                        async { parse(email, email.asSourceEmail(), sources, force) }
                     }.awaitAll()
                 }
             }
@@ -509,8 +510,8 @@ class TransactionUpdater(
         return parsed
     }
 
-    /** A stored email as an extension sees one. */
-    private fun StoredEmail.asExtensionEmail() = Email(
+    /** A stored email as a source sees one. */
+    private fun StoredEmail.asSourceEmail() = Email(
         messageId = messageId,
         threadId = threadId.orEmpty(),
         subject = subject,
@@ -522,34 +523,34 @@ class TransactionUpdater(
     private class Parsed(val email: StoredEmail, val transactions: List<Transaction>)
 
     /**
-     * Runs [message] past the extensions that haven't tried it, first claim wins.
+     * Runs [message] past the sources that haven't tried it, first claim wins.
      *
      * [force] runs it past all of them regardless: a method switched back on has
-     * to reach the extension that already claimed this email.
+     * to reach the source that already claimed this email.
      */
     private suspend fun parse(
         email: StoredEmail,
         message: Email,
-        extensions: List<Extension>,
+        sources: List<Source>,
         force: Boolean = false,
     ): Parsed {
-        val candidates = if (force) extensions else extensions.filter { it.id !in email.triedExtensionIds }
-        val tried = (email.triedExtensionIds + candidates.map { it.id }).distinct()
+        val candidates = if (force) sources else sources.filter { it.id !in email.triedSourceIds }
+        val tried = (email.triedSourceIds + candidates.map { it.id }).distinct()
         val now = System.currentTimeMillis()
 
-        for (extension in candidates) {
-            // An extension that reads something other than mail has nothing to
+        for (source in candidates) {
+            // A source that reads something other than mail has nothing to
             // say about this, and is not a failure.
-            val source = extension.email ?: continue
-            // Empty is how an extension disowns an email.
-            val parsed = runCatching { source.parse(message) }.getOrNull()
+            val emailSource = source.email ?: continue
+            // Empty is how a source disowns an email.
+            val parsed = runCatching { emailSource.parse(message) }.getOrNull()
                 ?.takeIf { it.isNotEmpty() }
                 ?: continue
 
             val transactions = parsed.mapIndexed { index, transaction ->
                 Transaction(
                     accountId = email.accountId,
-                    extensionId = extension.id,
+                    sourceId = source.id,
                     emailMessageId = email.messageId,
                     index = index,
                     threadId = email.threadId,
@@ -557,7 +558,7 @@ class TransactionUpdater(
                     date = transaction.date,
                     amount = transaction.amount,
                     currency = transaction.currency,
-                    // By name, not mapped: an extension built against a later API
+                    // By name, not mapped: a source built against a later API
                     // could name a direction this build has never heard of, and
                     // an unsigned row beats a crash.
                     direction = runCatching {
@@ -577,12 +578,12 @@ class TransactionUpdater(
                 )
             }
             return Parsed(
-                email.copy(triedExtensionIds = tried, parsedByExtensionId = extension.id),
+                email.copy(triedSourceIds = tried, parsedBySourceId = source.id),
                 transactions,
             )
         }
-        // Remember who looked, so only a new or updated extension tries again.
-        return Parsed(email.copy(triedExtensionIds = tried), emptyList())
+        // Remember who looked, so only a new or updated source tries again.
+        return Parsed(email.copy(triedSourceIds = tried), emptyList())
     }
 
     /** Advances the cursor. Only reached once the work above succeeded. */

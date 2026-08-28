@@ -2,7 +2,7 @@
 
 A personal spending ledger, fed by the receipts your bank already emails you.
 
-finbox reads a Gmail mailbox, hands each email to the extensions it ships with,
+finbox reads a Gmail mailbox, hands each email to the sources it ships with,
 and records what they recognise as transactions. No bank credentials, no screen
 scraping, no SMS permissions — just the notification mails you already get,
 turned into a month-by-month view of what went out and what came in.
@@ -13,16 +13,16 @@ quietly; there is no review queue to work through.
 ## How it works
 
 1. **Connect a mailbox.** Google OAuth, `gmail.readonly`, no password stored.
-2. **Switch on the banks you use.** Every extension ships inside the app and is
-   on by default; the extensions screen is a list with a switch each.
-3. **Import.** The first sync walks the mailbox for mail the enabled extensions
+2. **Switch on the banks you use.** Every source ships inside the app and is on
+   by default; the sources screen is a list with a switch each.
+3. **Import.** The first sync walks the mailbox for mail the enabled sources
    claim as theirs. Every sync after that asks Gmail only what changed, so a
    refresh with nothing new costs a single API call.
 4. **Read the ledger.** One month at a time, out / in / net at the top,
    transactions grouped by day. Multiple mailboxes merge into one ledger.
 
-Parsing lives entirely in `extension/`. The app fetches mail and keeps the
-ledger; it holds no knowledge of any bank's email format.
+Parsing lives entirely in `source/`. The app fetches mail and keeps the ledger;
+it holds no knowledge of any bank's email format.
 
 ## Banks it reads
 
@@ -33,13 +33,14 @@ ledger; it holds no knowledge of any bank's email format.
 | Bank Jago | payments, transfers, Jago Partner, debit card purchases |
 | Bank Mandiri | Livin' receipts — QR payments, e-money top ups, SBN orders |
 
-Adding one is a single annotated class — the list the app reads is generated at
-compile time. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Adding one is a directory with a class and an icon in it — no build file, no
+registration, and the list the app reads is generated at compile time. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it keeps
 
-Email bodies are stored, deliberately. An extension taught to read something in
-a later release re-reads mail already in the database instead of paying Gmail
+Email bodies are stored, deliberately. A source taught to read something in a
+later release re-reads mail already in the database instead of paying Gmail
 twenty quota units a message again. It is the most sensitive thing the app
 holds: it never leaves the device, and nothing derived from it is committed to
 this repository. Everything else stays on the device too — finbox has no backend
@@ -54,13 +55,16 @@ Currently IDR only, and sync is manual pull-to-refresh.
 |---|---|
 | `app/` | UI, Gmail client, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
-| `extension/` | The bank readers, and the contract they implement |
-| `extension-processor/` | KSP processor that generates the extension list |
+| `source/core/` | The contract every bank reader implements, plus `Receipt` |
+| `source/processor/` | KSP processor that assembles the source list |
+| `source/lib/<country>/<bank>/` | One bank reader each |
 
-`extension/` is a plain Kotlin module — no Android on its classpath, so an
-extension cannot fetch, schedule, or reach a token even by accident. `app/`
-depends on it; `data/` knows extension ids only as strings.
-`extension-processor/` runs inside the compiler and is not shipped.
+`source/core/` is a plain Kotlin module — no Android on its classpath, so a
+source cannot fetch, schedule, or reach a token even by accident. A bank module
+is an Android library only because it carries its own icon, and it has no build
+file: everything about it is derived from where it sits. `data/` knows source
+ids only as strings, and `source/processor/` runs inside the compiler and is not
+shipped.
 
 ## Status
 

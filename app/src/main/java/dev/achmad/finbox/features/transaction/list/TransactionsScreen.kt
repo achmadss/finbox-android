@@ -27,7 +27,7 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Source
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Label
@@ -77,9 +77,9 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.extension.Extension
+import dev.achmad.finbox.source.core.Source
 import dev.achmad.finbox.features.account.list.AccountsScreen
-import dev.achmad.finbox.features.extension.list.ExtensionsScreen
+import dev.achmad.finbox.features.source.list.SourcesScreen
 import dev.achmad.finbox.features.settings.SettingsScreen
 import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.theme.components.AppBar
@@ -131,9 +131,9 @@ object TransactionsScreen : Screen {
         val latest by model.latest.collectAsState()
         val loading by model.loading.collectAsState()
         val filter by model.filter.collectAsState()
-        val noEnabledExtensions by model.noEnabledExtensions.collectAsState()
+        val noEnabledSources by model.noEnabledSources.collectAsState()
         val accounts by model.accounts.collectAsState()
-        val extensions by model.extensions.collectAsState()
+        val sources by model.sources.collectAsState()
         val selected by model.selected.collectAsState()
 
         TransactionsScreenContent(
@@ -145,7 +145,7 @@ object TransactionsScreen : Screen {
             loading = loading,
             filter = filter,
             accounts = accounts,
-            extensions = extensions,
+            sources = sources,
             onRefresh = model::refresh,
             onMonthChange = model::setMonth,
             onFilterChange = model::setFilter,
@@ -156,8 +156,8 @@ object TransactionsScreen : Screen {
             onClearSelection = model::clearSelection,
             onSetCategory = model::setCategory,
             onOpenAccounts = { navigator.push(AccountsScreen) },
-            onOpenExtensions = { navigator.push(ExtensionsScreen) },
-            noEnabledExtensions = noEnabledExtensions,
+            onOpenSources = { navigator.push(SourcesScreen) },
+            noEnabledSources = noEnabledSources,
             onOpenSettings = { navigator.push(SettingsScreen) },
         )
     }
@@ -175,16 +175,16 @@ fun TransactionsScreenContent(
     loading: Boolean,
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    extensions: List<Extension>,
-    /** Extensions with a newer build in the repo index. */
+    sources: List<Source>,
+    /** Sources with a newer build in the repo index. */
     onRefresh: () -> Unit,
     onMonthChange: (YearMonth) -> Unit,
     onFilterChange: (TransactionFilter) -> Unit,
     onOpenTransaction: (Transaction) -> Unit,
     onOpenAccounts: () -> Unit,
-    onOpenExtensions: () -> Unit,
-    /** Every extension switched off; the empty ledger says so. */
-    noEnabledExtensions: Boolean = false,
+    onOpenSources: () -> Unit,
+    /** Every source switched off; the empty ledger says so. */
+    noEnabledSources: Boolean = false,
     onOpenSettings: () -> Unit,
     /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
     selected: Set<String> = emptySet(),
@@ -212,8 +212,8 @@ fun TransactionsScreenContent(
     }
 
     // By id here, because that is all a transaction stores. A row parsed by an earlier
-    // build of an extension is filed under that build's id and goes unnamed, same as the filter.
-    val extensionNames = remember(extensions) { extensions.associate { it.id to it.name } }
+    // build of a source is filed under that build's id and goes unnamed, same as the filter.
+    val sourceNames = remember(sources) { sources.associate { it.id to it.name } }
 
     if (showMonthPicker) {
         MonthYearPickerSheet(
@@ -232,7 +232,7 @@ fun TransactionsScreenContent(
         TransactionsFilterSheet(
             filter = filter,
             accounts = accounts,
-            extensions = extensions,
+            sources = sources,
             onFilterChange = onFilterChange,
             onDismiss = { showFilterBottomSheet = false },
         )
@@ -265,9 +265,9 @@ fun TransactionsScreenContent(
                         onClick = onOpenAccounts,
                     ),
                     AppBar.OverflowAction(
-                        title = stringResource(R.string.extensions),
-                        icon = Icons.Outlined.Extension,
-                        onClick = onOpenExtensions,
+                        title = stringResource(R.string.sources),
+                        icon = Icons.Outlined.Source,
+                        onClick = onOpenSources,
                     ),
                     AppBar.OverflowAction(
                         title = stringResource(R.string.label_settings),
@@ -392,11 +392,11 @@ fun TransactionsScreenContent(
                         use24Hour = use24Hour,
                         transactions = monthly[months[index]].orEmpty(),
                         filtered = filter.isActive,
-                        noEnabledExtensions = noEnabledExtensions,
+                        noEnabledSources = noEnabledSources,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
-                        extensionNames = extensionNames,
-                        onOpenExtensions = onOpenExtensions,
+                        sourceNames = sourceNames,
+                        onOpenSources = onOpenSources,
                         onOpenTransaction = onOpenTransaction,
                         selected = selected,
                         onToggleSelection = onToggleSelection,
@@ -412,10 +412,10 @@ private fun MonthPage(
     use24Hour: Boolean,
     transactions: List<Transaction>,
     filtered: Boolean,
-    noEnabledExtensions: Boolean,
+    noEnabledSources: Boolean,
     grouped: Boolean,
-    extensionNames: Map<String, String>,
-    onOpenExtensions: () -> Unit,
+    sourceNames: Map<String, String>,
+    onOpenSources: () -> Unit,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -428,7 +428,7 @@ private fun MonthPage(
         transactions.forEach { transaction ->
             val amount = transaction.amount ?: 0L
             // Same rule the rows use for their sign: only an expense counts as money
-            // out, so a row whose extension left the direction unset lands with income.
+            // out, so a row whose source left the direction unset lands with income.
             if (transaction.direction == TransactionDirection.OUTGOING) out += amount else income += amount
         }
         out to income
@@ -461,15 +461,15 @@ private fun MonthPage(
                 // Both conditions, never either: everything off *and* no rows.
                 // Someone who switched one off still has a ledger, and hiding it
                 // behind a prompt would read as having lost it.
-                needsExtension = noEnabledExtensions && !filtered,
-                onOpenExtensions = onOpenExtensions,
+                needsSource = noEnabledSources && !filtered,
+                onOpenSources = onOpenSources,
             )
             grouped -> TransactionList(
-                use24Hour, transactions, extensionNames, onOpenTransaction,
+                use24Hour, transactions, sourceNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
             else -> FlatTransactionList(
-                use24Hour, transactions, extensionNames, onOpenTransaction,
+                use24Hour, transactions, sourceNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
         }
@@ -622,7 +622,7 @@ private fun RowScope.MonthStep(
 private fun TransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    extensionNames: Map<String, String>,
+    sourceNames: Map<String, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -659,11 +659,11 @@ private fun TransactionList(
                             .background(MaterialTheme.colorScheme.inverseOnSurface),
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
-                            val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
+                            val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
                             TransactionRow(
                                 use24Hour = use24Hour,
                                 transaction = transaction,
-                                extension = extension,
+                                source = source,
                                 selected = transaction.id in selected,
                                 selecting = selected.isNotEmpty(),
                                 onClick = { onOpenTransaction(transaction) },
@@ -685,7 +685,7 @@ private fun TransactionList(
 private fun FlatTransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    extensionNames: Map<String, String>,
+    sourceNames: Map<String, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
     onToggleSelection: (String) -> Unit,
@@ -704,11 +704,11 @@ private fun FlatTransactionList(
         ) {
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
-                    val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
+                    val source = sourceNames[transaction.sourceId] ?: stringResource(R.string.unknown)
                     TransactionRow(
                         use24Hour = use24Hour,
                         transaction = transaction,
-                        extension = extension,
+                        source = source,
                         selected = transaction.id in selected,
                         selecting = selected.isNotEmpty(),
                         showDay = true,
@@ -728,7 +728,7 @@ private fun FlatTransactionList(
 private fun TransactionRow(
     use24Hour: Boolean,
     transaction: Transaction,
-    extension: String,
+    source: String,
     selected: Boolean = false,
     /** Whether anything at all is selected: a tap then picks rather than opens. */
     selecting: Boolean = false,
@@ -766,7 +766,7 @@ private fun TransactionRow(
                 overflow = TextOverflow.Ellipsis,
             )
             val subtitle = buildList {
-                add(extension)
+                add(source)
                 // Small and quiet on purpose — this is a ledger, not a diff view.
                 // The detail screen is where it says when.
                 if (transaction.edited) add(stringResource(R.string.label_edited))
@@ -832,15 +832,15 @@ private fun SelectionAppBar(
 @Composable
 private fun EmptyTransactions(
     filtered: Boolean,
-    needsExtension: Boolean,
-    onOpenExtensions: () -> Unit,
+    needsSource: Boolean,
+    onOpenSources: () -> Unit,
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             EmptyTransactionsContent(
                 filtered = filtered,
-                needsExtension = needsExtension,
-                onOpenExtensions = onOpenExtensions,
+                needsSource = needsSource,
+                onOpenSources = onOpenSources,
                 // The viewport's height, not the content's: the message stays
                 // centred, which wrapping to its own height would not do.
                 modifier = Modifier.fillParentMaxSize(),
@@ -852,8 +852,8 @@ private fun EmptyTransactions(
 @Composable
 private fun EmptyTransactionsContent(
     filtered: Boolean,
-    needsExtension: Boolean = false,
-    onOpenExtensions: () -> Unit = {},
+    needsSource: Boolean = false,
+    onOpenSources: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -871,7 +871,7 @@ private fun EmptyTransactionsContent(
             text = stringResource(
                 when {
                     filtered -> R.string.transactions_empty_filtered
-                    needsExtension -> R.string.transactions_empty_no_extension
+                    needsSource -> R.string.transactions_empty_no_source
                     else -> R.string.transactions_empty
                 },
             ),
@@ -881,7 +881,7 @@ private fun EmptyTransactionsContent(
             text = stringResource(
                 when {
                     filtered -> R.string.transactions_empty_filtered_info
-                    needsExtension -> R.string.transactions_empty_no_extension_info
+                    needsSource -> R.string.transactions_empty_no_source_info
                     else -> R.string.transactions_empty_info
                 },
             ),
@@ -889,9 +889,9 @@ private fun EmptyTransactionsContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        if (needsExtension) {
-            Button(onClick = onOpenExtensions) {
-                Text(stringResource(R.string.transactions_empty_no_extension_action))
+        if (needsSource) {
+            Button(onClick = onOpenSources) {
+                Text(stringResource(R.string.transactions_empty_no_source_action))
             }
         }
     }
@@ -918,7 +918,7 @@ private fun TransactionsScreenPreview() {
         direction: TransactionDirection = TransactionDirection.OUTGOING,
     ) = Transaction(
         accountId = "preview",
-        extensionId = "dev.achmad.finbox.extension.preview",
+        sourceId = "dev.achmad.finbox.source.preview",
         emailMessageId = "message-$index",
         index = index,
         threadId = null,
@@ -959,13 +959,13 @@ private fun TransactionsScreenPreview() {
             loading = false,
             filter = TransactionFilter(),
             accounts = emptyList(),
-            extensions = emptyList(),
+            sources = emptyList(),
             onRefresh = {},
             onMonthChange = {},
             onFilterChange = {},
             onOpenTransaction = {},
             onOpenAccounts = {},
-            onOpenExtensions = {},
+            onOpenSources = {},
             onOpenSettings = {},
         )
     }
@@ -985,13 +985,13 @@ private fun TransactionsScreenEmptyPreview() {
             loading = false,
             filter = TransactionFilter(),
             accounts = emptyList(),
-            extensions = emptyList(),
+            sources = emptyList(),
             onRefresh = {},
             onMonthChange = {},
             onFilterChange = {},
             onOpenTransaction = {},
             onOpenAccounts = {},
-            onOpenExtensions = {},
+            onOpenSources = {},
             onOpenSettings = {},
         )
     }

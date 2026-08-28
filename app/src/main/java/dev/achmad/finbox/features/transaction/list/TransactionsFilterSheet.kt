@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.TransactionDirection
-import dev.achmad.finbox.extension.Extension
+import dev.achmad.finbox.source.core.Source
 import dev.achmad.finbox.theme.components.CheckboxItem
 import dev.achmad.finbox.theme.components.CollapsibleBox
 import dev.achmad.finbox.theme.components.SettingsItemsPaddings
@@ -34,7 +34,7 @@ import dev.achmad.finbox.R
 fun TransactionsFilterSheet(
     filter: TransactionFilter,
     accounts: List<EmailAccount>,
-    extensions: List<Extension>,
+    sources: List<Source>,
     onFilterChange: (TransactionFilter) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -81,17 +81,17 @@ fun TransactionsFilterSheet(
 
             HorizontalDivider()
 
-            CollapsibleBox(heading = headingOf(R.string.extensions, filter.extensionIds.size)) {
-                if (extensions.isEmpty()) {
-                    EmptySectionHint(stringResource(R.string.filter_no_extensions))
+            CollapsibleBox(heading = headingOf(R.string.sources, filter.sourceIds.size)) {
+                if (sources.isEmpty()) {
+                    EmptySectionHint(stringResource(R.string.filter_no_sources))
                 }
-                extensions.forEach { extension ->
+                sources.forEach { source ->
                     CheckboxItem(
-                        label = extension.name,
-                        checked = extension.id in filter.extensionIds,
+                        label = source.name,
+                        checked = source.id in filter.sourceIds,
                         onClick = {
                             onFilterChange(
-                                filter.copy(extensionIds = filter.extensionIds.toggle(extension.id)),
+                                filter.copy(sourceIds = filter.sourceIds.toggle(source.id)),
                             )
                         },
                     )

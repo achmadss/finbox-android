@@ -73,7 +73,7 @@ import dev.achmad.finbox.R
 
 /**
  * Edits one transaction. The ids, timestamps, and the deleted flag belong to the
- * extension and the database, so they stay out of the form; currency and reference
+ * source and the database, so they stay out of the form; currency and reference
  * are editable but not offered here.
  */
 data class TransactionEditScreen(private val id: String) : Screen {
@@ -434,7 +434,7 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
             ) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            // A row the extension found no date for is a real state, so it has to be reachable.
+            // A row the source found no date for is a real state, so it has to be reachable.
             TextButton(
                 onClick = {
                     onSelect(null)
@@ -504,7 +504,7 @@ internal fun Transaction.toDraft() = Draft(
 )
 
 /**
- * Blank means "the extension found nothing", i.e. null — the same as an untouched row.
+ * Blank means "the source found nothing", i.e. null — the same as an untouched row.
  * Fields the form does not offer keep whatever the row already holds.
  */
 internal fun Draft.applyTo(transaction: Transaction): Transaction {
@@ -542,7 +542,7 @@ private fun TransactionEditPreview() {
         TransactionEditScreenContent(
             draft = Transaction(
                 accountId = "preview",
-                extensionId = "dev.achmad.finbox.extension.preview",
+                sourceId = "dev.achmad.finbox.source.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,

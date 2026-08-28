@@ -1,6 +1,6 @@
 package dev.achmad.data.backup
 
-import dev.achmad.data.model.AccountExtension
+import dev.achmad.data.model.AccountSource
 import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.StoredEmail
@@ -21,9 +21,9 @@ internal fun BackupAccount.toModel() = EmailAccount(
     lastSyncAt, lastHistoryId, syncQuery, importCursor, importedBackTo,
 )
 
-internal fun AccountExtension.toBackup() = BackupAssignment(accountId, extensionId, enabled, position)
+internal fun AccountSource.toBackup() = BackupAssignment(accountId, sourceId, enabled, position)
 
-internal fun BackupAssignment.toModel() = AccountExtension(accountId, extensionId, enabled, position)
+internal fun BackupAssignment.toModel() = AccountSource(accountId, sourceId, enabled, position)
 
 internal fun StoredEmail.toBackup() = BackupEmail(
     messageId = messageId,
@@ -32,8 +32,8 @@ internal fun StoredEmail.toBackup() = BackupEmail(
     from = from,
     subject = subject,
     date = date,
-    triedExtensionIds = triedExtensionIds,
-    parsedByExtensionId = parsedByExtensionId,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
     fetchedAt = fetchedAt,
 )
 
@@ -45,17 +45,17 @@ internal fun BackupEmail.toModel() = StoredEmail(
     subject = subject,
     date = date,
     // Bodies are deliberately not backed up: they are most of the database and
-    // get refetched when an extension change re-reads them.
+    // get refetched when a source change re-reads them.
     body = null,
-    triedExtensionIds = triedExtensionIds,
-    parsedByExtensionId = parsedByExtensionId,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
     fetchedAt = fetchedAt,
 )
 
 internal fun Transaction.toBackup() = BackupTransaction(
     id = id,
     accountId = accountId,
-    extensionId = extensionId,
+    sourceId = sourceId,
     emailMessageId = emailMessageId,
     threadId = threadId,
     reference = reference,
@@ -75,7 +75,7 @@ internal fun Transaction.toBackup() = BackupTransaction(
 
 internal fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
-    extensionId = extensionId,
+    sourceId = sourceId,
     emailMessageId = emailMessageId,
     // The backup carries the whole id, so an old file restores under the
     // identity it had.

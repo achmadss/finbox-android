@@ -42,7 +42,7 @@ class TransactionRepositoryTest {
 
         repository.update(parsed.copy(amount = 30_000, merchant = "GrabFood"))
 
-        // The same extension reading the same message again, and disagreeing.
+        // The same source reading the same message again, and disagreeing.
         repository.upsertAll(listOf(transaction(merchant = "GRABFOOD", amount = 25_000)))
 
         val stored = repository.all().single()
@@ -203,7 +203,7 @@ class TransactionRepositoryTest {
     fun `mail nothing recognises leaves the ledger untouched`() = runBlocking {
         repository.upsertAll(listOf(transaction(merchant = "Kopi Kenangan")))
 
-        // How an extension disowns an email: it yields nothing, and nothing is
+        // How a source disowns an email: it yields nothing, and nothing is
         // written. No error, no placeholder row, no review queue.
         repository.upsertAll(emptyList())
 
@@ -217,7 +217,7 @@ class TransactionRepositoryTest {
         amount: Long = 25_000,
     ) = Transaction(
         accountId = "account",
-        extensionId = "test",
+        sourceId = "test",
         emailMessageId = "message-$index",
         index = index,
         threadId = null,

@@ -131,7 +131,7 @@ fun AccountsScreenContent(
                 AccountItem(
                     modifier = Modifier.animateItem(),
                     account = row.account,
-                    extensions = row.extensionCount,
+                    sources = row.sourceCount,
                     use24Hour = use24Hour,
                     onClickItem = { onClickAccount(row.account) },
                     onLongClickItem = { confirmRemove = row.account },
@@ -152,7 +152,7 @@ fun AccountsScreenContent(
 @Composable
 private fun AccountItem(
     account: EmailAccount,
-    extensions: Int,
+    sources: Int,
     use24Hour: Boolean,
     onClickItem: () -> Unit,
     onLongClickItem: () -> Unit,
@@ -174,7 +174,7 @@ private fun AccountItem(
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            AccountSubtitle(account, extensions, use24Hour)
+            AccountSubtitle(account, sources, use24Hour)
         }
 
         IconButton(onClick = onClickItem) {
@@ -216,12 +216,12 @@ private fun AvatarPlaceholder() {
 }
 
 @Composable
-private fun AccountSubtitle(account: EmailAccount, extensions: Int, use24Hour: Boolean) {
+private fun AccountSubtitle(account: EmailAccount, sources: Int, use24Hour: Boolean) {
     val details = listOf(
         account.lastSyncAt
             ?.let { stringResource(R.string.synced, formatDate(it, use24Hour)) }
             ?: stringResource(R.string.never_synced),
-        pluralStringResource(R.plurals.account_extension_count, extensions, extensions),
+        pluralStringResource(R.plurals.account_source_count, sources, sources),
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -285,7 +285,7 @@ private fun AccountsScreenPreview() {
                         updatedAt = 1_700_000_000_000L,
                         lastSyncAt = 1_700_000_000_000L,
                     ),
-                    extensionCount = 3,
+                    sourceCount = 3,
                 ),
                 AccountRow(
                     EmailAccount(
@@ -298,7 +298,7 @@ private fun AccountsScreenPreview() {
                         updatedAt = 1_700_000_000_000L,
                         lastSyncAt = null,
                     ),
-                    extensionCount = 0,
+                    sourceCount = 0,
                 ),
             ),
             use24Hour = true,

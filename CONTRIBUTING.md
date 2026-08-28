@@ -1,27 +1,46 @@
 # Contributing
 
-Adding a bank means writing one annotated class. It lives in `extension/`, a
-plain Kotlin module with no Android in it, so `./gradlew :extension:test` is the
-whole loop.
+Adding a bank means creating one directory. No build file, no registration, no
+list to edit: every directory under `source/lib/` is a module, and everything
+annotated `@SourceEntrypoint` is in the app.
 
-**The trade this makes, so you know it up front: a bank now ships with the app.**
-Extensions used to be separate APKs, published to their own repository and
+**The trade this makes, so you know it up front: a bank ships with the app.**
+Sources used to be separate APKs, published to their own repository and
 installed on their own. Nothing is published now, so a new bank reaches a user
 in the next app release and not before. That costs a wait and buys the deletion
 of an installer, a trust store, a signature check, an update notifier and a
-second repository — for four extensions and one author, that was machinery
-guarding against a problem this project does not have.
+second repository — for four sources and one author, that was machinery guarding
+against a problem this project does not have.
 
-## Add an extension
+## Add a source
 
-**1. Write the class** in `extension/src/main/kotlin/dev/achmad/finbox/extension/lib/<id>/`,
-named after the bank and nothing else:
+```
+source/
+    core/                    the contract, plain Kotlin — Source, EmailSource, Receipt
+    processor/               the KSP processor that assembles the registry
+    lib/id/jago/             one source, and the only thing you add
+        src/main/kotlin/dev/achmad/finbox/source/id/jago/Jago.kt
+        src/main/res/drawable-<density>/jago_icon.png
+        src/test/kotlin/dev/achmad/finbox/source/id/jago/JagoTest.kt
+        src/test/resources/jago/*.txt
+```
+
+`id` is the ISO 3166-1 alpha-2 country the bank operates in, and `jago` is the
+source's id. Both come from the directory: the module's namespace, its resource
+prefix and its Gradle path are derived from where it sits, so a bank that moves
+country moves directory and nothing else has to agree.
+
+**The class:**
 
 ```kotlin
-package dev.achmad.finbox.extension.lib.jago
+package dev.achmad.finbox.source.id.jago
 
-@SourceEntrypoint(id = "jago", name = "Bank Jago")
+@SourceEntrypoint
 class Jago : EmailSource {
+
+    override val id = "jago"
+    override val name = "Bank Jago"
+    override val icon = R.drawable.jago_icon
 
     override val query = EmailQuery.from("noreply@jago.com")
 
@@ -29,35 +48,32 @@ class Jago : EmailSource {
 }
 ```
 
-A package per bank, so a bank that grows a helper puts it beside its own reader
-instead of into a namespace all four share.
+That is the registration. A KSP processor collects every `@SourceEntrypoint`
+into the list the app reads, across module boundaries, so there is no second
+file to edit and no way to write a source that quietly never runs. Exactly one
+per module — two would both be valid and the module would really be two modules.
 
-**That is the registration.** `:extension-processor` collects every
-`@SourceEntrypoint` at compile time into the list the app reads, so there is no
-second file to edit and no way to write an extension that quietly never runs.
+The `id` is short, lowercase and chosen once: it names the directory, the
+resource prefix and the test resources, and it is stored on every transaction
+and in `account_source`. Renaming it costs a reimport. Write it out; do not
+derive it from the class or package name, or a refactor could rename it for you.
 
-The `id` is short, lowercase, alphanumeric, and chosen once: it names the
-package, the test resources and the icon, and it is stored on every transaction
-and in `account_extension`. Renaming one costs a reimport, so it is written in
-the annotation rather than derived from the class or package name — a refactor
-must not be able to rename it for you.
-
-**2. Add an icon** at `app/src/main/res/drawable-<density>/ic_extension_<id>.png`,
-and a branch in `extensionIcon()`. The `when` is deliberate — a lookup by name
-is reflection R8 cannot see through, and a typo becomes a blank row at runtime.
-This is the one thing the processor cannot do for you: icons are Android
-resources and `:extension` has none.
+**The icon** is the one thing that makes a source an Android module rather than
+plain Kotlin. It must be prefixed with the source's id — every source's
+resources merge into one app, so four modules each shipping `icon.png` would
+collapse to whichever linked last, silently, looking like a UI bug rather than a
+build one. AGP warns on anything in the module that is not prefixed.
 
 **What you implement is what you declare.** `EmailSource` carries
 `@SourceProvider`, which is how a source kind says the app has something that can
-drive it. Your extension's capabilities are worked out by asking the class, not
-by reading a list you wrote, and the build fails if a `@SourceEntrypoint`
-implements no `@SourceProvider` interface — an extension the app could never ask
-for anything is a build error, not a quiet no-op.
+drive it. Capabilities are worked out by asking the class, not by reading a list
+you wrote, and the build fails if a `@SourceEntrypoint` implements no
+`@SourceProvider` interface — a source the app could never ask for anything is a
+build error, not a quiet no-op.
 
-Email is the only source kind so far. When a bank publishes receipts some other
-way, that is one more interface extending `Source`, annotated `@SourceProvider`,
-and implementing it is the whole of declaring it.
+Email is the only kind so far. When a bank publishes receipts some other way,
+that is one more interface extending `Source`, annotated `@SourceProvider`, and
+implementing it is the whole of declaring it.
 
 ### The two members
 
@@ -68,18 +84,18 @@ against five for listing five hundred ids, so a whole mailbox is expensive.
 `EmailQuery.raw()` takes anything Gmail's search box accepts.
 
 **You must name senders.** There is no way to ask for everything, deliberately:
-every enabled extension's query is merged into one search per account, so a
-single extension opting out of narrowing spends every other extension's user
-their Gmail quota, and nobody can tell which extension did it. If a bank really
-does send from unpredictable addresses, name the ones you know and let `parse()`
-disown the rest — which is the real safety net, and always was.
+every enabled source's query is merged into one search per account, so a single
+source opting out of narrowing spends every other source's user their Gmail
+quota, and nobody can tell which source did it. If a bank really does send from
+unpredictable addresses, name the ones you know and let `parse()` disown the
+rest — which is the real safety net, and always was.
 
 `parse()` reads the email, or returns an empty list. Empty is how you disown
 one, and it covers both cases the app cares about: mail from another bank, and
 this bank's own statements, OTPs and promotions, which arrive from the same
 address as its receipts. Guard on something a receipt always has and an advert
 never does — a reference number, a summary table — and return empty again if the
-amount cannot be read. The app then offers the email to the next extension, so a
+amount cannot be read. The app then offers the email to the next source, so a
 wrong guess costs nothing but a wasted call.
 
 `amount`, `currency`, `date` and `direction` are required: a transaction missing
@@ -88,12 +104,12 @@ optional because banks genuinely differ. When the receipt states no time of its
 own, pass `email.date`.
 
 **`amount` is in minor units** — cents, sen — always positive. **If you are
-writing an Indonesian extension, do nothing about this and do not divide by
-100.** ISO 4217 assigns the rupiah two minor digits for a sen that has not
-priced anything in decades, so finbox treats IDR as having none: Rp13.000 is
-`13000`, which is what `receipt.amount()` already returns. Minor units exist so
-that a currency with real cents can be represented at all — SGD 12.50 is `1250`
-and has no other honest form.
+writing an Indonesian source, do nothing about this and do not divide by 100.**
+ISO 4217 assigns the rupiah two minor digits for a sen that has not priced
+anything in decades, so finbox treats IDR as having none: Rp13.000 is `13000`,
+which is what `receipt.amount()` already returns. Minor units exist so that a
+currency with real cents can be represented at all — SGD 12.50 is `1250` and has
+no other honest form.
 
 `direction` is `INCOMING` or `OUTGOING`, and it is the only thing the app itself
 knows about how the money moved. Read it from the bank's own wording.
@@ -126,23 +142,19 @@ receipt and the app handles it; something invented to fill the gap is not.
 
 ### What belongs here, and what doesn't
 
-An extension holds the knowledge of one bank's emails. It never fetches, never
+A source holds the knowledge of one bank's emails. It never fetches, never
 schedules, never touches a token or an HTTP client — the app owns all of that,
-and hands over an `Email`. The module is plain Kotlin on purpose: there is no
-Android on its classpath, so this is a compiler fact rather than a rule.
-
-The layout follows that split. `core/` is the contract — the annotations,
-`Source`, `EmailSource` and the models. `lib/` is the banks, one package each.
-`util/` is `Receipt`. Only `lib/` grows when you add a bank.
+and hands over an `Email`. `:source:core` is a plain Kotlin module with no
+Android on its classpath, so most of that is a compiler fact rather than a rule.
 
 Conversely the app holds no opinion about parsing. It passes the body exactly as
 it arrived, html included; turning markup into readable lines is your call, and
-`lib/` does it.
+`Receipt` does it.
 
-## Use the receipt library
+## Use the receipt helper
 
-`util/Receipt.kt` is shared by every extension. It covers what banks have in
-common, and nothing that belongs to one of them:
+`source/core`'s `util/Receipt.kt` is shared by every source. It covers what banks
+have in common, and nothing that belongs to one of them:
 
 ```kotlin
 val receipt = Receipt.of(email)     // flattens html to one line per row
@@ -155,31 +167,30 @@ receipt.statedAmount()                        // the first "Rp …" in prose
 ```
 
 Classifying is not in there, deliberately. Which way the money went comes from
-the bank's own wording, so it belongs in your extension as a `when` over that
+the bank's own wording, so it belongs in your source as a `when` over that
 wording. A shared lookup table would have to know every bank's phrasing, and
 would quietly mis-file the first one it didn't.
 
 Two layouts are already handled: label and value on one line (BRI, BNI, Mandiri)
-and on two, with or without a colon (Jago). If a new bank breaks something here,
-fix it here — that is why it is a library and not copied into each extension.
-
-And "shared" means shared: one bank's vocabulary in `util/` is one every other
-extension has to carry and none of them can correct.
+and on two, with or without a colon (Jago). If a new bank breaks something in
+`Receipt`, fix it there — that is why it is shared and not copied into each
+source. And "shared" means shared: one bank's vocabulary in it is one every
+other source has to carry and none of them can correct.
 
 ## Test
 
 ```bash
-./gradlew :extension:test
+./gradlew :source:lib:id:jago:test
 ```
 
-Save a real email as `extension/src/test/resources/<id>/<case>.txt`, flattened
-the way the app hands it over — one line per table row — **with names, account
-numbers and card numbers redacted**, and assert the parsed amount, date,
-direction and merchant. `BriTest` and `JagoTest` are worth copying. Cover each
-distinct layout the bank sends, and one email that must *not* be claimed.
-
-The fixtures are examples of a layout, not a list of what the extension
-supports, and redacting them is not optional: the app stores real email bodies
-on the device and none of that, nor anything derived from it, is committed here.
-
 Plain JUnit on the JVM, no Android, no instrumentation.
+
+Save a real email as `src/test/resources/<id>/<case>.txt`, flattened the way the
+app hands it over — one line per table row — **with names, account numbers and
+card numbers redacted**, and assert the parsed amount, date, direction and
+merchant. `BriTest` and `JagoTest` are worth copying. Cover each distinct layout
+the bank sends, and one email that must *not* be claimed.
+
+The fixtures are examples of a layout, not a list of what the source supports,
+and redacting them is not optional: the app stores real email bodies on the
+device and none of that, nor anything derived from it, is committed here.

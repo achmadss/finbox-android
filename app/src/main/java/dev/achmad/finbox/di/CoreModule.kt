@@ -1,6 +1,6 @@
 package dev.achmad.finbox.di
 
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.GmailApiImpl
 import dev.achmad.finbox.core.gmail.GmailAuthManager
@@ -57,8 +57,8 @@ val coreModule = module {
     }
     single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
-    single<ExtensionManager> {
-        ExtensionManager(
+    single<SourceManager> {
+        SourceManager(
             preferences = get(),
             transactionUpdateManager = get(),
         )
@@ -72,9 +72,9 @@ val coreModule = module {
     }
     single<TransactionUpdater> {
         TransactionUpdater(
-            extensions = { get<ExtensionManager>().enabledNow() },
+            sources = { get<SourceManager>().enabledNow() },
             accountRepository = get(),
-            accountExtensionRepository = get(),
+            accountSourceRepository = get(),
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),

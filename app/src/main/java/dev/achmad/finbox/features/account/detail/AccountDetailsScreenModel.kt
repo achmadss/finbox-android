@@ -3,11 +3,11 @@ package dev.achmad.finbox.features.account.detail
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.extension.Extension
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,9 +18,9 @@ import kotlinx.coroutines.launch
 class AccountDetailsScreenModel(
     private val id: String,
     private val accountRepository: AccountRepository = inject(),
-    private val accountExtensionRepository: AccountExtensionRepository = inject(),
+    private val accountSourceRepository: AccountSourceRepository = inject(),
     private val tokenStore: GmailTokenStore = inject(),
-    extensionManager: ExtensionManager = inject(),
+    sourceManager: SourceManager = inject(),
 ) : ScreenModel {
 
     /**
@@ -32,22 +32,22 @@ class AccountDetailsScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
 
     /**
-     * Which extensions this account has switched off, not on: an extension with no row runs, and
+     * Which sources this account has switched off, not on: a source with no row runs, and
      * an account with no rows at all runs everything the app ships.
      */
-    val disabled: StateFlow<Set<String>> = accountExtensionRepository.forAccount(id)
-        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.extensionId } }
+    val disabled: StateFlow<Set<String>> = accountSourceRepository.forAccount(id)
+        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.sourceId } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
-    /** The extensions that run — what an assignment's `extensionId` points at. */
-    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
+    /** The sources that run — what an assignment's `sourceId` points at. */
+    val sources: StateFlow<List<Source>> = sourceManager.enabled
 
     fun setSyncEnabled(enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }
     }
 
-    fun setExtensionEnabled(extensionId: String, enabled: Boolean) {
-        screenModelScope.launch { accountExtensionRepository.setEnabled(id, extensionId, enabled) }
+    fun setSourceEnabled(sourceId: String, enabled: Boolean) {
+        screenModelScope.launch { accountSourceRepository.setEnabled(id, sourceId, enabled) }
     }
 
     /**
@@ -57,7 +57,7 @@ class AccountDetailsScreenModel(
     fun remove() {
         screenModelScope.launch {
             accountRepository.delete(id)
-            accountExtensionRepository.deleteForAccount(id)
+            accountSourceRepository.deleteForAccount(id)
             // A removed account keeping a live refresh token is a token nothing will ever use.
             tokenStore.clear(id)
         }

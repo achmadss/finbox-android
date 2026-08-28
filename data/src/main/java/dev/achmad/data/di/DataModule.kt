@@ -4,7 +4,7 @@ import dev.achmad.data.backup.BackupManager
 import dev.achmad.data.db.DatabaseFactory
 import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.export.CsvExport
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.ClassificationRunRepository
@@ -17,7 +17,7 @@ val dataModule = module {
     single { FinboxDatabase(DatabaseFactory.createDriver(androidContext())) }
 
     single { AccountRepository(get()) }
-    single { AccountExtensionRepository(get()) }
+    single { AccountSourceRepository(get()) }
     single { EmailRepository(get()) }
     single { TransactionRepository(get()) }
     single { ClassificationRunRepository(get()) }

@@ -32,7 +32,7 @@ data class BackupAccount(
 @Serializable
 data class BackupAssignment(
     val accountId: String,
-    val extensionId: String,
+    val sourceId: String,
     val enabled: Boolean = true,
     val position: Int = 0,
 )
@@ -45,8 +45,8 @@ data class BackupEmail(
     val from: String = "",
     val subject: String = "",
     val date: Long = 0L,
-    val triedExtensionIds: List<String> = emptyList(),
-    val parsedByExtensionId: String? = null,
+    val triedSourceIds: List<String> = emptyList(),
+    val parsedBySourceId: String? = null,
     val fetchedAt: Long = 0L,
 )
 
@@ -54,7 +54,7 @@ data class BackupEmail(
 data class BackupTransaction(
     val id: String,
     val accountId: String,
-    val extensionId: String,
+    val sourceId: String,
     val emailMessageId: String,
     val threadId: String? = null,
     val reference: String? = null,
@@ -73,14 +73,14 @@ data class BackupTransaction(
 )
 
 /** What the app writes and reads back: gzipped JSON, `.finboxbackup`. */
-const val BACKUP_FILE_EXTENSION = "finboxbackup"
+const val BACKUP_FILE_SOURCE = "finboxbackup"
 
 /** Bumped when a released format can no longer be read as-is. */
 const val FORMAT_VERSION = 1
 
 /**
- * What a backup taken before parsers became extensions calls the field that is
- * now `extensionId`.
+ * What a backup taken before parsers became sources calls the field that is
+ * now `sourceId`.
  *
  * The version number does not separate the two — the format changed without a
  * bump, per the pre-release rule — so the field name is what identifies it.
@@ -88,21 +88,21 @@ const val FORMAT_VERSION = 1
 private const val PRE_REFACTOR_KEY = "\"parserId\""
 
 /**
- * What an extension id looked like while extensions were separate apps.
+ * What a source id looked like while sources were separate apps.
  *
  * They are short names again (`bri`), so a backup written in between names
- * extensions that no longer exist. Restoring it would file every transaction
+ * sources that no longer exist. Restoring it would file every transaction
  * under an id nothing answers to — the ledger would load and quietly belong to
  * nobody.
  */
-private const val PACKAGE_ID_KEY = "dev.achmad.finbox.extension."
+private const val PACKAGE_ID_KEY = "dev.achmad.finbox.source."
 
 const val PRE_REFACTOR_MESSAGE =
-    "This backup was taken before parsers became extensions and cannot be restored. " +
+    "This backup was taken before parsers became sources and cannot be restored. " +
         "Its emails would have to be fetched from Gmail again."
 
 const val PACKAGE_ID_MESSAGE =
-    "This backup was taken while extensions installed as separate apps and cannot be " +
+    "This backup was taken while sources installed as separate apps and cannot be " +
         "restored. Its emails would have to be fetched from Gmail again."
 
 /**
@@ -110,7 +110,7 @@ const val PACKAGE_ID_MESSAGE =
  * reports a missing field nobody can act on.
  *
  * `ignoreUnknownKeys` would drop every `parserId` silently and restore a ledger
- * whose rows belong to no extension, which is worse than refusing. There is no
+ * whose rows belong to no source, which is worse than refusing. There is no
  * shim: a `@JsonNames("parserId")` left in to survive one transition is exactly
  * the kind of thing still there in two years — and the same goes for rewriting
  * a package name back to a short id on the way in.

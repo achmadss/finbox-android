@@ -203,7 +203,7 @@ private fun TransactionDetailPreview() {
         TransactionDetailScreenContent(
             transaction = Transaction(
                 accountId = "preview",
-                extensionId = "dev.achmad.finbox.extension.preview",
+                sourceId = "dev.achmad.finbox.source.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,

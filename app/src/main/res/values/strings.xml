@@ -16,7 +16,7 @@
     <string name="transaction">Transaction</string>
     <string name="transactions">Transactions</string>
     <string name="accounts">Accounts</string>
-    <string name="extensions">Extensions</string>
+    <string name="sources">Sources</string>
     <string name="direction">Direction</string>
     <string name="amount">Amount</string>
     <string name="date">Date</string>
@@ -33,7 +33,7 @@
     <string name="label_settings">Settings</string>
     <string name="label_edit_transaction">Edit transaction</string>
     <string name="label_account_info">Account info</string>
-    <string name="label_extension_info">Extension info</string>
+    <string name="label_source_info">Source info</string>
     <string name="label_select_period">Select period</string>
 
     <!-- Shared labels -->
@@ -114,16 +114,16 @@
     <!-- Transactions screen -->
     <string name="transactions_empty">Nothing this month</string>
     <string name="transactions_empty_info">Transactions parsed out of your email show up here.</string>
-    <string name="transactions_empty_no_extension">Every extension is off</string>
-    <string name="transactions_empty_no_extension_info">finbox reads receipts through a bank extension, and all of them are switched off. Turn on the one for your bank to start building a ledger.</string>
-    <string name="transactions_empty_no_extension_action">Open extensions</string>
+    <string name="transactions_empty_no_source">Every source is off</string>
+    <string name="transactions_empty_no_source_info">finbox reads receipts through a bank source, and all of them are switched off. Turn on the one for your bank to start building a ledger.</string>
+    <string name="transactions_empty_no_source_action">Open sources</string>
     <string name="transactions_empty_filtered">Nothing matches the filter</string>
     <string name="transactions_empty_filtered_info">Loosen the filter, or pick another month.</string>
 
     <!-- Transaction filter sheet -->
     <string name="filter_section_count">%1$s (%2$d)</string>
     <string name="filter_sort_by">Sort by</string>
-    <string name="filter_no_extensions">No extensions turned on</string>
+    <string name="filter_no_sources">No sources turned on</string>
     <string name="filter_no_accounts">No accounts added</string>
 
     <!-- Transaction screen -->
@@ -179,27 +179,27 @@
     <string name="pref_check_updates_summ">Check once a day when the app opens</string>
     <string name="pref_check_app_updates_now">Check for app updates now</string>
 
-    <!-- Extensions screen -->
+    <!-- Sources screen -->
 
-    <!-- Extension info screen -->
-    <!-- ponytail: stub copy until stage 3 builds the source list. -->
-    <string name="extension_reads">Reads</string>
+    <!-- Source info screen -->
+    <!-- What a source can read, derived from the interfaces it implements. -->
+    <string name="source_reads">Reads</string>
     <string name="source_email">Email</string>
     <string name="source_none">Nothing</string>
-    <string name="extension_unknown">No extension with that id.</string>
+    <string name="source_unknown">No source with that id.</string>
 
     <!-- Accounts screen -->
     <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>
-    <plurals name="account_extension_count">
-        <item quantity="one">%1$d extension</item>
-        <item quantity="other">%1$d extensions</item>
+    <plurals name="account_source_count">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
     </plurals>
     <string name="account_badge_sync_off">SYNC OFF</string>
-    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its extension choices go. Transactions already read from it stay.</string>
+    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its source choices go. Transactions already read from it stay.</string>
 
     <!-- Account info screen -->
     <string name="account_sync_summ">Read new transactions from this mailbox</string>
-    <string name="account_no_extensions">Every extension is off. Turn one on first.</string>
+    <string name="account_no_sources">Every source is off. Turn one on first.</string>
 
     <!-- Categories. What the money was for, the app's own vocabulary. -->
     <string name="category_uncategorized">Uncategorized</string>

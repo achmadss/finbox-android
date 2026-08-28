@@ -2,7 +2,7 @@ package dev.achmad.data.backup
 
 import android.content.Context
 import android.net.Uri
-import dev.achmad.data.repository.AccountExtensionRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
@@ -25,7 +25,7 @@ import kotlinx.serialization.json.Json
 class BackupManager(
     private val context: Context,
     private val accounts: AccountRepository,
-    private val assignments: AccountExtensionRepository,
+    private val assignments: AccountSourceRepository,
     private val emails: EmailRepository,
     private val transactions: TransactionRepository,
 ) {

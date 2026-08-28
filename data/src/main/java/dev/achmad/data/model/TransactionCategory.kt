@@ -1,6 +1,6 @@
 package dev.achmad.data.model
 
-/** What the money was for — the app's own vocabulary, never an extension's. */
+/** What the money was for — the app's own vocabulary, never a source's. */
 enum class TransactionCategory {
     INCOME,
     FOOD,

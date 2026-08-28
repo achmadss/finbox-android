@@ -48,12 +48,12 @@ class TransactionRepository(
     }
 
     /**
-     * Writes parsed transactions, updating extension-owned fields for an existing id.
+     * Writes parsed transactions, updating source-owned fields for an existing id.
      *
      * A re-parsed message refreshes the rows it already wrote. The same
-     * reference from the same extension in another message is the same transaction,
+     * reference from the same source in another message is the same transaction,
      * and the row already stored wins. Rows the user edited are skipped: their
-     * version wins over anything an extension reads.
+     * version wins over anything a source reads.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
@@ -61,7 +61,7 @@ class TransactionRepository(
                 val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
                     ?: transaction.reference?.let { reference ->
                         db.transactionQueries
-                            .SELECTByReference(transaction.accountId, transaction.extensionId, reference)
+                            .SELECTByReference(transaction.accountId, transaction.sourceId, reference)
                             .executeAsOneOrNull()
                     }
                 when {
@@ -197,7 +197,7 @@ class TransactionRepository(
     private fun insert(transaction: Transaction) = db.transactionQueries.INSERTOrReplace(
         id = transaction.id,
         account_id = transaction.accountId,
-        extension_id = transaction.extensionId,
+        source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -216,7 +216,7 @@ class TransactionRepository(
     )
 
     private fun updateParsed(transaction: Transaction, id: String) = db.transactionQueries.UPDATEParsedById(
-        extension_id = transaction.extensionId,
+        source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -232,7 +232,7 @@ class TransactionRepository(
 
     private fun Transactions.toModel() = Transaction(
         accountId = account_id,
-        extensionId = extension_id,
+        sourceId = source_id,
         emailMessageId = email_message_id,
         // The model derives its id from these fields; the stored id is the only
         // record of the number.

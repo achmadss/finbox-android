@@ -14,8 +14,8 @@ object TransactionUpdateWork {
     /** Skip the Gmail sync and only re-read stored mail. */
     const val PARSE_ONLY = "parse_only"
 
-    /** Extension ids whose already-claimed mail is to be read again. */
-    const val REPARSE_EXTENSIONS = "reparse_extensions"
+    /** Source ids whose already-claimed mail is to be read again. */
+    const val REPARSE_SOURCES = "reparse_sources"
 
     /** On a request that only re-reads stored mail — what a full update may supersede. */
     const val PARSE_ONLY_TAG = "parse_only_request"

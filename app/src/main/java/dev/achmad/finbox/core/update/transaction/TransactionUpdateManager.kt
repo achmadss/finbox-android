@@ -89,45 +89,45 @@ class TransactionUpdateManager(
      * Re-reads stored mail.
      *
      * [includeParsed] decides how much: off, only mail nothing has claimed yet —
-     * what a plain refresh wants. On, also the mail [extensionIds] already claimed,
-     * what an updated extension needs.
+     * what a plain refresh wants. On, also the mail [sourceIds] already claimed,
+     * what an updated source needs.
      *
      * Nearly free: the bodies are already here, and the rows come back under the
      * same ids, so a re-read updates them in place rather than duplicating them.
      */
     suspend fun reparseNow(
         includeParsed: Boolean = false,
-        extensionIds: Set<String> = emptySet(),
+        sourceIds: Set<String> = emptySet(),
         userInitiated: Boolean = true,
     ) = enqueueOneTime(
         parseOnly = true,
-        extensionIds = if (includeParsed) extensionIds else emptySet(),
+        sourceIds = if (includeParsed) sourceIds else emptySet(),
         userInitiated = userInitiated,
     )
 
     /**
-     * Re-reads the mail these extensions already claimed, after one of their
+     * Re-reads the mail these sources already claimed, after one of their
      * transaction methods was switched back on. Those emails are parsed, so
      * [reparseNow] would not look at them.
      */
-    suspend fun reparseExtensionsNow(
-        extensionIds: Set<String>,
+    suspend fun reparseSourcesNow(
+        sourceIds: Set<String>,
         userInitiated: Boolean = true,
     ) {
-        if (extensionIds.isEmpty()) return
-        enqueueOneTime(parseOnly = true, extensionIds = extensionIds, userInitiated = userInitiated)
+        if (sourceIds.isEmpty()) return
+        enqueueOneTime(parseOnly = true, sourceIds = sourceIds, userInitiated = userInitiated)
     }
 
     private suspend fun enqueueOneTime(
         parseOnly: Boolean,
-        extensionIds: Set<String> = emptySet(),
+        sourceIds: Set<String> = emptySet(),
         userInitiated: Boolean = true,
     ) {
         requestMutex.withLock {
             val ongoing = ongoingWork()
             if (ongoing.isNotEmpty() && !supersedes(parseOnly, ongoing.map { it.tags })) {
                 // Only the user gets told: the app asking twice by itself — a batch of
-                // extensions each wanting a re-read, say — is not something to report.
+                // sources each wanting a re-read, say — is not something to report.
                 if (userInitiated) {
                     toastHelper.show(R.string.transaction_update_ongoing)
                 }
@@ -138,11 +138,11 @@ class TransactionUpdateManager(
                 .setConstraints(constraints)
                 .apply {
                     if (parseOnly) addTag(TransactionUpdateWork.PARSE_ONLY_TAG)
-                    if (parseOnly || extensionIds.isNotEmpty()) {
+                    if (parseOnly || sourceIds.isNotEmpty()) {
                         setInputData(
                             workDataOf(
                                 TransactionUpdateWork.PARSE_ONLY to parseOnly,
-                                TransactionUpdateWork.REPARSE_EXTENSIONS to extensionIds.toTypedArray(),
+                                TransactionUpdateWork.REPARSE_SOURCES to sourceIds.toTypedArray(),
                             ),
                         )
                     }

@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Brings every enabled account's transactions up to date, on a schedule or on
- * demand, and re-reads stored mail after an extension changes.
+ * demand, and re-reads stored mail after a source changes.
  *
  * [TransactionUpdateManager] decides when to run one; this only runs it.
  */
@@ -32,8 +32,8 @@ class TransactionUpdateJob(
         // a run with nothing to do would otherwise finish before the banner shows.
         delay(1.seconds)
         val parseOnly = inputData.getBoolean(TransactionUpdateWork.PARSE_ONLY, false)
-        val reparseExtensionIds = inputData
-            .getStringArray(TransactionUpdateWork.REPARSE_EXTENSIONS)
+        val reparseSourceIds = inputData
+            .getStringArray(TransactionUpdateWork.REPARSE_SOURCES)
             ?.toSet()
             .orEmpty()
         val needsForeground = parseOnly || updater.isImporting()
@@ -59,10 +59,10 @@ class TransactionUpdateJob(
         }
         // Stored mail comes first: re-reading it costs nothing, and a refresh
         // should not ask Gmail for new mail while unparsed mail is lying here.
-        // Reparse before unparsed, too: an updated extension has both claimed and
+        // Reparse before unparsed, too: an updated source has both claimed and
         // unreadable mail to look at again.
-        var imported = if (reparseExtensionIds.isNotEmpty()) {
-            updater.reparseExtensions(reparseExtensionIds, onProgress)
+        var imported = if (reparseSourceIds.isNotEmpty()) {
+            updater.reparseSources(reparseSourceIds, onProgress)
         } else {
             0
         }

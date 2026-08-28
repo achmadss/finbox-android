@@ -8,8 +8,8 @@ import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.extension.Extension
+import dev.achmad.finbox.core.source.SourceManager
+import dev.achmad.finbox.source.core.Source
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -28,14 +28,14 @@ enum class TransactionSort { DATE, AMOUNT }
 /** An empty set means "no restriction", so the default filter lets everything through. */
 data class TransactionFilter(
     val directions: Set<TransactionDirection> = emptySet(),
-    val extensionIds: Set<String> = emptySet(),
+    val sourceIds: Set<String> = emptySet(),
     val accountIds: Set<String> = emptySet(),
     val sort: TransactionSort = TransactionSort.DATE,
     val descending: Boolean = true,
 ) {
     val isActive: Boolean
         get() = directions.isNotEmpty() ||
-            extensionIds.isNotEmpty() ||
+            sourceIds.isNotEmpty() ||
             accountIds.isNotEmpty() ||
             sort != TransactionSort.DATE ||
             !descending
@@ -43,7 +43,7 @@ data class TransactionFilter(
     fun applyTo(transactions: List<Transaction>): List<Transaction> {
         val kept = transactions.filter {
             (directions.isEmpty() || it.direction in directions) &&
-                (extensionIds.isEmpty() || it.extensionId in extensionIds) &&
+                (sourceIds.isEmpty() || it.sourceId in sourceIds) &&
                 (accountIds.isEmpty() || it.accountId in accountIds)
         }
         val sorted = when (sort) {
@@ -73,22 +73,22 @@ internal fun monthRange(
 class TransactionsScreenModel(
     private val transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
-    private val extensionManager: ExtensionManager = inject(),
+    private val sourceManager: SourceManager = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject()
 ) : ScreenModel {
 
-    /** The extensions that run — what a transaction's `extensionId` points at. */
-    val extensions: StateFlow<List<Extension>> = extensionManager.enabled
+    /** The sources that run — what a transaction's `sourceId` points at. */
+    val sources: StateFlow<List<Source>> = sourceManager.enabled
 
     /**
-     * Every extension switched off.
+     * Every source switched off.
      *
      * Drives the prompt on an empty ledger. It used to mean "none installed",
      * which cannot happen now — four ship in the APK — so what is left worth
      * saying is that the user has turned them all off and nothing will read
      * their mail.
      */
-    val noEnabledExtensions: StateFlow<Boolean> = extensionManager.enabled
+    val noEnabledSources: StateFlow<Boolean> = sourceManager.enabled
         .map { it.isEmpty() }
         .stateIn(screenModelScope, SharingStarted.Eagerly, false)
 

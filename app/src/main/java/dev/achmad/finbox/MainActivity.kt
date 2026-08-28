@@ -48,12 +48,12 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import dev.achmad.finbox.core.extension.ExtensionManager
+import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateNotifier
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
-import dev.achmad.finbox.features.extension.list.ExtensionsScreen
+import dev.achmad.finbox.features.source.list.SourcesScreen
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.features.onboarding.OnboardingScreen
 import dev.achmad.finbox.theme.AppThemeFromPreferences
@@ -68,7 +68,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
-    private val extensionManager: ExtensionManager by injectLazy()
+    private val sourceManager: SourceManager by injectLazy()
     private val appUpdateChecker: AppUpdateChecker by injectLazy()
     private val transactionUpdateStatus: TransactionUpdateStatus by injectLazy()
 
@@ -158,14 +158,14 @@ class MainActivity : AppCompatActivity() {
     /**
      * The app checker throttles itself to a day, so this is cheap on most starts.
      *
-     * The re-parse is not a check for anything: extensions ship in this APK, so
+     * The re-parse is not a check for anything: sources ship in this APK, so
      * a versionCode it has not seen means they may read differently now.
      */
     @Composable
     private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
-            runCatching { extensionManager.reparseIfAppUpdated(BuildConfig.VERSION_CODE) }
-                .onFailure { Log.e("Extensions", "Re-parse after app update failed", it) }
+            runCatching { sourceManager.reparseIfAppUpdated(BuildConfig.VERSION_CODE) }
+                .onFailure { Log.e("Sources", "Re-parse after app update failed", it) }
             appUpdateChecker.checkAndNotify()
         }
     }

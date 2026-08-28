@@ -6,15 +6,15 @@ enum class TransactionDirection {
     OUTGOING,
 }
 
-/** One transaction an extension read out of an email. */
+/** One transaction a source read out of an email. */
 data class Transaction(
     val accountId: String,
-    /** The package name of the extension that read this. */
-    val extensionId: String,
+    /** The package name of the source that read this. */
+    val sourceId: String,
     /** The [StoredEmail] this was parsed from. */
     val emailMessageId: String,
     /**
-     * Which of the transactions this email yielded, in extension order. Part of
+     * Which of the transactions this email yielded, in source order. Part of
      * [id], so it survives a re-read: skipping a dismissed row must not
      * renumber the rest.
      */
@@ -56,14 +56,14 @@ data class Transaction(
     val edited: Boolean get() = editedAt != null
 
     /**
-     * A stable identity that does not change when the extension version changes.
+     * A stable identity that does not change when the source version changes.
      *
      * Keyed on the message, not the thread: a thread can carry unrelated mail
      * and different transactions, so collapsing one loses money. Two messages
      * reporting the same transaction are merged later by reference — see
      * [dev.achmad.data.repository.TransactionRepository.upsertAll].
      */
-    val id: String get() = "$accountId:message:$emailMessageId:$extensionId:$index"
+    val id: String get() = "$accountId:message:$emailMessageId:$sourceId:$index"
 
     /** When it happened, falling back to when it was stored. */
     val timestamp: Long get() = date ?: createdAt

@@ -110,7 +110,7 @@ class OnboardingScreenModel(
         // rather than waiting for the next app start.
         transactionUpdateManager.schedule()
         // Not a user refresh, and there may be nothing to fetch yet: onboarding
-        // no longer installs an extension, so a first run reaches Home with none.
+        // no longer installs a source, so a first run reaches Home with none.
         // The home screen says so; this just starts whatever can start.
         transactionUpdateManager.runNow(userInitiated = false)
         mutableState.value = State.Done
@@ -119,10 +119,10 @@ class OnboardingScreenModel(
     /**
      * Account and permissions only.
      *
-     * Installing an extension used to be a step here, and under the app-install
+     * Installing a source used to be a step here, and under the app-install
      * model that is a REQUEST_INSTALL_PACKAGES grant plus one system dialog per
      * bank before the user has seen anything. So it moved out: the home screen
-     * says an extension is needed and links to the list, which is one prompt at
+     * says a source is needed and links to the list, which is one prompt at
      * a moment the user asked for it.
      */
     private suspend fun resolve(): State? = when {

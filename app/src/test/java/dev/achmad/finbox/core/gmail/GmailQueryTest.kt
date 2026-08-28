@@ -38,8 +38,8 @@ class GmailQueryTest {
     }
 
     @Test
-    fun `extension queries are ORed together, once each`() {
-        val query = combineExtensionQueries(
+    fun `source queries are ORed together, once each`() {
+        val query = combineSourceQueries(
             listOf("from:BankBRI@bri.co.id", "from:noreply@jago.com", "from:BankBRI@bri.co.id"),
         )
 
@@ -47,9 +47,9 @@ class GmailQueryTest {
     }
 
     @Test
-    fun `an extension that names no sender turns narrowing off`() {
+    fun `a source that names no sender turns narrowing off`() {
         // It wants the whole mailbox; filtering by the others would skip its mail.
-        assertEquals(null, combineExtensionQueries(listOf("from:BankBRI@bri.co.id", "  ")))
-        assertEquals(null, combineExtensionQueries(emptyList()))
+        assertEquals(null, combineSourceQueries(listOf("from:BankBRI@bri.co.id", "  ")))
+        assertEquals(null, combineSourceQueries(emptyList()))
     }
 }

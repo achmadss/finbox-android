@@ -22,5 +22,22 @@ dependencyResolutionManagement {
 rootProject.name = "Finbox"
 include(":app")
 include(":data")
-include(":extension")
-include(":extension-processor")
+include(":source:core")
+include(":source:processor")
+
+// Every directory under source/lib/<country>/<bank> is a source module.
+// Included by walking the tree rather than listed, for the same reason the
+// registry is generated rather than written: a source you forgot to add here
+// would be a directory that quietly is not built.
+file("source/lib").eachDir { country ->
+    country.eachDir { bank ->
+        include(":source:lib:${country.name}:${bank.name}")
+    }
+}
+
+fun File.eachDir(block: (File) -> Unit) {
+    listFiles()
+        ?.filter { it.isDirectory && it.name != "build" && !it.name.startsWith(".") }
+        ?.sortedBy { it.name }
+        ?.forEach(block)
+}
