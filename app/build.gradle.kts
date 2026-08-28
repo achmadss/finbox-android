@@ -120,7 +120,7 @@ dependencies {
     // Assembles GeneratedSources from every source on the classpath. Only :app
     // aggregates; a source module runs the same processor to leave its calling
     // card and nothing more.
-    ksp(project(":source:processor"))
+    ksp(project(mapOf("path" to ":source:core", "configuration" to "processor")))
 }
 
 ksp {

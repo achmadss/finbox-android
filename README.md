@@ -56,15 +56,17 @@ Currently IDR only, and sync is manual pull-to-refresh.
 | `app/` | UI, Gmail client, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
 | `source/core/` | The contract every bank reader implements, plus `Receipt` |
-| `source/processor/` | KSP processor that assembles the source list |
 | `source/lib/<country>/<bank>/` | One bank reader each |
 
 `source/core/` is a plain Kotlin module — no Android on its classpath, so a
 source cannot fetch, schedule, or reach a token even by accident. A bank module
 is an Android library only because it carries its own icon, and it has no build
 file: everything about it is derived from where it sits. `data/` knows source
-ids only as strings, and `source/processor/` runs inside the compiler and is not
-shipped.
+ids only as strings.
+
+The KSP processor that assembles the source list lives in `source/core/` too, in
+a source set of its own so that it can name the contract as classes without
+riding into the APK.
 
 ## Status
 

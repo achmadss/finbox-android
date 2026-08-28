@@ -23,7 +23,6 @@ rootProject.name = "Finbox"
 include(":app")
 include(":data")
 include(":source:core")
-include(":source:processor")
 
 // Every directory under source/lib/<country>/<bank> is a source module.
 // Included by walking the tree rather than listed, for the same reason the

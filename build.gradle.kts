@@ -49,7 +49,7 @@ configure(subprojects.filter { it.path.startsWith(":source:lib:") }) {
         add("api", project(":source:core"))
         // Leaves this source's calling card for :app to collect. It does not
         // aggregate; only :app passes finbox.source.aggregate.
-        add("ksp", project(":source:processor"))
+        add("ksp", project(mapOf("path" to ":source:core", "configuration" to "processor")))
 
         // Plain JVM tests against saved receipts. No Android, no
         // instrumentation: a source is string work over an email body.

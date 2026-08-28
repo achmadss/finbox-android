@@ -1,4 +1,4 @@
-package dev.achmad.finbox.source.processor
+package dev.achmad.finbox.source.core.processor
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAllSuperTypes
@@ -15,10 +15,18 @@ import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
+import dev.achmad.finbox.source.core.Source
+import dev.achmad.finbox.source.core.annotation.SourceEntrypoint
+import dev.achmad.finbox.source.core.annotation.SourceProvider
 
-private const val ENTRYPOINT = "dev.achmad.finbox.source.core.annotation.SourceEntrypoint"
-private const val PROVIDER = "dev.achmad.finbox.source.core.annotation.SourceProvider"
-private const val SOURCE = "dev.achmad.finbox.source.core.Source"
+// Named as classes, not as strings. The processor ships in the same module as
+// the contract precisely so it can do this: rename or move any of the three and
+// this file stops compiling, instead of compiling happily and quietly collecting
+// nothing. `java.name` rather than KClass.qualifiedName, which wants
+// kotlin-reflect; all three are top-level, so the binary name is the same name.
+private val ENTRYPOINT: String = SourceEntrypoint::class.java.name
+private val PROVIDER: String = SourceProvider::class.java.name
+private val SOURCE: String = Source::class.java.name
 
 /**
  * Where a source module leaves its calling card, and the only place the

@@ -17,7 +17,7 @@ against a problem this project does not have.
 ```
 source/
     core/                    the contract, plain Kotlin — Source, EmailSource, Receipt
-    processor/               the KSP processor that assembles the registry
+                             (and, in a source set of its own, the KSP processor)
     lib/id/jago/             one source, and the only thing you add
         src/main/kotlin/dev/achmad/finbox/source/id/jago/Jago.kt
         src/main/res/drawable-<density>/jago_icon.png
