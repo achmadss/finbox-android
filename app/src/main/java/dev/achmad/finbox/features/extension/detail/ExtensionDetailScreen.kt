@@ -49,8 +49,6 @@ import dev.achmad.finbox.core.extension.InstallStep
 import dev.achmad.finbox.features.extension.list.ExtensionIcon
 import dev.achmad.finbox.features.extension.list.ExtensionUiModel
 import dev.achmad.finbox.features.extension.list.UninstallConfirmation
-import dev.achmad.finbox.extension.TransactionDirection
-import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import dev.achmad.finbox.theme.AppTheme
@@ -75,7 +73,6 @@ data class ExtensionDetailScreen(private val pkg: String) : Screen {
             onBack = navigator::pop,
             onClickUpdate = model::update,
             onEnabledChange = model::setEnabled,
-            onToggleMethod = model::toggleMethod,
             onUninstall = model::uninstall,
         )
     }
@@ -89,7 +86,6 @@ fun ExtensionDetailScreenContent(
     onBack: () -> Unit = {},
     onClickUpdate: () -> Unit = {},
     onEnabledChange: (Boolean) -> Unit = {},
-    onToggleMethod: (String) -> Unit = {},
     onUninstall: () -> Unit = {},
 ) {
     var confirmUninstall by remember { mutableStateOf(false) }
@@ -122,7 +118,6 @@ fun ExtensionDetailScreenContent(
         ) {
             DetailsHeader(
                 extension = extension,
-                summary = state.summary,
                 sizeBytes = state.sizeBytes,
                 installStep = extension.installStep,
                 onClickUpdate = onClickUpdate,
@@ -135,28 +130,18 @@ fun ExtensionDetailScreenContent(
                 onCheckedChange = onEnabledChange,
             )
             HorizontalDivider()
-            if (state.methods.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.extension_transaction_methods),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
-                )
-                state.methods.forEach { method ->
-                    SwitchRow(
-                        title = method.name,
-                        subtitle = stringResource(
-                            when (method.direction) {
-                                TransactionDirection.OUTGOING -> R.string.direction_outgoing
-                                TransactionDirection.INCOMING -> R.string.direction_incoming
-                            },
-                        ),
-                        checked = method.enabled,
-                        onCheckedChange = { onToggleMethod(method.key) },
-                    )
-                }
-                HorizontalDivider()
-            }
+            // ponytail: stub standing in for the source list. Stage 3 replaces
+            // it with the sources this extension actually implements, read off
+            // LoadedExtension by type check. Said out loud rather than left
+            // blank, because an empty space where a feature used to be reads as
+            // a bug and gets debugged as one.
+            Text(
+                text = stringResource(R.string.extension_sources_not_built),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp),
+            )
+            HorizontalDivider()
         }
     }
 
@@ -172,7 +157,6 @@ fun ExtensionDetailScreenContent(
 @Composable
 private fun DetailsHeader(
     extension: ExtensionUiModel.Installed,
-    @StringRes summary: Int,
     sizeBytes: Long?,
     installStep: InstallStep,
     onClickUpdate: () -> Unit,
@@ -209,8 +193,6 @@ private fun DetailsHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         InfoText(Modifier.weight(1f), extension.versionName, stringResource(R.string.version))
-        InfoDivider()
-        InfoText(Modifier.weight(1f), stringResource(summary), stringResource(R.string.transactions))
         InfoDivider()
         InfoText(
             modifier = Modifier.weight(1f),
@@ -327,20 +309,6 @@ private fun ExtensionDetailPreview() {
                     ),
                     update = null,
                     installStep = InstallStep.Idle,
-                ),
-                methods = listOf(
-                    ExtensionDetailScreenModel.MethodUiModel(
-                        key = "QRIS",
-                        name = "QRIS payment",
-                        direction = TransactionDirection.OUTGOING,
-                        enabled = true,
-                    ),
-                    ExtensionDetailScreenModel.MethodUiModel(
-                        key = "TOPUP",
-                        name = "Top up",
-                        direction = TransactionDirection.INCOMING,
-                        enabled = false,
-                    ),
                 ),
                 sizeBytes = 482_000,
             ),

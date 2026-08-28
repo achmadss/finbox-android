@@ -53,7 +53,6 @@ import dev.achmad.finbox.features.transaction.pickableCategories
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.extension.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
@@ -84,7 +83,6 @@ data class TransactionEditScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val methods by model.methods.collectAsState()
 
         // Seeded once, from the row as it was when this screen opened; re-seeding on
         // every emission would throw away what is being typed.
@@ -103,7 +101,6 @@ data class TransactionEditScreen(private val id: String) : Screen {
 
         TransactionEditScreenContent(
             draft = draft,
-            methods = methods,
             use24Hour = rememberUse24HourClock(),
             // What is on screen against what is stored: the only thing worth warning about.
             dirty = draft != null && draft != transaction?.toDraft(),
@@ -178,7 +175,6 @@ private data class SimilarCategoryOffer(
 @Composable
 internal fun TransactionEditScreenContent(
     draft: Draft?,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     dirty: Boolean = false,
     onDraftChange: (Draft) -> Unit = {},
@@ -222,8 +218,7 @@ internal fun TransactionEditScreenContent(
         ) {
             TransactionEditor(
                 draft = draft,
-                methods = methods,
-                use24Hour = use24Hour,
+                    use24Hour = use24Hour,
                 onChange = onDraftChange,
             )
         }
@@ -252,13 +247,11 @@ internal fun TransactionEditScreenContent(
 @Composable
 private fun TransactionEditor(
     draft: Draft,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     onChange: (Draft) -> Unit,
 ) {
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
-    var pickMethod by remember { mutableStateOf(false) }
     var pickCategory by remember { mutableStateOf(false) }
 
     Column(
@@ -301,12 +294,6 @@ private fun TransactionEditor(
             )
         }
         PickerField(
-            label = stringResource(R.string.method),
-            value = methods.nameOf(draft.method) ?: draft.method ?: stringResource(R.string.none),
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { pickMethod = true },
-        )
-        PickerField(
             label = stringResource(R.string.category),
             value = categoryLabel(draft.category),
             modifier = Modifier.fillMaxWidth(),
@@ -341,15 +328,6 @@ private fun TransactionEditor(
             use24Hour = use24Hour,
             onDismiss = { pickTime = false },
             onSelect = { onChange(draft.copy(date = it)) },
-        )
-    }
-
-    if (pickMethod) {
-        MethodPickerDialog(
-            selected = draft.method,
-            methods = methods,
-            onDismiss = { pickMethod = false },
-            onSelect = { onChange(draft.copy(method = it)) },
         )
     }
 
@@ -500,59 +478,11 @@ private fun TimePickerDialog(
     )
 }
 
-/**
- * The methods the row's extension declares, plus None. A method the extension dropped stays in the
- * list while it is the one selected, so opening the picker cannot quietly discard it.
- */
-@Composable
-private fun MethodPickerDialog(
-    selected: String?,
-    methods: List<TransactionMethod>,
-    onDismiss: () -> Unit,
-    onSelect: (String?) -> Unit,
-) {
-    val none = stringResource(R.string.none)
-    val options = buildList<Pair<String?, String>> {
-        add(null to none)
-        methods.forEach { add(it.key to it.name) }
-        if (selected != null && methods.none { it.key == selected }) add(selected to selected)
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.method)) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                options.forEach { (key, name) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelect(key)
-                                onDismiss()
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = key == selected, onClick = null)
-                        Text(text = name, modifier = Modifier.padding(start = 12.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
-}
-
 private fun Long.toLocalDate(): LocalDate =
     Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
 private fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-internal fun List<TransactionMethod>.nameOf(key: String?): String? =
-    key?.let { stored -> firstOrNull { it.key == stored }?.name }
 
 /** The form's state: text while it is being typed, parsed back into a [Transaction] on save. */
 internal data class Draft(
@@ -634,7 +564,6 @@ private fun TransactionEditPreview() {
                 editedAt = null,
                 deleted = false,
             ).toDraft(),
-            methods = emptyList(),
             use24Hour = true,
         )
     }

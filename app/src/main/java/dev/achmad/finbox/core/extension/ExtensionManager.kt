@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import dev.achmad.finbox.core.preference.ExtensionMethodPreference
 
 /** Orchestrates installed extensions: loading, database sync, installs, and updates. */
 class ExtensionManager(
@@ -34,7 +33,6 @@ class ExtensionManager(
     private val installer: ExtensionInstaller,
     private val index: ExtensionIndex,
     private val repository: InstalledExtensionRepository,
-    private val methodPreference: ExtensionMethodPreference,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -160,7 +158,6 @@ class ExtensionManager(
         repository.delete(pkg)
         // Keyed by package, so they would otherwise outlive it and quietly
         // suppress methods if the same extension were installed again.
-        methodPreference.clear(pkg)
         reload()
     }
 

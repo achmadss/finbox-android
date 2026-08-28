@@ -7,7 +7,6 @@ import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.signature
 import dev.achmad.data.repository.TransactionRepository
 import dev.achmad.finbox.core.extension.ExtensionManager
-import dev.achmad.finbox.extension.TransactionMethod
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,16 +29,6 @@ class TransactionDetailScreenModel(
     val transaction: StateFlow<Transaction?> = repository.transactions()
         .map { all -> all.firstOrNull { it.id == id } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
-
-    /**
-     * What the method picker offers: the methods declared by the extension that read this row.
-     * Empty until the registry loads, and empty for a row whose extension is gone — the
-     * picker then only offers what the row already has.
-     */
-    val methods: StateFlow<List<TransactionMethod>> =
-        combine(transaction, extensionManager.extensionsFlow) { transaction, extensions ->
-            extensions.firstOrNull { it.id == transaction?.extensionId }?.methods().orEmpty()
-        }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     fun save(edited: Transaction) {
         screenModelScope.launch { repository.update(edited) }

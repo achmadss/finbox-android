@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
 import dev.achmad.finbox.core.FinboxConfig
-import dev.achmad.finbox.extension.EmailSource
+import dev.achmad.finbox.extension.Source
 import java.io.File
 
 /** Loads extensions from the APK files in `filesDir/extensions/`. */
@@ -80,15 +80,18 @@ class ExtensionLoader(
                 optimizedDirectory = context.codeCacheDir.absolutePath,
             )
             val clazz = Class.forName(className, false, classLoader)
-            val extension = clazz.getDeclaredConstructor().newInstance() as? EmailSource
-                ?: return LoadResult.Error(apk.name, "Class $className is not an EmailSource")
+            // Asked what it is, not cast to one fixed thing: an extension
+            // declares its capabilities by implementing them, so this is the
+            // only place that needs to know a second kind exists.
+            val source = clazz.getDeclaredConstructor().newInstance() as? Source
+                ?: return LoadResult.Error(apk.name, "Class $className implements no Source")
             LoadResult.Success(
                 info,
                 LoadedExtension(
                     id = extensionIdOf(info.pkg),
                     pkg = info.pkg,
                     name = info.name,
-                    extension = extension,
+                    source = source,
                 ),
             )
         } catch (e: Throwable) {

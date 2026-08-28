@@ -9,7 +9,6 @@ import dev.achmad.data.repository.AccountExtensionRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.preference.ExtensionMethodPreference
 import dev.achmad.finbox.core.extension.LoadedExtension
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineExtensionQueries
@@ -41,7 +40,6 @@ class TransactionUpdater(
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
-    private val methodPreference: ExtensionMethodPreference,
 ) {
 
     /** One update at a time per account, so two refreshes can't race the cursor. */
@@ -147,8 +145,9 @@ class TransactionUpdater(
      * excluded — filtering the list would silently skip that extension's mail.
      */
     private suspend fun narrowFor(account: EmailAccount): String? {
-        val fromSources = combineExtensionQueries(extensionsFor(account).map { it.emailQuery().value })
-            ?: return account.syncQuery
+        val fromSources = combineExtensionQueries(
+            extensionsFor(account).mapNotNull { it.email?.query?.value },
+        ) ?: return account.syncQuery
         return listOfNotNull(account.syncQuery?.takeIf { it.isNotBlank() }, fromSources)
             .joinToString(" ")
     }
@@ -539,19 +538,15 @@ class TransactionUpdater(
         val now = System.currentTimeMillis()
 
         for (extension in candidates) {
+            // An extension that reads something other than mail has nothing to
+            // say about this, and is not a failure.
+            val source = extension.email ?: continue
             // Empty is how an extension disowns an email.
-            val parsed = runCatching { extension.parse(message) }.getOrNull()
+            val parsed = runCatching { source.parse(message) }.getOrNull()
                 ?.takeIf { it.isNotEmpty() }
                 ?: continue
 
-            val disabled = methodPreference.disabled(extension.pkg).get()
-            // mapIndexedNotNull, not filter-then-map: the index is part of a
-            // transaction's id, so dropping one must not renumber the rest and
-            // give every transaction after it a new identity.
-            val transactions = parsed.mapIndexedNotNull { index, transaction ->
-                // Still claimed — the extension did read it — so switching the
-                // method back on re-reads it from the body stored here.
-                if (transaction.method.key in disabled) return@mapIndexedNotNull null
+            val transactions = parsed.mapIndexed { index, transaction ->
                 Transaction(
                     accountId = email.accountId,
                     extensionId = extension.id,
@@ -566,9 +561,9 @@ class TransactionUpdater(
                     // could name a direction this build has never heard of, and
                     // an unsigned row beats a crash.
                     direction = runCatching {
-                        TransactionDirection.valueOf(transaction.method.direction.name)
+                        TransactionDirection.valueOf(transaction.direction.name)
                     }.getOrNull(),
-                    method = transaction.method.key,
+                    method = null,
                     // Import never classifies: a row lands uncategorized and the
                     // classify pass picks it up later, so a classifier that is
                     // unavailable, slow or wrong can never fail an import.

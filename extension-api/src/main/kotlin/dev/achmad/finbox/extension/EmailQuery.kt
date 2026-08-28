@@ -19,8 +19,5 @@ value class EmailQuery private constructor(val value: String) {
 
         /** Anything Gmail's search box accepts: `subject:`, `has:attachment`, … */
         fun raw(query: String): EmailQuery = EmailQuery(query.trim())
-
-        /** No filter at all. */
-        val EVERYTHING = EmailQuery("")
     }
 }

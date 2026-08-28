@@ -1,16 +1,26 @@
 package dev.achmad.finbox.core.extension
 
 import dev.achmad.finbox.extension.EmailSource
+import dev.achmad.finbox.extension.Source
 import java.security.MessageDigest
 
-/** An [EmailSource], plus the identity the app files it under. */
+/** What an extension turned out to be, plus the identity the app files it under. */
 class LoadedExtension(
     val id: Long,
-    /** Survives an update, unlike [id] — so the method switches are filed under it. */
+    /** Survives an update, unlike [id]. */
     val pkg: String,
     val name: String,
-    extension: EmailSource,
-) : EmailSource by extension
+    val source: Source,
+) {
+    /**
+     * This extension's email source, or null if it reads something else.
+     *
+     * A type check rather than anything the extension declares, so it cannot
+     * disagree with what the class actually implements. A second source kind is
+     * one more accessor here and nothing else.
+     */
+    val email: EmailSource? get() = source as? EmailSource
+}
 
 /**
  * First 8 bytes of `MD5(pkg)` as a positive Long.

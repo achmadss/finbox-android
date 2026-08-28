@@ -2,7 +2,6 @@ package dev.achmad.finbox.di
 
 import dev.achmad.finbox.core.extension.ExtensionIndex
 import dev.achmad.finbox.core.extension.ExtensionInstaller
-import dev.achmad.finbox.core.preference.ExtensionMethodPreference
 import dev.achmad.finbox.core.extension.ExtensionLoader
 import dev.achmad.finbox.core.extension.ExtensionManager
 import dev.achmad.finbox.core.extension.ExtensionUpdateChecker
@@ -71,7 +70,6 @@ val coreModule = module {
             loader = get()
         )
     }
-    single<ExtensionMethodPreference> { ExtensionMethodPreference(preferenceStore = get()) }
     single<ExtensionManager> {
         ExtensionManager(
             transactionUpdateManager = get(),
@@ -79,7 +77,6 @@ val coreModule = module {
             installer = get(),
             index = get(),
             repository = get(),
-            methodPreference = get()
         )
     }
     single<ExtensionUpdateNotifier> { ExtensionUpdateNotifier(context = androidContext()) }
@@ -106,7 +103,6 @@ val coreModule = module {
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),
-            methodPreference = get()
         )
     }
 

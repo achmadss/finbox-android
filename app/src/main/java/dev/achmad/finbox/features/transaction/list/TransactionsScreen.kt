@@ -209,14 +209,6 @@ fun TransactionsScreenContent(
         )
     }
 
-    // Keyed on the method alone, not on the extension: an extension id carries its version, so
-    // rows written by an older build would otherwise lose their name. Empty until the
-    // registry loads, and empty for a method an extension dropped, so the rows fall through
-    // to the description.
-    // ponytail: two extensions declaring the same key show one name — per-extension if that lands.
-    val methodNames = remember(extensions) {
-        extensions.flatMap { it.methods() }.associate { it.key to it.name }
-    }
     // By id here, because that is all a transaction stores. A row parsed by an earlier
     // build of an extension is filed under that build's id and goes unnamed, same as the filter.
     val extensionNames = remember(extensions) { extensions.associate { it.id to it.name } }
@@ -401,7 +393,6 @@ fun TransactionsScreenContent(
                         filtered = filter.isActive,
                         // Day headers only make sense while the list is in date order.
                         grouped = filter.sort == TransactionSort.DATE,
-                        methodNames = methodNames,
                         extensionNames = extensionNames,
                         onOpenTransaction = onOpenTransaction,
                         selected = selected,
@@ -419,7 +410,6 @@ private fun MonthPage(
     transactions: List<Transaction>,
     filtered: Boolean,
     grouped: Boolean,
-    methodNames: Map<String, String>,
     extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
@@ -463,11 +453,11 @@ private fun MonthPage(
         when {
             transactions.isEmpty() -> EmptyTransactions(filtered = filtered)
             grouped -> TransactionList(
-                use24Hour, transactions, methodNames, extensionNames, onOpenTransaction,
+                use24Hour, transactions, extensionNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
             else -> FlatTransactionList(
-                use24Hour, transactions, methodNames, extensionNames, onOpenTransaction,
+                use24Hour, transactions, extensionNames, onOpenTransaction,
                 selected, onToggleSelection,
             )
         }
@@ -620,7 +610,6 @@ private fun RowScope.MonthStep(
 private fun TransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    methodNames: Map<String, String>,
     extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
@@ -658,12 +647,10 @@ private fun TransactionList(
                             .background(MaterialTheme.colorScheme.inverseOnSurface),
                     ) {
                         dayTransactions.forEachIndexed { index, transaction ->
-                            val method = methodNames[transaction.method]
                             val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
                             TransactionRow(
                                 use24Hour = use24Hour,
                                 transaction = transaction,
-                                method = method,
                                 extension = extension,
                                 selected = transaction.id in selected,
                                 selecting = selected.isNotEmpty(),
@@ -686,7 +673,6 @@ private fun TransactionList(
 private fun FlatTransactionList(
     use24Hour: Boolean,
     transactions: List<Transaction>,
-    methodNames: Map<String, String>,
     extensionNames: Map<Long, String>,
     onOpenTransaction: (Transaction) -> Unit,
     selected: Set<String>,
@@ -706,12 +692,10 @@ private fun FlatTransactionList(
         ) {
             itemsIndexed(transactions, key = { _, it -> it.id }) { index, transaction ->
                 Column(modifier = Modifier.background(MaterialTheme.colorScheme.inverseOnSurface)) {
-                    val method = methodNames[transaction.method]
                     val extension = extensionNames[transaction.extensionId] ?: stringResource(R.string.unknown)
                     TransactionRow(
                         use24Hour = use24Hour,
                         transaction = transaction,
-                        method = method,
                         extension = extension,
                         selected = transaction.id in selected,
                         selecting = selected.isNotEmpty(),
@@ -732,7 +716,6 @@ private fun FlatTransactionList(
 private fun TransactionRow(
     use24Hour: Boolean,
     transaction: Transaction,
-    method: String?,
     extension: String,
     selected: Boolean = false,
     /** Whether anything at all is selected: a tap then picks rather than opens. */
@@ -760,10 +743,10 @@ private fun TransactionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                // The extension's own word for it — "QRIS Payment", not the `QRIS` key stored
-                // with the row.
-                text = method
-                    ?: transaction.description
+                // What the receipt itself said, in the order that names the
+                // transaction best. Unknown when it said none of it, which is a
+                // real answer and not a gap to fill in.
+                text = transaction.description
                     ?: transaction.merchant
                     ?: transaction.reference
                     ?: stringResource(R.string.unknown),
@@ -910,12 +893,12 @@ private fun TransactionsScreenPreview() {
         amount = amount,
         currency = "IDR",
         direction = direction,
-        method = null,
         categoryName = null,
         categorySource = null,
         description = merchant,
         merchant = merchant,
         createdAt = at,
+        method = null,
         updatedAt = at,
         editedAt = null,
         deleted = false,

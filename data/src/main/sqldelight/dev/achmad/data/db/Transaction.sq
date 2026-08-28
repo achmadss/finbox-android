@@ -125,11 +125,6 @@ UPDATE transactions SET
     updated_at = :updated_at
 WHERE id = :id;
 
--- Hard delete: with the method off a re-parse would not write these back, so a
--- soft-deleted row would sit there forever. Switching it on re-parses.
-DELETEByMethod:
-DELETE FROM transactions WHERE extension_id = :extension_id AND method = :method;
-
 DELETEById:
 UPDATE transactions SET deleted = 1, updated_at = :updated_at WHERE id = :id;
 

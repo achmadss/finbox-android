@@ -182,16 +182,6 @@ class TransactionRepository(
             .toMap()
     }
 
-    /**
-     * Drops everything an extension parsed under one method — what switching that method
-     * off means, since a re-parse will not write them back.
-     */
-    suspend fun deleteByMethod(extensionIds: Collection<Long>, method: String) = withContext(Dispatchers.IO) {
-        db.transaction {
-            extensionIds.forEach { db.transactionQueries.DELETEByMethod(it, method) }
-        }
-    }
-
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.transactionQueries.DELETEById(System.currentTimeMillis(), id)
         Unit
