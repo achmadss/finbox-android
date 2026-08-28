@@ -158,6 +158,58 @@ class TransactionRepositoryTest {
         assertTrue(repository.categoryCache().isEmpty())
     }
 
+    @Test
+    fun `UNKNOWN, null and OTHER stay three different things`() = runBlocking {
+        repository.upsertAll(
+            listOf(
+                transaction(index = 0, merchant = "Alfamart"),
+                transaction(index = 1, merchant = "Sedekah"),
+                transaction(index = 2, merchant = "Biaya lain"),
+            ),
+        )
+        val (untouched, noPurpose, miscellaneous) = repository.all().sortedBy { it.id }
+
+        // Nothing has looked at the first row. The second was looked at and the
+        // receipt did not say what the money was for. The third was looked at
+        // and genuinely is miscellaneous.
+        repository.setCategory(noPurpose.id, TransactionCategory.UNKNOWN, source = null)
+        repository.setCategory(miscellaneous.id, TransactionCategory.OTHER, CategorySource.AI)
+
+        val stored = repository.all().sortedBy { it.id }
+        assertNull(stored[0].category)
+        assertEquals(TransactionCategory.UNKNOWN, stored[1].category)
+        assertEquals(TransactionCategory.OTHER, stored[2].category)
+
+        // Only OTHER is an answer worth reusing. UNKNOWN and null both mean the
+        // question is still open, for different reasons, and collapsing either
+        // into the cache would stop the pass ever asking again.
+        val cache = repository.categoryCache()
+        assertEquals(listOf(TransactionCategory.OTHER), cache.values.toList())
+    }
+
+    @Test
+    fun `an imported row lands uncategorized and stays available to the classify pass`() = runBlocking {
+        // What the import path writes: no category, no source. A classifier that
+        // is unavailable, slow or wrong cannot fail this, because it is not run.
+        repository.upsertAll(listOf(transaction(merchant = "Kopi Kenangan")))
+
+        val stored = repository.all().single()
+        assertNull(stored.categoryName)
+        assertNull(stored.categorySource)
+        assertNull(stored.editedAt)
+    }
+
+    @Test
+    fun `mail nothing recognises leaves the ledger untouched`() = runBlocking {
+        repository.upsertAll(listOf(transaction(merchant = "Kopi Kenangan")))
+
+        // How a parser disowns an email: it yields nothing, and nothing is
+        // written. No error, no placeholder row, no review queue.
+        repository.upsertAll(emptyList())
+
+        assertEquals(1, repository.all().size)
+    }
+
     private fun transaction(
         index: Int = 0,
         merchant: String? = "Kopi Kenangan",
