@@ -2,11 +2,10 @@
 
 A personal spending ledger, fed by the receipts your bank already emails you.
 
-finbox reads a Gmail mailbox, hands each email to the extensions you have
-installed, and records what they recognise as transactions. No bank
-credentials, no screen scraping, no SMS permissions — just the notification
-mails you already get, turned into a month-by-month view of what went out and
-what came in.
+finbox reads a Gmail mailbox, hands each email to the extensions it ships with,
+and records what they recognise as transactions. No bank credentials, no screen
+scraping, no SMS permissions — just the notification mails you already get,
+turned into a month-by-month view of what went out and what came in.
 
 It is a ledger, not a parsing dashboard. Emails nothing recognises are dropped
 quietly; there is no review queue to work through.
@@ -14,27 +13,37 @@ quietly; there is no review queue to work through.
 ## How it works
 
 1. **Connect a mailbox.** Google OAuth, `gmail.readonly`, no password stored.
-2. **Install extensions.** Each provider — BRI, Jago — is a small separate APK
-   from [finbox-extension](https://github.com/achmadss/finbox-extension),
-   verified by hash and loaded in-process. Installing one is what teaches the
-   app to read that bank.
-3. **Import.** The first sync walks the mailbox for mail the installed extensions
+2. **Switch on the banks you use.** Every extension ships inside the app and is
+   on by default; the extensions screen is a list with a switch each.
+3. **Import.** The first sync walks the mailbox for mail the enabled extensions
    claim as theirs. Every sync after that asks Gmail only what changed, so a
    refresh with nothing new costs a single API call.
 4. **Read the ledger.** One month at a time, out / in / net at the top,
    transactions grouped by day. Multiple mailboxes merge into one ledger.
 
-Parsing lives entirely in the extensions. The app fetches mail and keeps the
-ledger; it holds no knowledge of any bank's email format, and gains support for
-a new one without an app release.
+Parsing lives entirely in `extension/`. The app fetches mail and keeps the
+ledger; it holds no knowledge of any bank's email format.
+
+## Banks it reads
+
+| Provider | Emails it reads |
+|---|---|
+| Bank BNI | wondr receipts — QRIS, transfers, TapCash top ups |
+| Bank BRI | BRImo receipts — QRIS, transfers, BRIZZI top ups |
+| Bank Jago | payments, transfers, Jago Partner, debit card purchases |
+| Bank Mandiri | Livin' receipts — QR payments, e-money top ups, SBN orders |
+
+Adding one is a class and a line in a list — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it keeps
 
-Email bodies are never stored. An import downloads a message, offers it to the
-extensions, writes what they found and drops it — the database keeps message ids
-and the transactions themselves, nothing else. Everything stays on the device;
-finbox has no backend and sends nothing anywhere. Transactions are editable and
-soft-deletable, and can be exported to CSV or backed up as a file.
+Email bodies are stored, deliberately. An extension taught to read something in
+a later release re-reads mail already in the database instead of paying Gmail
+twenty quota units a message again. It is the most sensitive thing the app
+holds: it never leaves the device, and nothing derived from it is committed to
+this repository. Everything else stays on the device too — finbox has no backend
+and sends nothing anywhere. Transactions are editable and soft-deletable, and
+can be exported to CSV or backed up as a file.
 
 Currently IDR only, and sync is manual pull-to-refresh.
 
@@ -42,14 +51,13 @@ Currently IDR only, and sync is manual pull-to-refresh.
 
 | Path | Purpose |
 |---|---|
-| `app/` | UI, Gmail client, extension loading, sync |
+| `app/` | UI, Gmail client, sync |
 | `data/` | SQLDelight database, repositories, export and backup |
-| `extension-api/` | The types extensions implement |
+| `extension/` | The bank readers, and the contract they implement |
 
-`:extension-api` is what extensions compile against. JitPack builds it on demand
-from any tag or commit (see `jitpack.yml`), published as
-`com.github.achmadss:finbox-android`, so finbox-extension can be cloned and
-built by anyone — no checkout of this repo, no account, no token.
+`extension/` is a plain Kotlin module — no Android on its classpath, so an
+extension cannot fetch, schedule, or reach a token even by accident. `app/`
+depends on it; `data/` knows extension ids only as strings.
 
 ## Status
 
