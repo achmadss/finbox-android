@@ -32,11 +32,8 @@ enum class ClassificationStatus {
 /**
  * One classify pass, as it happened.
  *
- * Kept because the alternative is asking someone to trust a background job that
- * spends their money and silently rewrites their ledger. Counts are in
- * signatures where the classifier works in signatures and in transactions where
- * the user does, because conflating the two is what makes "17 requests
- * categorized 387 transactions" sound impossible.
+ * Counts are in signatures where the classifier works in signatures, and in
+ * transactions where the user works in transactions.
  */
 data class ClassificationRun(
     val id: Long,
@@ -53,7 +50,7 @@ data class ClassificationRun(
     /** Answered, but the receipt did not say what for. Not a failure. */
     val unknown: Int,
     val requests: Int,
-    /** Null where the endpoint reports no usage, which many do not. */
+    /** Null where the endpoint reports no usage. */
     val promptTokens: Long?,
     val completionTokens: Long?,
     val status: ClassificationStatus,

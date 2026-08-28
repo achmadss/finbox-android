@@ -32,28 +32,6 @@ import kotlinx.coroutines.withContext
 
 /**
  * Keeps the ledger of transactions up to date from Gmail.
- *
- * An update runs in two halves. Fetching stores what identifies each selected
- * email; parsing hands the ones no parser has claimed to the installed parsers,
- * and the first that claims an email turns it into transactions. The two are
- * separate because parsers come and go: an email remembers which parsers have
- * already seen it, so installing a parser re-reads the mail it hasn't tried
- * and nothing else.
- *
- * Bodies are stored with the email, and never all held at once: message ids are
- * collected first, then walked in batches that download, parse, write and drop
- * each batch before starting the next. A few downloads run at a time, since
- * Gmail is rate limited and a mailbox import is thousands of messages.
- *
- * Keeping the body is what makes re-parsing cheap: a new parser, an updated
- * one, or a transaction method switched back on all re-read what is already
- * stored, so a refresh can afford to try every unparsed email before it asks
- * Gmail for anything new.
- *
- * The first update for an account walks the mailbox over the chosen window and
- * records where Gmail's history stood when it started. Every update after that
- * asks Gmail only what changed since then, so a refresh with nothing new costs
- * one `history.list` call.
  */
 class TransactionUpdater(
     /** The installed parsers, read at update time so an install takes effect at once. */
@@ -177,12 +155,7 @@ class TransactionUpdater(
 
     /**
      * Imports the window a date slice at a time, newest first, recording how far
-     * back it got after each one.
-     *
-     * Slices rather than one list call because an import can outlive the run
-     * doing it: whatever a stopped run finished stays finished, and the next one
-     * picks up where it left off instead of re-walking the mailbox. Recent mail
-     * lands first, so the ledger is useful before the import ends.
+     * back it got after each one, so a stopped run resumes where it left off.
      *
      * The history cursor is captured before the first slice and only promoted
      * when the last one lands — until then an update is still an import.
@@ -193,8 +166,6 @@ class TransactionUpdater(
     ): Int {
         // Read the cursor first: anything arriving during the walk then shows up
         // in the next incremental update instead of falling through the gap.
-        // Without it there is nothing to promote at the end, so the import would
-        // run in full and then start over — fail instead and retry later.
         val importCursor = account.importCursor
             ?: gmailApi.getProfile(account.id).historyId.takeIf { it.isNotEmpty() }
             ?: error("Gmail reported no history id for ${account.email}")
@@ -217,9 +188,9 @@ class TransactionUpdater(
                 narrow = narrow,
                 maxMessages = SLICE_CAP,
             )
-            // A slice at the cap may have been truncated, and Gmail returns the
-            // newest first — so the loss would be the oldest mail in it. Halve
-            // the slice and retry rather than skip what didn't fit.
+            // A slice at the cap may have been truncated; Gmail returns the
+            // newest first, so halve it and retry rather than skip what did
+            // not fit.
             if (refs.size >= SLICE_CAP && slice > MIN_SLICE_MILLIS) {
                 slice /= 2
                 continue
@@ -255,8 +226,8 @@ class TransactionUpdater(
         do {
             val page = gmailApi.listHistory(account.id, cursor, pageToken)
             for (record in page.history) {
-                // A message can appear in several records — added, then labelled.
-                // The set keeps it at one fetch.
+                // A message can appear in several records; the map keeps it at
+                // one fetch.
                 record.messagesAdded.forEach { changed.putIfAbsent(it.message.id, it.message) }
                 record.messages.forEach { changed.putIfAbsent(it.id, it) }
             }
@@ -283,16 +254,14 @@ class TransactionUpdater(
     /**
      * Drops the ids the account's own search wouldn't have asked for.
      *
-     * History reports everything that arrived, and finding out what a message is
-     * costs a 20-unit fetch. One `messages.list` covers up to 500 ids for 5, so
-     * as soon as it excludes a single message it has paid for itself.
+     * History reports everything that arrived, and one `messages.list` is far
+     * cheaper than fetching a message to find out what it is.
      */
     private suspend fun narrow(account: EmailAccount, candidates: List<MessageRef>): List<MessageRef> {
         val syncQuery = narrowFor(account)?.takeIf { it.isNotBlank() } ?: return candidates
         if (candidates.isEmpty()) return candidates
 
-        // Only as far back as the last update: this is a refresh, and listing
-        // pages of old mail costs 5 units each.
+        // Only as far back as the last update: listing pages of old mail costs quota.
         val since = account.lastSyncAt?.minus(DAY_MILLIS)
         val allowed = try {
             gmailApi.listMessages(
@@ -305,8 +274,8 @@ class TransactionUpdater(
             // Falling back to fetching them all is expensive, never wrong.
             return candidates
         }
-        // A truncated list would exclude mail that does match, and this filter
-        // decides what never gets read. Only trust it when it's complete.
+        // A truncated list would exclude mail that does match, so only trust it
+        // when it is complete.
         if (allowed.size >= NARROW_CAP) return candidates
 
         val ids = allowed.mapTo(HashSet()) { it.id }
@@ -316,9 +285,7 @@ class TransactionUpdater(
     /**
      * Downloads, parses and writes a batch of messages at a time.
      *
-     * A message already stored and already seen by every installed parser costs
-     * nothing — it is skipped before it is downloaded. Everything else is read:
-     * a thread can hold unrelated mail, so a second message in a known thread
+     * A thread can hold unrelated mail, so a second message in a known thread
      * may well be a second transaction. Duplicates are settled after parsing,
      * on the provider reference.
      */
@@ -372,8 +339,8 @@ class TransactionUpdater(
                             val threadId = message.threadId.normalizedThreadId()
                                 ?: ref.threadId.normalizedThreadId()
                                 ?: storedEmail?.threadId.normalizedThreadId()
-                            // Downloaded anyway, so keep the body: whatever
-                            // re-reads this email later does it for free.
+                            // Downloaded anyway, so keep the body: later re-reads
+                            // do it for free.
                             val body = message.body.ifBlank { null }
                             val email = storedEmail?.copy(threadId = threadId, body = body)
                                 ?: StoredEmail(
@@ -399,9 +366,8 @@ class TransactionUpdater(
 
             val transactions = results.flatMap { it.transactions }
                 .distinctBy { it.id }
-            // Transactions first: an id derives from the email, and the write
-            // drops what another message already reported under the same
-            // reference, so a re-run overwrites rather than duplicates.
+            // Transactions first: an id derives from the email, so a re-run
+            // overwrites the same reference rather than duplicating it.
             transactionRepository.upsertAll(transactions)
             val emails = results.map { it.email }
             emailRepository.insertNew(emails.filter { it.messageId !in stored })
@@ -415,12 +381,9 @@ class TransactionUpdater(
 
     /**
      * Re-reads the mail the installed parsers haven't all tried — what a newly
-     * installed or updated parser needs.
-     *
-     * Nearly free now that bodies are stored: an email is parsed again from
-     * what is already here. Only mail fetched before bodies were kept costs a
-     * 20-unit download, and that download backfills the body, so it happens
-     * once per email ever.
+     * installed or updated parser needs. Nearly free: bodies are parsed in
+     * place; only mail fetched before bodies were kept costs a 20-unit
+     * download, which backfills the body once per email ever.
      *
      * @return how many transactions were written.
      */
@@ -446,8 +409,7 @@ class TransactionUpdater(
      * Re-reads mail one of [parserIds] already claimed.
      *
      * Switching a transaction method back on needs this: those emails are parsed,
-     * so nothing above would look at them again, and the transactions the method
-     * covers were never written.
+     * so nothing above would look at them again.
      *
      * @return how many transactions were written.
      */
@@ -465,9 +427,8 @@ class TransactionUpdater(
 
             val (stored, bodiless) = emails.partition { !it.body.isNullOrBlank() }
             parsed += lockFor(accountId).withLock {
-                // No thread filter and forced past triedParserIds: these emails
-                // are the ones that made those threads, and the parser that
-                // claimed them is exactly the one meant to read them again.
+                // No thread filter and forced past triedParserIds: the parser that
+                // claimed these emails is the one meant to read them again.
                 parseStored(account, stored, parsers, force = true, onProgress) +
                     releaseBodiless(bodiless, parserIds)
             }
@@ -477,11 +438,9 @@ class TransactionUpdater(
 
     /**
      * Hands mail with no stored body back to [parseUnparsed] — pre-body-storage
-     * emails a re-parse can't read from here.
-     *
-     * Forgetting who claimed them, and who tried them, is what puts them in
-     * front of the fetching path again; that download stores the body, so this
-     * costs each of them one fetch, once, and never again.
+     * emails a re-parse can't read from here. Clearing the claims puts them in
+     * front of the fetching path again; the download stores the body, so each
+     * costs one fetch, once.
      *
      * @return 0 — nothing is parsed here, the next refresh does it.
      */
@@ -521,9 +480,7 @@ class TransactionUpdater(
     /**
      * Parses stored mail from the body stored with it — no Gmail, no quota.
      *
-     * Batched like a download is, though nothing here is downloaded: parsing a
-     * mailbox of html is still work, and writing it in batches keeps the
-     * progress line moving and the memory flat.
+     * Batched like a download is: parsing a mailbox of html is still work.
      */
     private suspend fun parseStored(
         account: EmailAccount,
@@ -612,10 +569,9 @@ class TransactionUpdater(
                         TransactionDirection.valueOf(transaction.method.direction.name)
                     }.getOrNull(),
                     method = transaction.method.key,
-                    // Import never classifies. A row lands uncategorized and the
-                    // classify pass picks it up later, so a classifier being
-                    // unavailable, slow or wrong can never fail an import — the
-                    // ledger is the product.
+                    // Import never classifies: a row lands uncategorized and the
+                    // classify pass picks it up later, so a classifier that is
+                    // unavailable, slow or wrong can never fail an import.
                     categoryName = null,
                     categorySource = null,
                     description = transaction.description,
@@ -647,7 +603,6 @@ class TransactionUpdater(
     private fun lockFor(accountId: String): Mutex = locks.getOrPut(accountId) { Mutex() }
 
     private companion object {
-        /** Concurrent Gmail downloads, mirroring what a library update dares. */
         const val MAX_PARALLEL_FETCHES = 5
 
         /** Messages downloaded, parsed and written before the next batch starts. */
@@ -667,9 +622,8 @@ class TransactionUpdater(
         /**
          * Where an import stops walking back: no mail predates Gmail.
          *
-         * ponytail: a mailbox younger than that still pays one empty list call
-         * per 30-day slice down to here. Stop after a run of empty slices if an
-         * import ever feels slow to start.
+         * A mailbox younger than that still pays one empty list call per
+         * 30-day slice down to here.
          */
         const val GMAIL_EPOCH = 1_072_915_200_000L // 2004-01-01
 

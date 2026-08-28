@@ -27,11 +27,9 @@ import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.preference.collectAsState
 
 /**
- * The whole app's colors.
- *
- * Takes the three appearance settings rather than reading them, so a preview
- * can draw any screen without a preference store behind it. The composition
- * root reads them once with [AppThemeFromPreferences].
+ * The whole app's colors. The three appearance settings come in as parameters,
+ * so a preview can draw any screen without a preference store; [AppThemeFromPreferences]
+ * reads them once at the root.
  */
 @Composable
 fun AppTheme(
@@ -76,10 +74,8 @@ fun AppTheme(
 }
 
 /**
- * [AppTheme] with the stored settings applied.
- *
- * The theme sits above every screen, and a screen that changes one of these has
- * no way to hand the new value up — so the read belongs here, at the root.
+ * [AppTheme] with the stored settings applied. The read belongs at the root:
+ * a screen that changes a setting has no way to hand the new value up.
  */
 @Composable
 fun AppThemeFromPreferences(

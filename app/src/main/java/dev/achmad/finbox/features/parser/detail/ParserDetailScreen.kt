@@ -193,7 +193,7 @@ private fun DetailsHeader(
             textAlign = TextAlign.Center,
         )
         Text(
-            text = parser.pkg, // TODO remove the base package like dev.achmad.finbox (only for UI purposes)
+            text = parser.pkg, // TODO remove the base package like dev.achmad.finbox
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

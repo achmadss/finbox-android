@@ -62,10 +62,7 @@ class ParserDetailScreenModel(
 
     /**
      * The methods this parser declares, in its own order, each with the user's
-     * switch.
-     *
-     * Empty until the registry has loaded — the methods live in the APK, not the
-     * database, so nothing else knows them.
+     * switch. Empty until the registry has loaded — the methods live in the APK.
      */
     private fun methods(parserIds: List<Long>, disabled: Set<String>): List<MethodUiModel> =
         parserIds
@@ -83,8 +80,7 @@ class ParserDetailScreenModel(
 
     /**
      * Off drops what the method already parsed; on re-reads the mail this parser
-     * claimed, which is where those transactions come back from. Neither touches
-     * Gmail — the bodies are stored.
+     * claimed. Neither touches Gmail — the bodies are stored.
      */
     fun toggleMethod(key: String) {
         screenModelScope.launch {
@@ -128,8 +124,6 @@ class ParserDetailScreenModel(
         val uninstalled: Boolean = false,
     ) {
         /**
-         * What the parser deals in, for the line under the version.
-         *
          * Unknown rather than assumed while [methods] is empty: the registry loads
          * after the database does, and "Expense only" flickering into "Multi
          * method" reads as a bug.

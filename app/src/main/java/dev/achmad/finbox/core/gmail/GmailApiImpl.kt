@@ -45,18 +45,13 @@ class GmailApiImpl(
         return if (refs.size > maxMessages) refs.take(maxMessages) else refs
     }
 
-    /**
-     * One page of message references for [query]. Pass [MessageListResponse.nextPageToken]
-     * back as [pageToken] for the next one.
-     */
     private suspend fun listPage(
         accountId: String,
         query: String,
         maxResults: Int = PAGE_SIZE,
         pageToken: String? = null,
     ): MessageListResponse {
-        // Not an empty mailbox: an unusable account has to fail the update, or an
-        // import would "finish" empty and promote its cursor.
+        // Fail, not return empty: an import that "finishes" empty would promote its cursor.
         val token = tokens.getAccessToken(accountId) ?: error("No token")
         val encoded = withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") }
         val url = "${FinboxConfig.GMAIL_API_BASE}/messages?q=$encoded&maxResults=$maxResults" +
@@ -65,11 +60,7 @@ class GmailApiImpl(
         return getWithRetry(accountId, url, token, GmailQuota.MESSAGES_LIST)
     }
 
-    /**
-     * The whole message. Quota is charged per call, not per byte, so there is
-     * nothing to save by asking for headers first and the body later — that
-     * would cost twice.
-     */
+    /** The whole message: quota is charged per call, so headers first would cost twice. */
     private suspend fun getMessage(accountId: String, messageId: String): MessageResponse {
         val token = tokens.getAccessToken(accountId) ?: error("No token")
         val url = "${FinboxConfig.GMAIL_API_BASE}/messages/$messageId?format=full" +
@@ -96,8 +87,8 @@ class GmailApiImpl(
         pageToken: String?,
     ): HistoryResponse {
         val token = tokens.getAccessToken(accountId) ?: error("No token")
-        // Only messageAdded: a label moving on a message the ledger already has
-        // can't produce a transaction, and every id here costs a 20-unit fetch.
+        // Only messageAdded: label moves cannot produce transactions, and every
+        // id here costs a 20-unit fetch.
         val url = "${FinboxConfig.GMAIL_API_BASE}/history" +
             "?startHistoryId=$startHistoryId&maxResults=$PAGE_SIZE" +
             "&historyTypes=messageAdded" +
@@ -108,10 +99,7 @@ class GmailApiImpl(
         return getWithRetry(accountId, url, token, GmailQuota.HISTORY_LIST)
     }
 
-    /**
-     * GET, paced against the quota, with a 401-triggered token refresh and a
-     * backoff for the rate-limit and server errors Gmail asks callers to retry.
-     */
+    /** GET paced against the quota, with a 401 token refresh and a retry backoff. */
     private suspend inline fun <reified T> getWithRetry(
         accountId: String,
         url: String,
@@ -129,8 +117,8 @@ class GmailApiImpl(
                 response = get(url, fresh)
             }
             if (response.isSuccessful) {
-                // Gmail answers 204 with no body when the fields mask leaves nothing to send
-                // back — a window with no matching mail. That is an empty result, not an error.
+                // Gmail answers 204 when the fields mask leaves nothing to send — an
+                // empty result, not an error.
                 if (response.code == 204) {
                     response.close()
                     return json.decodeFromString("{}")

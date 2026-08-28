@@ -20,18 +20,14 @@ import kotlin.coroutines.resumeWithException
  * Adding an account: an intent a screen launches for result, and the account
  * that comes back out of the result.
  *
- * An interface for the same reason [GmailApi] is one — a debug build stands in
- * a fake so testing needs no Google account. See `di/GmailModule.kt`.
+ * An interface so a debug build can fake it. See `di/GmailModule.kt`.
  */
 interface GmailAuthManager {
 
     /**
      * The authorization flow (account picker), for a screen to launch for
-     * result.
-     *
-     * Returned rather than started here: AppAuth reports back through
-     * `setResult`, so it has to be started from an Activity, and this manager
-     * only holds the application context.
+     * result. Returned, not started, because AppAuth reports back through
+     * `setResult` from an Activity.
      */
     fun authorizationIntent(): Intent
 
@@ -40,20 +36,13 @@ interface GmailAuthManager {
 }
 
 /**
- * The id a mailbox always gets: its own address, lowercased.
- *
- * The address is the one thing about an account that survives it being removed and added back,
- * and it is the prefix of every transaction id the account writes — so adding the same mailbox
- * again lands on the mail and the transactions already stored under it. An id that could not be
- * worked out a second time would import the whole mailbox again, beside what is already there.
+ * The id a mailbox always gets: its own address, lowercased — the one thing
+ * that survives an account being removed and added back, so a re-add lands on
+ * the mail and transactions already stored under it.
  */
 internal fun accountIdOf(email: String): String = email.trim().lowercase()
 
-/**
- * Coordinates the OAuth "add account" flow. Each launch shows Google's
- * account picker, so multiple accounts can be added with a single OAuth
- * client id; each account gets its own token pair.
- */
+/** Coordinates the OAuth add-account flow. */
 class GmailAuthManagerImpl(
     private val context: Context,
     private val store: GmailTokenStore,
@@ -81,14 +70,12 @@ class GmailAuthManagerImpl(
 
         val now = System.currentTimeMillis()
         val accountId = accountIdOf(email)
-        // Keyed on the account id, which is what every read asks for. Saving under anything
-        // else leaves the account authorized with a token nothing looks up.
+        // Keyed on the account id, which is what every read asks for.
         store.save(accountId, accessToken, refreshToken)
 
         val existing = accountRepository.accounts().first().firstOrNull { it.id == accountId }
         if (existing != null) {
-            // Authorizing again is how a renamed account or a changed picture catches up,
-            // so what came back wins over what is held.
+            // Re-authorizing catches up a renamed account; what came back wins.
             val updated = existing.copy(
                 authTokenRef = accountId,
                 displayName = info.name ?: existing.displayName,

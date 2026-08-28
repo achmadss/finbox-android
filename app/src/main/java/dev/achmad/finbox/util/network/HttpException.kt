@@ -3,9 +3,8 @@ package dev.achmad.finbox.util.network
 import okhttp3.Response
 
 /**
- * Exception that handles HTTP codes considered not successful by OkHttp.
+ * An HTTP response that OkHttp does not consider successful.
  *
  * @see Response.isSuccessful
- * @param code [Int] the HTTP status code
  */
 class HttpException(val code: Int) : IllegalStateException("HTTP error $code")

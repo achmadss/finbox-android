@@ -59,8 +59,7 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         val transaction by model.transaction.collectAsState()
         val methods by model.methods.collectAsState()
 
-        // Same rule as the account details screen: gone *after* it was here means deleted,
-        // whereas gone at the start is just the first read still running.
+        // Gone once it was here means deleted; gone at the start is just the first read still running.
         var everLoaded by remember { mutableStateOf(false) }
         LaunchedEffect(transaction) {
             if (transaction != null) everLoaded = true else if (everLoaded) navigator.pop()

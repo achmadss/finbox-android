@@ -7,15 +7,9 @@ import java.util.TimeZone
  * The Gmail search for an initial import: the user's window, plus whatever the
  * account narrows by.
  *
- * Narrowing matters: listing ids costs 5 quota units per 500, while fetching
- * one message costs 20, so anything excluded here is the cheapest saving
- * available. What to exclude comes from the parsers (see [combineParserQueries]).
- *
- * Gmail's date terms are whole days in the local timezone and `before:` is
- * exclusive, so the range is widened by a day at each end and the exact bounds
- * are enforced later against each message's real timestamp.
- *
- * Everything null means the whole mailbox, capped by [GmailApi.listAllMessages].
+ * Gmail's date terms are whole days in the local timezone, so the range is
+ * widened by a day at each end; exact bounds are enforced later against each
+ * message's real timestamp. All nulls mean the whole mailbox.
  */
 fun buildWindowQuery(
     after: Long? = null,
@@ -28,10 +22,8 @@ fun buildWindowQuery(
 }.joinToString(" ")
 
 /**
- * ORs what each parser asks for into one search.
- *
- * Null when any parser names no sender: that one wants the whole mailbox, and a
- * filter built from the others would silently skip the mail it came for.
+ * ORs what each parser asks for into one search. Null when any parser names no
+ * sender: its mail would be excluded by the others' filters.
  */
 fun combineParserQueries(queries: List<String>): String? {
     val trimmed = queries.map { it.trim() }

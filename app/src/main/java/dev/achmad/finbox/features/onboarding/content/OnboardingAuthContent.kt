@@ -45,8 +45,7 @@ fun OnboardingAuthContent(
             ) {
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    // The browser is out there, or the token exchange is in flight. Either
-                    // way the step is on its way out, and a second tap starts it over.
+                    // The browser is out or the token exchange is in flight; a second tap starts it over.
                     enabled = !signingIn,
                     onClick = onClickSignIn,
                 ) {

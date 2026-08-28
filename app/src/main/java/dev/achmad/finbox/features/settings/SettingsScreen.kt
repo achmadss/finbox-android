@@ -35,7 +35,6 @@ import dev.achmad.finbox.core.llm.LlmProviderStore
 import dev.achmad.finbox.features.settings.categorize.SettingsCategorizeScreen
 import dev.achmad.finbox.features.settings.llm.SettingsLlmScreen
 
-/** Every setting the app has, in one screen. */
 object SettingsScreen : Screen {
     private fun readResolve(): Any = SettingsScreen
 
@@ -60,9 +59,9 @@ object SettingsScreen : Screen {
     }
 
     /**
-     * The optional AI. Its own group rather than a line under Sync, because
-     * setting it up is a decision — it sends signatures to somebody else's
-     * server — and nothing else in the app needs it.
+     * Its own group rather than a line under Sync: setting a provider up is a
+     * decision — it sends signatures to somebody else's server — and nothing
+     * else in the app needs it.
      */
     @Composable
     private fun categorizationGroup(): Preference.PreferenceGroup {

@@ -64,8 +64,7 @@ fun MonthYearPickerSheet(
     val years = remember(range) { (range.start.year..range.endInclusive.year).toList() }
     val locale = LocalLocale.current.platformLocale
 
-    // The wheels are the state: what each one points at is the draft, and nothing leaves the sheet
-    // until Apply — so spinning past a month doesn't drag the screen behind it along.
+    // The wheels are the draft state; nothing leaves the sheet until Apply.
     val monthState = rememberLazyListState(selected.monthValue - 1)
     val yearState = rememberLazyListState(years.indexOf(selected.year).coerceAtLeast(0))
     val month by remember {
@@ -94,7 +93,7 @@ fun MonthYearPickerSheet(
                 modifier = Modifier.height(WheelHeight),
                 contentAlignment = Alignment.Center,
             ) {
-                // Behind the wheels, marking the row they hand their value over in.
+                // The selection band behind the wheels.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -107,8 +106,7 @@ fun MonthYearPickerSheet(
                         items = Month.entries,
                         state = monthState,
                         label = { it.getDisplayName(TextStyle.FULL, locale) },
-                        // A month outside the data is still reachable, so the wheel doesn't fight
-                        // the spin — it just can't be applied.
+                        // Out-of-range months stay reachable but can't be applied.
                         enabled = { YearMonth.of(year, it) in range },
                     )
                     Wheel(

@@ -18,14 +18,10 @@ import kotlinx.serialization.json.Json
 /**
  * Whole-app backup and restore.
  *
- * The file is gzipped JSON so a future version can still read an old one:
- * unknown fields are ignored and missing ones fall back to defaults. CSV is
- * for handing data to a spreadsheet, not for this — it can't carry the whole
- * shape without losing directions.
- *
- * Restore replaces everything. OAuth tokens are not in here: they live in
- * Keystore-backed storage, so a restored account has its settings and history
- * but has to be signed in again.
+ * Gzipped JSON, read forward-compatibly: unknown fields are ignored and
+ * missing ones fall back to defaults. Restore replaces everything; OAuth
+ * tokens stay in Keystore-backed storage, so a restored account must be
+ * signed in again.
  */
 class BackupManager(
     private val context: Context,
@@ -41,12 +37,7 @@ class BackupManager(
         encodeDefaults = true
     }
 
-    /**
-     * Writes the whole database to the document at [uri].
-     *
-     * Opening it lives here rather than at the call site: a screen that picked
-     * the document has no other reason to hold a Context.
-     */
+    /** Writes the whole database to the document at [uri]. */
     suspend fun backupTo(uri: Uri) = openOutput(uri).use { backupTo(it) }
 
     /** Reads the backup at [uri] without applying it — for showing what's in a file. */

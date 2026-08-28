@@ -10,11 +10,8 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 
 /**
- * POST_NOTIFICATIONS, or a stand-in on the versions that don't have it.
- *
- * Accompanist only knows about permissions the platform asks for. Below API 33
- * notifications are granted at install, so asking would be denied forever and
- * the onboarding step would never settle.
+ * POST_NOTIFICATIONS, or a stand-in below API 33, where notifications are
+ * granted at install and asking would be denied forever.
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable

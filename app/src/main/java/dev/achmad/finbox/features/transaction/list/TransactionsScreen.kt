@@ -204,22 +204,21 @@ fun TransactionsScreenContent(
             selected = null,
             onDismiss = { showCategoryPicker = false },
             onSelect = { category -> category?.let(onSetCategory) },
-            // Bulk-clearing a category is not a thing anyone asked for, and it
-            // would read as "delete" next to a list of real categories.
+            // Bulk-clearing would read as "delete" next to a list of real categories.
             includeUncategorized = false,
         )
     }
 
-    // Keyed on the method alone, not on the parser it was parsed by: a parser id carries the
-    // parser's version, so rows written by an older build would otherwise lose their name.
+    // Keyed on the method alone, not on the parser: a parser id carries its version, so
+    // rows written by an older build would otherwise lose their name. Empty until the
+    // registry loads, and empty for a method a parser dropped, so the rows fall through
+    // to the description.
     // ponytail: two parsers declaring the same key show one name — per-parser if that lands.
-    // Empty until the registry loads, and empty for a method a parser dropped, so the rows
-    // fall through to the description as before.
     val methodNames = remember(parsers) {
         parsers.flatMap { it.methods() }.associate { it.key to it.name }
     }
-    // By id here, because that is all a transaction stores. A row parsed by an earlier build of
-    // a parser is filed under that build's parser id and so goes unnamed, same as the filter.
+    // By id here, because that is all a transaction stores. A row parsed by an earlier
+    // build of a parser is filed under that build's id and goes unnamed, same as the filter.
     val parserNames = remember(parsers) { parsers.associate { it.id to it.name } }
 
     if (showMonthPicker) {
@@ -317,7 +316,7 @@ fun TransactionsScreenContent(
             isRefreshing = refreshing,
             onRefresh = {
                 onRefresh()
-                // The update runs long past this screen and the banner reports it, so the
+                // The update runs long past this screen and the banner reports it; the
                 // indicator is only here to acknowledge the pull.
                 scope.launch {
                     refreshing = true
@@ -360,8 +359,8 @@ fun TransactionsScreenContent(
                     onSelect = onMonthChange,
                     onPick = { showMonthPicker = true },
                 )
-                // Keyed on the pager alone. Re-collecting would replay the settled index as a month
-                // change, and while data loads that index keeps meaning a different month — which is
+                // Keyed on the pager alone. Re-collecting would replay the settled index as a
+                // month change; while data loads that index keeps meaning a different month —
                 // what made the screen skip through months on startup.
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.settledPage }.collect { settled ->
@@ -388,10 +387,9 @@ fun TransactionsScreenContent(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.Top,
-                    // A month identifies its page. Without this the pager is anchored to a bare
-                    // index, so an older month arriving at the front of the list leaves the
-                    // current page pointing at its neighbor's data until the effect below
-                    // corrects it — the flicker you see when an import writes.
+                    // A month identifies its page: without this an older month arriving at the
+                    // front of the list leaves the current page on its neighbor's data until
+                    // the effect below corrects it.
                     key = { months[it] },
                     // Only the first and last month have anything left to overscroll, so the bounce
                     // is what tells you there is no more data that way.
@@ -434,9 +432,8 @@ private fun MonthPage(
         var income = 0L
         transactions.forEach { transaction ->
             val amount = transaction.amount ?: 0L
-            // Same rule the rows use for their sign: only an expense counts as
-            // money out, so a row whose parser left the direction unset lands with
-            // income rather than silently against the wrong side of the total.
+            // Same rule the rows use for their sign: only an expense counts as money
+            // out, so a row whose parser left the direction unset lands with income.
             if (transaction.direction == TransactionDirection.OUTGOING) out += amount else income += amount
         }
         out to income
@@ -477,7 +474,6 @@ private fun MonthPage(
     }
 }
 
-/** One half of the out/in pair under the month's total. */
 @Composable
 private fun RowScope.MonthTotal(label: String, amount: Long) {
     Column(
@@ -805,7 +801,6 @@ private fun TransactionRow(
     }
 }
 
-/** The app bar while rows are picked: what is selected, and what can be done to it. */
 @Composable
 private fun SelectionAppBar(
     count: Int,
@@ -835,11 +830,9 @@ private fun SelectionAppBar(
 }
 
 /**
- * A month with nothing in it, and still something to pull on.
- *
- * The list is what hands PullToRefreshBox its drag, so a plain Column here left
- * the gesture dead in exactly the state where someone most wants to reach for
- * it: no transactions yet, and no way to ask for another look.
+ * A month with nothing in it, and still something to pull on: the list is what
+ * hands PullToRefreshBox its drag, so a plain Column would leave the gesture
+ * dead in exactly the state where someone reaches for a refresh.
  */
 @Composable
 private fun EmptyTransactions(filtered: Boolean) {

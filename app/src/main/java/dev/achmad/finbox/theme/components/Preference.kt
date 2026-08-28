@@ -5,11 +5,8 @@ import dev.achmad.finbox.util.preference.Preference as PreferenceData
 
 /**
  * A settings screen described as data, in the shape Tachiyomi's settings use.
- *
- * A screen builds a list of these and [PreferenceScreen] renders it, so a new
- * setting is a line in a list rather than a row of layout code. Items that own a
- * value take the [PreferenceData] itself and read and write it directly — the
- * screen holds no state of its own, and a value changed elsewhere shows up here.
+ * Items that own a value take the [PreferenceData] directly, so the screen
+ * holds no state of its own and reads values changed elsewhere.
  */
 sealed class Preference {
 
@@ -53,17 +50,13 @@ sealed class Preference {
             override val enabled: Boolean = true,
             val onValueChanged: suspend (T) -> Unit = {},
         ) : PreferenceItem() {
-            // The renderer only ever sees a ListPreference<*>, so the cast back to
-            // T happens here, where T is still known.
+            // The renderer only ever sees ListPreference<*>, so the cast to T happens here.
             internal fun internalSet(value: Any?) = preference.set(value as T)
             internal suspend fun internalOnValueChanged(value: Any?) = onValueChanged(value as T)
             internal fun internalEntryOf(value: Any?) = entries[value as T]
         }
 
-        /**
-         * A row that shows a check when it is the one in effect — a list of
-         * choices spread over a screen rather than folded into a dialog.
-         */
+        /** A checked row for choices spread over a screen rather than folded into a dialog. */
         data class CheckPreference(
             val value: String,
             val checked: Boolean,

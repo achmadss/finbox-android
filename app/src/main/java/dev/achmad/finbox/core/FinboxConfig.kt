@@ -3,9 +3,8 @@ package dev.achmad.finbox.core
 /**
  * App-wide constants.
  *
- * The OAuth client id isn't one of them: it belongs to whoever built the APK,
- * so it comes from `local.properties` as `oauthClientId` and reaches the app as
- * `BuildConfig.OAUTH_CLIENT_ID`.
+ * The OAuth client id is not here: it belongs to whoever built the APK, and
+ * arrives as `BuildConfig.OAUTH_CLIENT_ID` from `local.properties`.
  */
 object FinboxConfig {
 
@@ -24,45 +23,36 @@ object FinboxConfig {
     const val OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 
     /**
-     * What the consent screen asks for: the mail itself, and the name and
-     * picture shown against the account. `profile` is non-sensitive — it adds a
-     * line to the consent screen, not a verification review, which the
-     * restricted Gmail scope already requires.
+     * The consent screen asks for the mail plus the account's name and picture.
+     * `profile` is non-sensitive, so it costs a consent line, not a verification review.
      */
     const val GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly openid profile"
 
-    /** Gmail API base. */
     const val GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 
-    /** Name and picture of whoever just signed in. Needs `profile` above. */
+    /** Needs `profile`, declared in [GMAIL_SCOPE]. */
     const val USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     /**
-     * The parser API this app ships. A parser declares the one it was built
-     * against via `finbox.parser.lib`, or by the leading components of its
-     * versionName ("1.0.5" -> 1.0).
+     * The parser API this app ships. A parser declares it via `finbox.parser.lib`,
+     * or by the leading components of its versionName ("1.0.5" -> 1.0).
      */
     const val LIB_VERSION = 1.0
 
     /**
-     * The oldest parser API still loadable.
-     *
-     * Adding to the API raises [LIB_VERSION] and leaves this alone, so every
-     * published parser keeps working. Only a breaking change raises this, and
-     * that is meant to hurt: it orphans every APK below it until each is
-     * rebuilt.
+     * The oldest parser API still loadable. Raising it orphans every APK below it,
+     * so it moves only on a breaking change.
      */
     const val MIN_LIB_VERSION = 1.0
 
     /**
      * Whether a parser API version is one this app can load.
      *
-     * The tolerance is not slack: an APK's version comes out of the binary
-     * manifest as a float, and 1.2f widens to 1.2000000476837158, which no
-     * Double literal here will ever equal.
+     * The tolerance absorbs the float widening of an APK's reported version:
+     * 1.2f reads back as 1.2000000476837158.
      *
-     * ponytail: version as a Double, so 1.10 sorts below 1.9. Fine while minor
-     * versions stay single-digit; past that this needs a real comparison.
+     * ponytail: a Double sorts 1.10 below 1.9. Fine while minor versions stay
+     * single-digit.
      */
     fun supportsLibVersion(version: Double): Boolean =
         version >= MIN_LIB_VERSION - VERSION_TOLERANCE &&

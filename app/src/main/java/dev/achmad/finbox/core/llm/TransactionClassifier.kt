@@ -16,14 +16,6 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * Puts signatures into categories, in batches, over an OpenAI-compatible chat API.
- *
- * A concrete class rather than an interface: there is one implementation, and
- * the second one — if an on-device model ever earns its place — is what should
- * decide what the interface looks like.
- *
- * It classifies [Signature]s and never transactions. Passing rows would leak the
- * ledger into this layer and make the deduplication that pays for the whole
- * thing impossible to express.
  */
 class TransactionClassifier(
     private val client: LlmClient,
@@ -128,10 +120,8 @@ class TransactionClassifier(
      * The reply shape, with the category as a schema enum rather than a
      * described one.
      *
-     * That is also the whole of the prompt-injection defence. Transfer notes are
-     * written by whoever sent the money and land in the model's input; with the
-     * category constrained to this list, the worst they can achieve is a wrong
-     * category rather than an instruction that gets followed.
+     * The enum is also the prompt-injection defence: transfer notes land in the
+     * model's input, and the worst they can achieve is a wrong category.
      */
     private fun schema(): JsonObject = buildJsonObject {
         put("type", "object")
@@ -178,8 +168,7 @@ class TransactionClassifier(
     companion object {
         /**
          * Big enough that a few thousand transactions is dozens of requests,
-         * small enough that one malformed reply does not cost much. An
-         * implementation detail of this class, not a number anything else needs.
+         * small enough that one malformed reply does not cost much.
          */
         const val BATCH_SIZE = 25
 

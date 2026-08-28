@@ -12,11 +12,9 @@ private val DEFAULT_CACHE_CONTROL = CacheControl.Builder().maxAge(10.minutes).bu
 private val EMPTY_HEADERS = Headers.Builder().build()
 
 /**
- * Executes a GET request and returns the response.
- *
- * @param cacheControl the cache policy, or null to send the request without one —
- *   use null for authorized requests, whose responses must not land in the shared cache.
- * @param ensureSuccess throws [HttpException] on a non-2xx response.
+ * Executes a GET request. Pass null [cacheControl] for authorized requests,
+ * whose responses must not land in the shared cache. [ensureSuccess] throws
+ * [HttpException] on a non-2xx response.
  */
 suspend fun OkHttpClient.get(
     url: String,
@@ -25,7 +23,7 @@ suspend fun OkHttpClient.get(
     ensureSuccess: Boolean = true,
 ): Response = execute(url, headers, cacheControl, ensureSuccess) { get() }
 
-/** Executes a HEAD request and returns the response. See [get] for the parameters. */
+/** Same as [get]. */
 suspend fun OkHttpClient.head(
     url: String,
     headers: Headers = EMPTY_HEADERS,
@@ -33,7 +31,7 @@ suspend fun OkHttpClient.head(
     ensureSuccess: Boolean = true,
 ): Response = execute(url, headers, cacheControl, ensureSuccess) { head() }
 
-/** Executes a POST request and returns the response. See [get] for the parameters. */
+/** Same as [get]. */
 suspend fun OkHttpClient.post(
     url: String,
     body: RequestBody,
@@ -42,7 +40,7 @@ suspend fun OkHttpClient.post(
     ensureSuccess: Boolean = true,
 ): Response = execute(url, headers, cacheControl, ensureSuccess) { post(body) }
 
-/** Executes a PUT request and returns the response. See [get] for the parameters. */
+/** Same as [get]. */
 suspend fun OkHttpClient.put(
     url: String,
     body: RequestBody,
@@ -51,7 +49,7 @@ suspend fun OkHttpClient.put(
     ensureSuccess: Boolean = true,
 ): Response = execute(url, headers, cacheControl, ensureSuccess) { put(body) }
 
-/** Executes a PATCH request and returns the response. See [get] for the parameters. */
+/** Same as [get]. */
 suspend fun OkHttpClient.patch(
     url: String,
     body: RequestBody,
@@ -60,7 +58,7 @@ suspend fun OkHttpClient.patch(
     ensureSuccess: Boolean = true,
 ): Response = execute(url, headers, cacheControl, ensureSuccess) { patch(body) }
 
-/** Executes a DELETE request and returns the response. See [get] for the parameters. */
+/** Same as [get]. */
 suspend fun OkHttpClient.delete(
     url: String,
     body: RequestBody? = null,

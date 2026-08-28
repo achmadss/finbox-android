@@ -37,8 +37,7 @@ data class AppUpdate(val version: String, val releaseUrl: String, val apkUrl: St
  * Looks for a newer release of the app itself.
  *
  * The releases page is the source: this app is installed from an APK, so no
- * store is watching for it. A check is a single small request, throttled to
- * once a day on start and unthrottled when the user asks in settings.
+ * store is watching for it.
  */
 class AppUpdateChecker(
     private val context: Context,

@@ -24,8 +24,8 @@ import okhttp3.OkHttpClient
 /**
  * Downloads the APK of a newer release and offers it to the system installer.
  *
- * A job rather than screen work: the download outlives the notification tap that
- * started it, and the app may not even be open then.
+ * A job rather than screen work: the download outlives the notification tap
+ * that started it.
  */
 class AppUpdateDownloadJob(
     private val context: Context,

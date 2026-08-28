@@ -20,12 +20,6 @@ import dev.achmad.finbox.util.locale.supportedLanguages
 import androidx.compose.ui.res.stringResource
 import dev.achmad.finbox.R
 
-/**
- * The languages this build ships, one row each.
- *
- * The list is whatever the build found in the `values-*` folders, so a new
- * translation shows up here on its own.
- */
 object SettingsLanguageScreen : Screen {
     private fun readResolve(): Any = SettingsLanguageScreen
 

@@ -3,7 +3,7 @@ package dev.achmad.data.model
 /**
  * The part of a transaction a classifier actually sees.
  *
- * Forty GRABFOOD rows are one classification problem presented forty times. If
+ * Forty rows with identical input are one classification problem presented forty times. If
  * two transactions produce identical input, classifying them separately cannot
  * produce a better answer, only a more expensive and less consistent one — so
  * this, not the transaction, is the unit of classification and the key of the
@@ -28,9 +28,9 @@ data class Signature(
      * Whether there is anything here at all to send.
      *
      * Deliberately arithmetic rather than judgement. Whether a name is
-     * *informative* — whether "GoPay" or "debit card" says what money was for —
-     * is a question about the world, and the app is the wrong place to answer
-     * it: every answer it could hold would be a fact about some particular bank
+     * *informative* — whether it says what the money was for — is a question
+     * about the world, and the app is the wrong place to answer it: every
+     * answer it could hold would be a fact about some particular provider
      * hard-coded somewhere it does not belong. That reading is left to the
      * classifier, which may report back that the text does not say.
      *

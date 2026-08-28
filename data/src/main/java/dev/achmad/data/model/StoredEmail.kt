@@ -1,9 +1,8 @@
 package dev.achmad.data.model
 
 /**
- * One fetched email, cached so a parser installed later re-reads it from here: a
- * Gmail fetch costs twenty quota units and nothing narrows a re-read, so paying
- * once is the difference between a re-parse being free and being an import.
+ * One fetched email, cached so a parser installed later re-reads it from here
+ * instead of the provider: a re-parse then costs no fetch at all.
  */
 data class StoredEmail(
     /** With [accountId], the identity of an email. */

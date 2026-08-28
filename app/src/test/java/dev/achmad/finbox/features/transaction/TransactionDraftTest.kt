@@ -89,8 +89,7 @@ class TransactionDraftTest {
 
         val edited = unclassifiable.toDraft().copy(merchant = "Kopi Kenangan").applyTo(unclassifiable)
 
-        // Null, not a guess: the pass looks at it again now there is something
-        // to look at.
+        // Null, not a guess: now there is something for the pass to look at.
         assertNull(edited.category)
         assertNull(edited.categorySource)
     }
@@ -104,8 +103,7 @@ class TransactionDraftTest {
             description = null,
         )
 
-        // The amount is not part of a signature, so nothing a classifier reads
-        // has changed and asking again would return the same answer.
+        // Amount is not part of a signature, so a classifier would say the same again.
         val edited = unclassifiable.toDraft().copy(amount = "500").applyTo(unclassifiable)
 
         assertEquals(TransactionCategory.UNKNOWN, edited.category)

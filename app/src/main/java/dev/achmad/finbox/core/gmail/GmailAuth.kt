@@ -22,11 +22,7 @@ import dev.achmad.finbox.core.gmail.model.TokenResponse
 import dev.achmad.finbox.core.gmail.model.ProfileResponse
 import dev.achmad.finbox.core.gmail.model.UserInfoResponse
 
-/**
- * Per-account OAuth tokens, stored in Keystore-backed encrypted prefs.
- * Each account has its own access + refresh token (one OAuth client id,
- * account picker per authorization flow).
- */
+/** Per-account OAuth tokens, stored in Keystore-backed encrypted prefs. */
 class GmailTokenStore(context: Context) {
 
     private val prefs: SharedPreferences = run {
@@ -90,14 +86,12 @@ class GmailTokenManager(
     /**
      * Resolves the email of the account just authorized (also the dedup key).
      *
-     * Read from Gmail's own profile rather than OpenID userinfo: it names the
-     * mailbox this account will actually read, which is the thing being
-     * identified, and it fails loudly when the Gmail scope is the one missing.
+     * Profile rather than OpenID userinfo: it names the mailbox being
+     * identified, and fails loudly when the Gmail scope is missing.
      */
     suspend fun resolveEmail(accessToken: String): String {
-        // Deliberately not swallowed: this is the first authorized call an
-        // account makes, so what it fails with (403 API disabled, 401 bad token)
-        // is the only diagnosis the sign-in toast can offer.
+        // Deliberately not swallowed: this first call is what the sign-in
+        // toast can show when the account fails (403 API disabled, 401 bad token).
         val response = client.get(
             url = "${FinboxConfig.GMAIL_API_BASE}/profile",
             headers = Headers.headersOf("Authorization", "Bearer $accessToken"),
@@ -111,10 +105,8 @@ class GmailTokenManager(
     }
 
     /**
-     * Name and picture of the account just authorized, or nulls.
-     *
-     * Swallowed, unlike [resolveEmail]: sign-in works without either, and an
-     * account that cannot be named is still an account that can be read.
+     * Name and picture of the account just authorized, or nulls. Swallowed,
+     * unlike [resolveEmail]: sign-in works without either.
      */
     suspend fun resolveUserInfo(accessToken: String): UserInfoResponse =
         runCatching {
@@ -138,9 +130,8 @@ object GmailOAuth {
             FinboxConfig.OAUTH_REDIRECT_URI.toUri(),
         )
             .setScope(FinboxConfig.GMAIL_SCOPE)
-            // The picker lets a second account be added; consent is what makes
-            // Google reissue a refresh token, without which a re-add can only
-            // sync until the access token expires.
+            // select_account adds a second account; consent makes Google
+            // reissue a refresh token.
             .setPrompt("select_account consent")
             .build()
 }

@@ -43,10 +43,9 @@ class SettingsCategorizeScreenModel(
 
     init {
         refresh()
-        // Every instance watches, not just the one that pressed the button.
-        // Opening this screen while a run is going creates a fresh model whose
-        // estimate is a snapshot of a half-finished ledger; without this it kept
-        // showing that count until the screen was closed and opened again.
+        // Every instance watches, not just the one that pressed the button: a fresh
+        // model's estimate is a snapshot of a half-finished ledger, and would stay
+        // stale until the screen was closed and opened again.
         screenModelScope.launch {
             manager.state.collect { state ->
                 if (state is CategorizationManager.State.Idle) refresh()

@@ -4,14 +4,11 @@ import dev.achmad.finbox.util.preference.Preference
 import dev.achmad.finbox.util.preference.PreferenceStore
 
 /**
- * Which of a parser's transaction methods the user has switched off.
+ * The transaction methods the user has switched off.
  *
- * Stored as the off ones rather than the on ones so a method a parser adds in
- * a later version arrives switched on — the alternative is a new method silently
- * doing nothing until the user goes looking for it.
- *
- * Keyed by package, not by parser id: a parser id has the version code in it,
- * so keying on that would reset every switch each time the parser updates.
+ * Stored as the off ones so a method a parser adds later arrives switched on;
+ * keyed by package, not parser id, since the id encodes the version code and an
+ * update would reset every switch.
  */
 class ParserMethodPreference(
     private val preferenceStore: PreferenceStore,
@@ -31,6 +28,5 @@ class ParserMethodPreference(
         return enabling
     }
 
-    /** Forgets an uninstalled parser's switches rather than leaving them to rot. */
     fun clear(pkg: String) = disabled(pkg).delete()
 }

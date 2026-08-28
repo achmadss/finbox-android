@@ -9,9 +9,6 @@ data class Email(
     val from: String,
     /** Unix epoch millis. */
     val date: Long,
-    /**
-     * As the provider sent it, html where there is any. Flattening it belongs to
-     * the parser: what pairs a label with its value differs per provider.
-     */
+    /** As the provider sent it, html where there is any. */
     val body: String,
 )

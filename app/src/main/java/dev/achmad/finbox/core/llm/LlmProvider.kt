@@ -13,13 +13,8 @@ import kotlinx.serialization.json.Json
 /**
  * One OpenAI-compatible endpoint the user has set up.
  *
- * [name] is a label, nothing more — "Groq", "the cheap one". The model is
- * picked from whatever the endpoint lists rather than typed, because a
- * mistyped model id fails at the worst moment, halfway through a backfill.
- *
- * The API key is deliberately not a field here: this is serialized into plain
- * preferences, and a key does not belong there. It lives in [LlmKeyStore],
- * keyed by [id], the same Keystore-backed storage the OAuth tokens use.
+ * The API key is deliberately not a field: this is serialized into plain
+ * preferences. It lives in [LlmKeyStore], keyed by [id].
  */
 @Serializable
 data class LlmProvider(
@@ -77,9 +72,8 @@ class LlmKeyStore(context: Context) {
 /**
  * The providers the user has set up, and which one is in use.
  *
- * Several can be saved and exactly one is active. That is not for running two
- * classifiers — it is so switching between a cheap model and a good one, or
- * away from one that is down, does not mean retyping an endpoint and a key.
+ * Several can be saved so switching between them does not mean retyping an
+ * endpoint and a key.
  */
 class LlmProviderStore(
     private val preferenceStore: PreferenceStore,

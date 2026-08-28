@@ -12,15 +12,14 @@ data class EmailAccount(
     /** Gmail history cursor: the last historyId whose changes were fully processed. */
     val lastHistoryId: String? = null,
     /**
-     * Raw Gmail search narrowing what the initial import downloads, e.g.
-     * `{from:bri.co.id from:jago.com}`. Null means the whole mailbox — correct,
-     * but every message costs a 20-unit fetch.
+     * Raw Gmail search narrowing what the initial import downloads. Null means
+     * the whole mailbox, at the cost of a fetch per message.
      */
     val syncQuery: String? = null,
     /**
-     * Where Gmail's history stood when the initial import began, held until the
-     * import finishes — promoting it early would switch updates to the
-     * incremental path and strand the rest of the mailbox.
+     * Where Gmail's history stood when the initial import began, held until it
+     * finishes: promoting it early would switch updates to the incremental
+     * path and strand the rest.
      */
     val importCursor: String? = null,
     /**
@@ -29,9 +28,8 @@ data class EmailAccount(
      */
     val importedBackTo: Long? = null,
     /**
-     * Google profile picture, as the userinfo endpoint gave it at sign-in. Null
-     * for an account added before the app asked for the `profile` scope, and for
-     * one whose owner has no picture.
+     * Google profile picture, as userinfo gave it at sign-in. Null when the
+     * `profile` scope was not asked for, or when the owner has none.
      */
     val photoUrl: String? = null,
 )

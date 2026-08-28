@@ -16,14 +16,8 @@ import kotlinx.coroutines.launch
  * Owns the one classify pass that may be running.
  *
  * App-scoped rather than screen-scoped, so leaving the screen does not cancel a
- * backfill, and only one at a time: two passes over the same rows would spend
- * twice the tokens to reach the same place.
- *
- * ponytail: not a WorkManager job, so a pass dies with the process. It is
- * dozens of requests, every batch is written as it lands, and the next run
- * picks up whatever was left — so the cost of dying is a little repeated work,
- * not lost work. Move it to a job if backfills ever get long enough that
- * someone would want to leave the app during one.
+ * backfill. Not a WorkManager job: a pass dies with the process, at a little
+ * repeated work rather than lost work — the next run picks up what was left.
  */
 class CategorizationManager(
     private val categorizer: TransactionCategorizer,
@@ -33,13 +27,8 @@ class CategorizationManager(
     private var job: Job? = null
 
     init {
-        // Any run still marked RUNNING is one the process died under, and this
-        // is the one moment that is certainly true: this object owns the only
-        // job there is, and it has not started one yet.
-        //
-        // It used to be done when the screen opened, which meant opening the
-        // screen during a run marked that run cancelled, and finishing it a
-        // minute later flipped it back to done.
+        // Any run still marked RUNNING is one the process died under: this
+        // object owns the only job there is and has not started one yet.
         scope.launch { runs.cancelStale() }
     }
 
@@ -48,11 +37,7 @@ class CategorizationManager(
 
     val isRunning: Boolean get() = job?.isActive == true
 
-    /**
-     * Starts a pass, or does nothing if one is already going.
-     *
-     * @return false when it was turned away because one is already running.
-     */
+    /** Starts a pass, or does nothing if one is already going. */
     fun start(
         scopeOf: ClassificationScope,
         ids: Set<String> = emptySet(),

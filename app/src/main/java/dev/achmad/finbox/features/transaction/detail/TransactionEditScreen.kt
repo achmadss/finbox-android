@@ -73,9 +73,9 @@ import dev.achmad.finbox.theme.AppTheme
 import dev.achmad.finbox.R
 
 /**
- * Edits one transaction. The ids, the timestamps and the deleted flag belong to the
- * parser and the database, so they stay out of it; currency and reference are editable
- * in the repository but not offered here.
+ * Edits one transaction. The ids, timestamps, and the deleted flag belong to the
+ * parser and the database, so they stay out of the form; currency and reference
+ * are editable but not offered here.
  */
 data class TransactionEditScreen(private val id: String) : Screen {
 
@@ -86,8 +86,8 @@ data class TransactionEditScreen(private val id: String) : Screen {
         val transaction by model.transaction.collectAsState()
         val methods by model.methods.collectAsState()
 
-        // Seeded once, from the row as it was when this screen opened. Re-seeding on every
-        // emission would throw away what is being typed the moment anything else writes.
+        // Seeded once, from the row as it was when this screen opened; re-seeding on
+        // every emission would throw away what is being typed.
         var draft by remember { mutableStateOf<Draft?>(null) }
         LaunchedEffect(transaction) {
             val current = transaction
@@ -169,7 +169,6 @@ data class TransactionEditScreen(private val id: String) : Screen {
     }
 }
 
-/** A saved category change, and the rows it could be carried back to. */
 private data class SimilarCategoryOffer(
     val category: TransactionCategory,
     val ids: List<String>,
@@ -364,19 +363,15 @@ private fun TransactionEditor(
 }
 
 /**
- * The app's categories, plus Uncategorized.
- *
- * Uncategorized is not a way of saying "none of these": it clears the row back
- * to unprocessed, which is what hands it to the next classify pass. UNKNOWN is
- * missing on purpose — code assigns that after looking, and nobody should be
- * able to claim it by hand.
+ * The app's categories, plus Uncategorized. It clears the row back to
+ * unprocessed, which is what hands it to the next classify pass; UNKNOWN is
+ * missing on purpose, since code assigns that after looking.
  */
 @Composable
 internal fun CategoryPickerDialog(
     selected: TransactionCategory?,
     onDismiss: () -> Unit,
     onSelect: (TransactionCategory?) -> Unit,
-    /** Off where clearing makes no sense, such as filing a selection. */
     includeUncategorized: Boolean = true,
 ) {
     val options = if (includeUncategorized) {
@@ -415,7 +410,6 @@ internal fun CategoryPickerDialog(
     )
 }
 
-/** A read-only value that opens a picker. Weighted, so a pair of them share a row. */
 @Composable
 private fun PickerField(
     label: String,
@@ -557,7 +551,6 @@ private fun Long.toLocalDate(): LocalDate =
 private fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-/** The parser's name for a stored method key, or null when nothing declares it. */
 internal fun List<TransactionMethod>.nameOf(key: String?): String? =
     key?.let { stored -> firstOrNull { it.key == stored }?.name }
 
@@ -604,10 +597,8 @@ internal fun Draft.applyTo(transaction: Transaction): Transaction {
         )
         // UNKNOWN means the receipt did not say what this was for. An edit that
         // changed what a classifier would read makes that answer stale, so hand
-        // the row back to the next pass. Comparing signatures rather than asking
-        // whether one is complete: correcting an amount changes nothing a
-        // classifier looks at, and re-opening the row for it would just get the
-        // same answer back.
+        // the row back to the next pass. Comparing signatures, not asking whether
+        // one is complete: an amount change alters nothing a classifier looks at.
         transaction.category == TransactionCategory.UNKNOWN &&
             edited.signature() != transaction.signature() ->
             edited.copy(categoryName = null, categorySource = null)

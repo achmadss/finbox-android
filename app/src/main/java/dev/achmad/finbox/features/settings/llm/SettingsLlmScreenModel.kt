@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** The saved providers, and which one classification would use. */
 class SettingsLlmScreenModel(
     private val providers: LlmProviderStore = inject(),
 ) : ScreenModel {
@@ -47,11 +46,10 @@ class SettingsLlmScreenModel(
 }
 
 /**
- * One provider being added or edited.
- *
- * The model list is fetched rather than typed, so this holds the three states
- * that matter: nothing fetched yet, a list to choose from, and an endpoint that
- * would not list any — where typing an id is the only way through.
+ * One provider being added or edited. The model list is fetched rather than
+ * typed, so this holds the three states that matter: nothing fetched yet, a
+ * list to choose from, and an endpoint that would not list any — where typing
+ * an id is the only way through.
  */
 class LlmProviderScreenModel(
     private val existingId: String?,
@@ -64,8 +62,7 @@ class LlmProviderScreenModel(
 
     /**
      * The key already on file, so an edit that leaves the field blank still
-     * authorizes. Without it, correcting a typo in the name would silently
-     * strip the key from every request this screen makes.
+     * authorizes; otherwise a rename would silently strip it from every request.
      */
     private val storedKey: String? =
         existingId?.let { id -> providers.providers().get().firstOrNull { it.id == id } }
@@ -77,8 +74,8 @@ class LlmProviderScreenModel(
             name = existing?.name.orEmpty(),
             endpoint = existing?.endpoint.orEmpty(),
             model = existing?.model.orEmpty(),
-            // Never read back into the field. It is stored encrypted, and
-            // showing it would put it somewhere it does not belong.
+            // Never read back into the field: it is stored encrypted, and showing
+            // it would put it somewhere it does not belong.
             hasSavedKey = existing?.let { providers.key(it) != null } == true,
         )
     }
@@ -88,7 +85,6 @@ class LlmProviderScreenModel(
     fun onApiKey(value: String) { _state.value = _state.value.copy(apiKey = value) }
     fun onModel(value: String) { _state.value = _state.value.copy(model = value) }
 
-    /** Asks the endpoint what it serves, so nobody has to type a model id from memory. */
     fun fetchModels() {
         val current = _state.value
         _state.value = current.copy(busy = true, message = null)
@@ -98,8 +94,7 @@ class LlmProviderScreenModel(
                     _state.value = _state.value.copy(
                         busy = false,
                         models = models,
-                        // A host that lists nothing is not broken, it just does
-                        // not answer this. Typing an id is then the way through.
+                        // A host that lists nothing is not broken; typing an id is then the way through.
                         manualModel = models.isEmpty(),
                         model = _state.value.model.takeIf { it in models } ?: models.firstOrNull().orEmpty(),
                         message = Message.NoModels.takeIf { models.isEmpty() },

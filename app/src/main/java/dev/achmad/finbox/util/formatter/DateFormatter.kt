@@ -41,11 +41,11 @@ fun formatDate(epochMillis: Long?, use24Hour: Boolean): String {
     }
 }
 
-/** The calendar day, e.g. `10 Aug 2026` — for a date shown without its time. */
+/** The calendar day, e.g. `10 Aug 2026`. */
 fun formatDateOnly(epochMillis: Long): String =
     dateOnlyFormatter.format(Instant.ofEpochMilli(epochMillis))
 
-/** Day and month only, e.g. `10 Aug` — for day headers in a list. */
+/** Day and month, e.g. `10 Aug`. */
 fun formatDay(epochMillis: Long?): String {
     if (epochMillis == null) return "-"
     return dayFormatter.format(Instant.ofEpochMilli(epochMillis))
@@ -53,14 +53,12 @@ fun formatDay(epochMillis: Long?): String {
 
 fun formatDay(date: LocalDate): String = dayFormatter.format(date)
 
-/** Time of day, e.g. `14:32`. */
 fun formatTime(epochMillis: Long?, use24Hour: Boolean): String {
     if (epochMillis == null) return "-"
     val formatter = if (use24Hour) timeFormatter else timeFormatter12
     return formatter.format(Instant.ofEpochMilli(epochMillis))
 }
 
-/** Month and year, e.g. `August 2026`. */
 fun formatMonthYear(yearMonth: YearMonth): String = monthYearFormatter.format(yearMonth)
 
 /** Month alone, e.g. `August` — for a neighbouring month whose year is already on screen. */

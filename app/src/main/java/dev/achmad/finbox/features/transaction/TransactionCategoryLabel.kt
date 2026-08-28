@@ -7,8 +7,6 @@ import dev.achmad.data.model.TransactionCategory
 import dev.achmad.finbox.R
 
 /**
- * What each category is called on screen.
- *
  * The enum name is the stored value and never reaches the user: it has to be
  * stable across builds, and a label has to be translatable. Kept exhaustive on
  * purpose — adding a category should not compile until it has a name.
@@ -45,6 +43,5 @@ val TransactionCategory.labelRes: Int
 fun categoryLabel(category: TransactionCategory?): String =
     stringResource(category?.labelRes ?: R.string.category_uncategorized)
 
-/** The categories a person can file something under. */
 val pickableCategories: List<TransactionCategory> =
     TransactionCategory.entries - TransactionCategory.UNKNOWN

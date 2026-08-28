@@ -5,8 +5,8 @@ import dev.achmad.finbox.util.preference.PreferenceStore
 /**
  * When the app goes looking for new mail on its own.
  *
- * Only the schedule reads these. A refresh the user asked for runs whatever the
- * constraints say, since waiting for Wi-Fi is not what "fetch now" means.
+ * Only the schedule reads these: a refresh the user asked for ignores them,
+ * since waiting for Wi-Fi is not what "fetch now" means.
  */
 class SyncPreferences(
     private val preferenceStore: PreferenceStore,

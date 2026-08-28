@@ -12,11 +12,8 @@ import dev.achmad.finbox.MainActivity
 import dev.achmad.finbox.R
 
 /**
- * The notification an import runs behind.
- *
- * A first import can take far longer than the ten minutes a background worker
- * is given, so it runs as a foreground service — which Android only allows
- * with something visible attached.
+ * The notification behind a foreground import: a background worker gets ten
+ * minutes, and Android only allows a foreground service with something visible.
  */
 class TransactionUpdateNotifier(private val context: Context) {
 
@@ -44,10 +41,10 @@ class TransactionUpdateNotifier(private val context: Context) {
     )
 
     /**
-     * Posts a separate notification so WorkManager cannot remove it with the foreground one.
+     * A separate notification, so WorkManager cannot remove it with the foreground one.
      *
-     * This one is worth tapping — the transactions it announces are in the list — so it
-     * carries an intent onto that list, and dismisses itself once tapped.
+     * It is worth tapping — the transactions are in the list — so it opens the list
+     * and dismisses itself once tapped.
      */
     fun showDone(imported: Int) {
         manager?.notify(
@@ -85,7 +82,7 @@ class TransactionUpdateNotifier(private val context: Context) {
 
     /**
      * CLEAR_TOP so a tap lands on the app as it already is rather than stacking a
-     * second copy of it, and the action tells [MainActivity] to show the list.
+     * second copy of it.
      */
     private fun openTransactionsIntent(): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)

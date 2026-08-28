@@ -27,13 +27,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import dev.achmad.finbox.core.preference.ParserMethodPreference
 
-/**
- * Orchestrates installed parsers:
- * - loads APKs from disk ([reload])
- * - keeps the `installed_parser` DB table in sync
- * - fetches the repo index for the available/update lists
- * - runs installs and updates ([install], [update])
- */
+/** Orchestrates installed parsers: loading, database sync, installs, and updates. */
 class ParserManager(
     private val transactionUpdateManager: TransactionUpdateManager,
     private val loader: ParserLoader,
@@ -47,7 +41,6 @@ class ParserManager(
 
     private val mutex = Mutex()
 
-    /** pkg -> metadata, for the APKs that loaded. */
     val installedInfo: MutableStateFlow<Map<String, InstalledParserInfo>> = MutableStateFlow(emptyMap())
 
     /** Load failures by file name, shown in the UI. */
@@ -68,7 +61,6 @@ class ParserManager(
     private val _installSteps = MutableStateFlow<Map<String, InstallStep>>(emptyMap())
     val installSteps: StateFlow<Map<String, InstallStep>> = _installSteps.asStateFlow()
 
-    /** Kept so a cancel button has something to stop. */
     private val installJobs = ConcurrentHashMap<String, Job>()
 
     /** Set by an install that landed, cleared by whichever one asks for the re-read. */
@@ -91,9 +83,6 @@ class ParserManager(
     /**
      * The install as a flow of steps, ending in [InstallStep.Installed] once the
      * APK is loaded and the registry has caught up.
-     *
-     * Dropping the collector cancels the install, which is why [install] collects
-     * it somewhere longer-lived than a screen.
      */
     private fun installParser(parser: AvailableParser): Flow<InstallStep> =
         installer.downloadAndInstall(parser)
@@ -120,21 +109,19 @@ class ParserManager(
                 }
                 .onCompletion {
                     installJobs.remove(pkg)
-                    // A finished install redraws from the installed list, but a
-                    // failure has to stay on the row or it goes back to looking
-                    // untouched.
+                    // A finished install redraws from the installed list; a
+                    // failure has to stay on the row or it looks untouched.
                     if (last != InstallStep.Error) _installSteps.update { it - pkg }
                 }
                 .collect()
             if (last == InstallStep.Installed) reparseWanted.set(true)
-            // The last install of a batch speaks for all of them. Asking per parser only
-            // gets the first request in — the rest arrive while that one runs and are
-            // turned away, so the parsers behind them were never re-read.
+            // The last install of a batch speaks for all of them: asking per
+            // parser only gets the first request in, while the rest arrive during
+            // the re-read and are turned away.
             if (installJobs.isEmpty() && reparseWanted.getAndSet(false)) reparse()
         }
     }
 
-    /** Installs the newer build the index has of [pkg]. */
     fun update(pkg: String) {
         val parser = available.value.firstOrNull { it.pkg == pkg } ?: return
         install(parser)
@@ -147,20 +134,15 @@ class ParserManager(
     }
 
     /**
-     * A parser that wasn't there before reads the mail it hasn't tried yet.
-     *
-     * Handed to a job: it downloads a body per untried email, which outlives any
-     * screen. On the main thread because enqueuing may raise a toast.
+     * Re-reads mail for the loaded parsers, in a job so it outlives any screen,
+     * on the main thread because enqueuing may show a toast.
      */
     private suspend fun reparse() = withContext(Dispatchers.Main) {
-        // Including mail these parsers already claimed. A parser is published
-        // because it reads something differently, and the transactions it wrote
-        // last time are exactly the ones that are now wrong — leaving them alone
-        // means a fix only ever reaches mail that arrives after it.
-        //
-        // Safe because a parser keeps its id across versions, so the rows come
-        // back under the ids they already have: updated in place, categories
-        // kept, and anything hand-edited skipped outright.
+        // Including mail already parsed: a parser update fixes how it reads, so
+        // the rows it wrote before are the ones now wrong; leaving them alone
+        // means the fix never reaches the mail it already read.
+        // Safe because a parser keeps its id across versions: existing rows
+        // update in place and hand-edited ones are skipped.
         transactionUpdateManager.reparseNow(
             includeParsed = true,
             parserIds = parsersFlow.value.mapTo(mutableSetOf()) { it.id },
@@ -170,7 +152,6 @@ class ParserManager(
         )
     }
 
-    /** Installed parsers the index has a newer build of. */
     fun pendingUpdates(): List<InstalledParser> =
         installed.value.filter { available.value.hasUpdateFor(it) }
 
@@ -244,6 +225,5 @@ class ParserManager(
     fun getById(parserId: Long): LoadedParser? = knownParsers[parserId]
 }
 
-/** The one rule for "there is an update": the index has a higher version code. */
 fun List<AvailableParser>.hasUpdateFor(parser: InstalledParser): Boolean =
     any { it.pkg == parser.pkg && it.versionCode > parser.versionCode }

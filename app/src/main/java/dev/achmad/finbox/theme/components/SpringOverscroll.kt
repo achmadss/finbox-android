@@ -23,10 +23,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-/**
- * Drags past the ends and springs back, in place of the stock stretch. Horizontal only — the
- * vertical axis is left to whatever is scrolling inside.
- */
+/** Drags past the ends and springs back, in place of the stock stretch. Horizontal only. */
 @Composable
 fun rememberSpringOverscrollEffect(): OverscrollEffect {
     val scope = rememberCoroutineScope()

@@ -104,11 +104,9 @@ class ParsersScreenModel(
 }
 
 /**
- * The three lists the screen draws, from the two the manager keeps.
- *
- * An installed parser with a newer entry in the index moves out of
- * "installed" and into "updates"; the index entry for something already
- * installed is not offered again.
+ * The three lists the screen draws, from the two the manager keeps. An installed
+ * parser with a newer index entry moves out of "installed" into "updates"; the
+ * index entry for something already installed is not offered again.
  */
 fun groupParsers(
     installed: List<InstalledParser>,

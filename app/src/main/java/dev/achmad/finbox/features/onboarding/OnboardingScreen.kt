@@ -61,14 +61,11 @@ object OnboardingScreen: Screen {
             ActivityResultContracts.StartActivityForResult(),
         ) { result -> screenModel.onSignInResult(result.data) }
 
-        // The last step is leaving: nothing else is waiting on this screen, so the
-        // state saying so is the whole signal.
         LaunchedEffect(state) {
             if (state is OnboardingScreenModel.State.Done) navigator.replace(TransactionsScreen)
         }
 
-        // Setting a provider up happens on another screen, so coming back is the
-        // only signal this one gets that the step is done.
+        // Provider setup happens on another screen; coming back is the only signal that the step is done.
         LaunchedEffect(navigator.lastItem, state) {
             if (state is OnboardingScreenModel.State.SetupAi &&
                 navigator.lastItem is OnboardingScreen &&
@@ -159,8 +156,7 @@ fun OnboardingScreenContent(
         modifier = Modifier.fillMaxSize(),
     ) { onboardingState ->
         when(onboardingState) {
-            // Nothing to draw for either: one is before the first step, the other after
-            // the last, and both last a frame while the navigator catches up.
+            // Nothing to draw for either: both last a frame while the navigator catches up.
             is OnboardingScreenModel.State.Resolving,
             is OnboardingScreenModel.State.Done -> Unit
             is OnboardingScreenModel.State.SignIn -> {

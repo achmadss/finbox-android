@@ -130,8 +130,7 @@ fun ParsersScreenContent(
                     CircularProgressIndicator()
                 }
                 // A list, not a Box: the gesture needs something scrollable to
-                // pull on, and an empty index is exactly when someone reaches
-                // for a refresh.
+                // pull on, and an empty index is exactly when someone reaches for a refresh.
                 state.isEmpty -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item {
                         Box(Modifier.fillParentMaxSize(), Alignment.Center) {

@@ -18,7 +18,6 @@ sealed class LoadResult {
     data class Error(val file: String, val reason: String) : LoadResult()
 }
 
-/** Metadata of an installed parser loaded from its APK. */
 data class InstalledParserInfo(
     val pkg: String,
     val provider: String,

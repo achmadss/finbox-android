@@ -1,42 +1,14 @@
 package dev.achmad.finbox.parser
 
-/**
- * One financial provider — BRI, Jago, Gojek — as a parser implements it.
- *
- * Identity (name, version) comes from the APK manifest, which the `finbox { }`
- * block in Gradle fills in, so none of it is declared here. Annotate the
- * implementation with [Parser] to make it the APK's entry point.
- */
+/** A financial provider, as a parser implements it. */
 interface EmailParser {
 
-    /**
-     * Every method this parser can produce, in the order the user should see
-     * them.
-     *
-     * The app puts a switch against each and skips a transaction whose method
-     * is off, so a method missing from here can never be turned off, and one
-     * that never comes back from [parse] is a dead switch. Declare a catch-all:
-     * a provider adds ways to move money without warning, and the alternative
-     * is dropping them silently.
-     */
+    /** Every method this parser can produce, in the order the user should see them. */
     fun methods(): List<TransactionMethod>
 
-    /**
-     * Which mail is worth fetching, e.g. `EmailQuery.from("BankBRI@bri.co.id")`.
-     *
-     * Fetching is the app's job, but downloading one message costs twenty times
-     * listing five hundred ids, so naming a sender saves the app a mailbox it
-     * has no use for. Deliberately wide — [parse] does the real rejecting.
-     */
+    /** Which mail is worth fetching. */
     fun emailQuery(): EmailQuery
 
-    /**
-     * Read [email] into transactions, or return nothing to disown it.
-     *
-     * Empty covers both cases the app cares about: mail from another provider,
-     * and this provider's own OTPs and promotions, which arrive from the same
-     * address as its receipts. The app then offers the email to the next parser,
-     * so a wrong guess costs one wasted call.
-     */
+    /** Read [email] into transactions, or return nothing to disown it. */
     suspend fun parse(email: Email): List<ParsedTransaction>
 }

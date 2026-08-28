@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** One run's decisions, as it recorded them. */
 class ClassificationRunScreenModel(
     private val runId: Long,
     private val runs: ClassificationRunRepository = inject(),
@@ -26,9 +25,8 @@ class ClassificationRunScreenModel(
     val run: StateFlow<ClassificationRun?> = _run.asStateFlow()
 
     init {
-        // A run still going keeps writing rows, and the results flow carries
-        // those on its own; only the header totals are a snapshot, and they are
-        // refreshed when the list changes rather than polled.
+        // A run still going keeps writing rows, and the results flow carries those
+        // on its own; only the header totals are a snapshot, refreshed by the list.
         screenModelScope.launch {
             results.collect { _run.value = runs.getById(runId) }
         }

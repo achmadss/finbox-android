@@ -21,9 +21,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Asks for transaction update work: on a schedule, or now.
  *
- * Nothing here does the updating — [TransactionUpdateJob] does, off in its own
- * process. This is only the side that decides what to enqueue and what to turn
- * away, which is why a screen can hold one without holding a Context.
+ * [TransactionUpdateJob] runs the update; this side only decides what to
+ * enqueue and what to turn away.
  */
 class TransactionUpdateManager(
     private val workManager: WorkManager,
@@ -87,23 +86,14 @@ class TransactionUpdateManager(
         enqueueOneTime(parseOnly = false, userInitiated = userInitiated)
 
     /**
-     * Re-reads stored mail after a parser is installed, updated or enabled.
-     *
-     * A parser change while a full update is running is dropped: that update
-     * re-reads stored mail on its way through anyway.
-     */
-    /**
      * Re-reads stored mail.
      *
-     * [includeParsed] decides how much: off, only mail nothing has claimed yet,
-     * which is what a plain refresh wants. On, also the mail [parserIds] already
-     * claimed — what an updated parser needs, since the whole reason to publish
-     * one is that it reads those emails differently now.
+     * [includeParsed] decides how much: off, only mail nothing has claimed yet —
+     * what a plain refresh wants. On, also the mail [parserIds] already claimed,
+     * what an updated parser needs.
      *
-     * Re-reading is nearly free: the bodies are already here, so this costs no
-     * Gmail quota. The transactions come back under the same ids, so a re-read
-     * updates the rows in place rather than duplicating them, and everything the
-     * user owns on those rows survives it.
+     * Nearly free: the bodies are already here, and the rows come back under the
+     * same ids, so a re-read updates them in place rather than duplicating them.
      */
     suspend fun reparseNow(
         includeParsed: Boolean = false,
@@ -169,10 +159,9 @@ class TransactionUpdateManager(
     }
 
     /**
-     * Only work that is actually running blocks a new request. ENQUEUED covers a periodic
-     * job waiting for its window and a one-time job waiting out a retry backoff — neither
-     * is an update in progress, and treating them as one made the refresh permanently
-     * refuse after a single failed run.
+     * Only genuinely running work blocks a new request. A periodic job waiting
+     * for its window or a one-time job in retry backoff is not an update in
+     * progress.
      */
     private suspend fun ongoingWork(): List<WorkInfo> {
         val periodic = workManager
@@ -198,15 +187,10 @@ class TransactionUpdateManager(
 }
 
 /**
- * A full update does everything a parse-only pass does — it re-reads stored mail
- * before it asks Gmail for anything — so it takes one over instead of being turned
- * away by it. Enqueuing replaces the running request, which stops it.
- *
- * Without this an install finishing at the same moment as a refresh could leave the
- * re-read running and the fetch dropped, so nothing new ever arrived.
- *
- * Takes tags rather than the WorkInfo they came off so the rule can be read, and
- * tested, without WorkManager.
+ * A full update does everything a parse-only pass does, so it takes one over
+ * instead of being turned away by it. Without this an install finishing at the
+ * same moment as a refresh could leave the re-read running and the fetch
+ * dropped.
  */
 internal fun supersedes(parseOnly: Boolean, ongoingTags: List<Set<String>>): Boolean =
     !parseOnly && ongoingTags.all { TransactionUpdateWork.PARSE_ONLY_TAG in it }

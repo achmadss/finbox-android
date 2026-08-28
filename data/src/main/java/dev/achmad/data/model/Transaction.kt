@@ -1,8 +1,8 @@
 package dev.achmad.data.model
 
 /**
- * Which way the money went — all the app itself knows. What the provider calls
- * it (QRIS, a top up) is the parser's vocabulary and lives in [Transaction.method].
+ * Which way the money went — all the app itself knows. What a provider calls
+ * it is the parser's vocabulary and lives in [Transaction.method].
  */
 enum class TransactionDirection {
     INCOMING,
@@ -16,9 +16,9 @@ data class Transaction(
     /** The [StoredEmail] this was parsed from. */
     val emailMessageId: String,
     /**
-     * Which of the transactions this email yielded, counted in the order the
-     * parser returned them. Part of [id], so it has to survive a re-read: a
-     * transaction the user switched off is skipped without renumbering the rest.
+     * Which of the transactions this email yielded, in parser order. Part of
+     * [id], so it survives a re-read: skipping a dismissed row must not
+     * renumber the rest.
      */
     val index: Int,
     /** Collapses duplicate messages in a thread. */
@@ -29,16 +29,15 @@ data class Transaction(
     val currency: String?,
     val direction: TransactionDirection?,
     /**
-     * The key of one of the parser's declared methods, e.g. `QRIS`. Null on a
-     * hand-entered row, which no parser claimed.
+     * The key of one of the parser's declared methods. Null on a hand-entered
+     * row, which no parser claimed.
      */
     val method: String?,
     /**
      * A [TransactionCategory] name, or null when nothing has decided yet.
      *
-     * Free-form in the column and validated on the way out, via [category] —
-     * changing the taxonomy then costs a reclassification instead of corrupting
-     * every row filed under a name that no longer exists.
+     * Stored free-form and validated on the way out via [category], so a
+     * taxonomy change costs a reclassification, not corrupt rows.
      */
     val categoryName: String?,
     /** Who decided [categoryName]. Null means nobody has. */
@@ -50,9 +49,9 @@ data class Transaction(
     /**
      * When the user last hand-edited any field, or null if they never have.
      *
-     * Separate from [categorySource] because the two are genuinely independent:
-     * correcting a merchant and leaving the category to a model is a real case,
-     * and so is accepting every parsed field but filing it yourself.
+     * Independent of [categorySource]: fixing a merchant but leaving the
+     * category to a model is one case, accepting parsed fields and filing them
+     * yourself is the other.
      */
     val editedAt: Long?,
     val deleted: Boolean,
@@ -60,22 +59,15 @@ data class Transaction(
     /** [categoryName] as a category this build knows, or null. */
     val category: TransactionCategory? get() = TransactionCategory.fromStringOrNull(categoryName)
 
-    /**
-     * Whether the user has touched this row.
-     *
-     * What the marker in the list means, and what makes a re-parse leave the
-     * row alone — their version is the better one, so a parser must not
-     * overwrite it.
-     */
+    /** Whether the user has touched this row — what makes a re-parse leave it alone. */
     val edited: Boolean get() = editedAt != null
 
     /**
      * A stable identity that does not change when the parser version changes.
      *
-     * Keyed on the Gmail message, not the thread: a thread can carry unrelated
-     * mail and genuinely different transactions, so collapsing one loses money.
-     * Two messages reporting the same transaction are caught later, by the
-     * provider reference — see
+     * Keyed on the message, not the thread: a thread can carry unrelated mail
+     * and different transactions, so collapsing one loses money. Two messages
+     * reporting the same transaction are merged later by reference — see
      * [dev.achmad.data.repository.TransactionRepository.upsertAll].
      */
     val id: String get() = "$accountId:message:$emailMessageId:$parserId:$index"
@@ -94,5 +86,4 @@ data class Transaction(
  */
 fun transactionIndexOf(id: String): Int = id.substringAfterLast(':').toIntOrNull() ?: 0
 
-/** Blank thread ids and missing ones mean the same thing, so they store the same. */
 fun String?.normalizedThreadId(): String? = this?.trim()?.takeIf { it.isNotEmpty() }

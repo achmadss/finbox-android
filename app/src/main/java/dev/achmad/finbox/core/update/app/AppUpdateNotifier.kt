@@ -18,9 +18,8 @@ import java.io.File
  * Every notification an app update goes through: the offer, the download it runs
  * behind, and the install prompt at the end.
  *
- * The download notification is the foreground one of [AppUpdateDownloadJob], so
- * WorkManager takes it away when the job ends — the install prompt has to be a
- * separate notification to survive that.
+ * The install prompt must be a separate notification: WorkManager takes the
+ * foreground download one away when the job ends.
  */
 class AppUpdateNotifier(private val context: Context) {
 

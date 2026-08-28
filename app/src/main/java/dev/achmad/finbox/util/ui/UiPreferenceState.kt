@@ -7,11 +7,8 @@ import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.preference.collectAsState
 
 /**
- * The clock setting, for the screens that print a time.
- *
- * Each screen reads it for itself rather than a global holding it: the read
- * belongs to the composition that shows the time, so only that screen
- * recomposes when the setting changes.
+ * The clock setting. Each screen that prints a time reads it itself, so only
+ * the composition showing one recomposes when it changes.
  */
 @Composable
 fun rememberUse24HourClock(): Boolean {

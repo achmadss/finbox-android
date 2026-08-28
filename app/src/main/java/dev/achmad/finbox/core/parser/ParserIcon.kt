@@ -22,12 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * Painter for an installed parser's own icon, read from its APK.
- *
- * Falls back to a generic icon, which is also what shows while the APK is being
- * read: a painter has no way to say "not yet".
- */
+/** Painter for an installed parser's own icon, read from its APK. */
 @Composable
 fun rememberParserPainter(parser: InstalledParser): Painter {
     val context = LocalContext.current
@@ -44,10 +39,8 @@ fun rememberParserPainter(parser: InstalledParser): Painter {
 /**
  * Reads a parser's launcher icon out of its APK.
  *
- * The APK is never installed as a package, so the icon comes from resources
- * opened against the file itself: [android.content.pm.ApplicationInfo.sourceDir]
- * is null on an archive and has to be pointed back at the APK before
- * [PackageManager.getResourcesForApplication] can find anything.
+ * The APK is never installed as a package, so [ApplicationInfo.sourceDir] must
+ * be pointed back at the file before its resources can be read.
  *
  * Blocking; call it off the main thread. Null when the APK is gone or declares
  * no icon.

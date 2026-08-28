@@ -60,8 +60,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
         val disabled by model.disabled.collectAsState()
         val parsers by model.parsers.collectAsState()
 
-        // Gone once it has been here means removed, here or anywhere else. Only once it has been
-        // here: the read starts null and fills a moment later, which is not the same thing.
+        // Gone only once it has been here: a null at the start is the first read still running.
         var everLoaded by remember { mutableStateOf(false) }
         LaunchedEffect(account) {
             if (account != null) everLoaded = true else if (everLoaded) navigator.pop()
@@ -79,7 +78,6 @@ data class AccountDetailsScreen(private val id: String) : Screen {
     }
 }
 
-/** One parser row: what it is called, and whether this account reads with it. */
 data class ParserToggle(val id: Long, val name: String, val enabled: Boolean)
 
 /** Null [account] is the first read still running. */

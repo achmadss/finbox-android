@@ -5,11 +5,8 @@ import dev.achmad.finbox.util.preference.PreferenceStore
 import java.util.concurrent.TimeUnit
 
 /**
- * Fetches the repo index on app start to find out what has a newer build, at
- * most once a day, and says so in a notification.
- *
- * On start rather than on a schedule: a parser update is only worth acting
- * on when the app is in use, and the index is a single small file.
+ * Fetches the repo index on app start, at most once a day: a parser update is
+ * only worth acting on when the app is in use, and the index is one small file.
  */
 class ParserUpdateChecker(
     private val notifier: ParserUpdateNotifier,

@@ -1,11 +1,6 @@
 package dev.achmad.finbox.core.update.transaction
 
-/**
- * The names and keys the transaction update work is addressed by.
- *
- * Shared so that requesting work, running it and observing it can each be their
- * own class without any of them having to reach into another.
- */
+/** The names and keys the transaction update work is addressed by. */
 object TransactionUpdateWork {
     const val WORK_NAME = "finbox_transaction_update"
 

@@ -7,13 +7,7 @@ import dev.achmad.finbox.core.FinboxConfig
 import dev.achmad.finbox.parser.EmailParser
 import java.io.File
 
-/**
- * Loads parsers from the APK files in `filesDir/parsers/`.
- *
- * Each APK's manifest supplies the identity and the `finbox.parser.lib` version
- * checked against [FinboxConfig.supportsLibVersion]; the [EmailParser] itself
- * is instantiated through a [ChildFirstPathClassLoader].
- */
+/** Loads parsers from the APK files in `filesDir/parsers/`. */
 class ParserLoader(
     private val context: Context,
 ) {
@@ -39,20 +33,20 @@ class ParserLoader(
         val meta = pkgInfo?.applicationInfo?.metaData
             ?: return LoadResult.Error(apk.name, "Invalid or unreadable APK")
 
-        // The APK's own versionName/versionCode, not custom metadata: a parser
-        // that fails to declare them is broken, not defaultable.
+        // The APK's own versionName/versionCode: a parser that fails to declare
+        // them is broken, not defaultable.
         val versionName = pkgInfo.versionName
         if (versionName.isNullOrEmpty()) {
             return LoadResult.Error(apk.name, "Missing versionName")
         }
         val versionCode = PackageInfoCompat.getLongVersionCode(pkgInfo)
 
-        // aapt stores "1.0" as a float, so getString returns null. 0f means the
-        // metadata is absent, and the versionName prefix carries it ("1.0.3" -> 1.0).
+        // aapt stores "1.0" as a float, so getString returns null; 0f means the
+        // metadata is absent and the versionName prefix carries it ("1.0.3" -> 1.0).
         val libVersion = meta.getFloat("finbox.parser.lib")
             .takeUnless { it == 0f }
-            // Via the string: widening the float direct to double reads 1.4 as
-            // 1.3999999761581421, which is what the parser screen would show.
+            // Via the string: widening the float to double reads 1.4 as
+            // 1.3999999761581421.
             ?.toString()
             ?.toDouble()
             ?: versionName.substringBeforeLast('.').toDoubleOrNull()
@@ -78,8 +72,8 @@ class ParserLoader(
         )
 
         return try {
-            // Also here, not only at install time: an APK written by an older
-            // build of the app is still sitting there, still writable.
+            // Also here, not only at install time: an APK from an older build
+            // is still sitting there, still writable.
             if (apk.canWrite()) apk.setReadOnly()
             val classLoader = ChildFirstPathClassLoader(
                 dexPath = apk.absolutePath,

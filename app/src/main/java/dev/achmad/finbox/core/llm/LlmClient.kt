@@ -16,28 +16,16 @@ import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
-/**
- * Talks to one OpenAI-compatible endpoint.
- *
- * Deliberately not a `Classifier` interface with several implementations. It is
- * a request builder for a shape of API that a great many hosts speak, and the
- * thing above it decides what to ask.
- */
+/** Talks to one OpenAI-compatible endpoint. */
 class LlmClient(
     client: OkHttpClient,
     private val providers: LlmProviderStore,
 ) {
 
     /**
-     * The shared client with room to think.
-     *
-     * Everything else here talks to Gmail and GitHub, where 30 seconds without
-     * a byte means something is wrong. A model generating twenty-five answers
-     * routinely takes longer than that, and a free tier can take minutes — so
-     * the app's own timeout was cancelling requests that were working.
-     *
-     * Built from the shared one so the connection pool, cache and interceptors
-     * are the same; only the patience differs.
+     * The shared client with more patience than the app default: a free tier
+     * can take minutes to answer a batch, and the default timeout was
+     * cancelling requests that were working. Only the timeouts differ.
      */
     private val client: OkHttpClient = client.newBuilder()
         .readTimeout(3, TimeUnit.MINUTES)
@@ -64,10 +52,8 @@ class LlmClient(
     /**
      * One chat completion, returning the assistant's message content.
      *
-     * [schema] is a JSON Schema the reply must satisfy. Supplying it as a schema
-     * rather than describing it in the prompt is what keeps a category inside
-     * the enum: the worst a hostile transfer description can then achieve is a
-     * wrong category, not an instruction the model follows.
+     * [schema] is a JSON Schema the reply must satisfy: the worst a hostile
+     * description can then achieve is a wrong category, not an instruction.
      */
     suspend fun complete(
         provider: LlmProvider,
@@ -79,11 +65,8 @@ class LlmClient(
         if (schema == null) return@withContext send(provider, apiKey, system, user, null)
 
         // Ask for the strongest guarantee the endpoint will accept, then walk
-        // down. "OpenAI-compatible" is a family, not a specification: the big
-        // hosts take a strict JSON Schema, plenty of smaller ones only know
-        // json_object, and some ignore response_format or reject it outright.
-        // Whatever works is remembered, so this probes once per provider rather
-        // than once per batch.
+        // down: "OpenAI-compatible" is a family, not a specification. Whatever
+        // works is remembered, so this probes once per provider, not per batch.
         var mode = supported[provider.id] ?: ResponseFormatMode.SCHEMA
         while (true) {
             try {

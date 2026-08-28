@@ -3,10 +3,9 @@ package dev.achmad.finbox.core.preference
 import dev.achmad.finbox.util.preference.PreferenceStore
 import dev.achmad.finbox.util.preference.getEnum
 
-/** Which colour scheme the app follows, regardless of what the system is doing. */
+/** Which colour scheme the app follows. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-/** How the app looks and how it writes things down. */
 class UiPreferences(
     private val preferenceStore: PreferenceStore,
 ) {

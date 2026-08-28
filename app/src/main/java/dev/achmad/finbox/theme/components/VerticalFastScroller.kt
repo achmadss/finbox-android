@@ -49,11 +49,8 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * A draggable scrollbar thumb over a lazy list, after Tachiyomi's `VerticalFastScroller`.
- *
- * The thumb shows while the list moves and fades out after; dragging it scrolls the list.
- * Position is worked out in items rather than pixels, since a lazy list only knows the size of
- * what is on screen — which is also why the estimate is held to its highest reading until the
- * layout changes, so the thumb doesn't jitter as differently sized rows scroll past.
+ * Position is in items, since a lazy list only knows what is on screen; the estimate is
+ * held to its highest reading until the layout changes, so the thumb doesn't jitter.
  */
 @Composable
 fun VerticalFastScroller(
@@ -131,7 +128,6 @@ fun VerticalFastScroller(
             val maxRemainingSections = remember(estimateConfidence.value) { scrollableSections }
             estimateConfidence.value = max(estimateConfidence.value, remainingSections)
 
-            // Everything fits: nothing to scroll, so no thumb.
             if (maxRemainingSections < 0.5) return@subcompose
 
             // When the thumb is dragged.

@@ -80,7 +80,6 @@ class TransactionsScreenModel(
     /** Parsers currently loaded — what a transaction's `parserId` points at. */
     val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
 
-    /** Badge on the Parsers menu item. */
     val parserUpdates: StateFlow<Int> = parserManager.updatesCount
 
     init {
@@ -173,11 +172,8 @@ class TransactionsScreenModel(
     }
 
     /**
-     * Files the selection by hand and drops it.
-     *
-     * Clearing the selection afterwards is the point of the action being over,
-     * and leaving it up invites a second bulk write on rows the user has stopped
-     * looking at.
+     * Files the selection by hand and drops it, so a second bulk write cannot
+     * land on rows the user has stopped looking at.
      */
     fun setCategory(category: TransactionCategory) {
         val ids = _selected.value

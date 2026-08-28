@@ -11,14 +11,11 @@ import dev.achmad.finbox.core.gmail.model.Payload
 /**
  * The reads a transaction update makes against a mailbox.
  *
- * An interface so a debug build can run the whole import offline against
- * `GmailApiMockImpl`; [GmailApiImpl] is the one that talks to Gmail. Which one is
- * bound is a build-direction decision — see `di/GmailModule.kt` under `src/debug`
- * and `src/release`.
+ * An interface so a debug build can run the import offline against a mock —
+ * see `di/GmailModule.kt` for which implementation is bound.
  *
- * The window is passed as timestamps rather than a Gmail query string: what
- * the search text has to look like is the real client's business, and a fake
- * shouldn't have to speak it.
+ * The window is passed as timestamps, not a Gmail query string, so a fake
+ * need not speak Gmail's search language.
  */
 interface GmailApi {
 
@@ -27,10 +24,8 @@ interface GmailApi {
 
     /**
      * Ids of the messages in [after]..[before], newest first, [narrow]ed by a
-     * Gmail search term.
-     *
-     * Capped at [maxMessages] rather than left unbounded — a parser with a
-     * too-wide query would otherwise walk the entire mailbox.
+     * Gmail search term, capped at [maxMessages] so a too-wide query cannot
+     * walk the whole mailbox.
      */
     suspend fun listMessages(
         accountId: String,
@@ -74,13 +69,7 @@ interface GmailApi {
             )
         }
 
-        /**
-         * The body as the message carried it, html preferred and plain text the
-         * fallback for providers that send none.
-         *
-         * Markup is left alone: turning it into readable lines belongs to
-         * whoever knows the bank, which is the parser.
-         */
+        /** The body as the message carried it: html preferred, plain text the fallback. */
         private fun collectBody(payload: Payload?): String {
             if (payload == null) return ""
             val data = payload.body.data ?: ""

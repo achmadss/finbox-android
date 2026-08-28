@@ -65,10 +65,7 @@ import kotlinx.coroutines.flow.collectLatest
 import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
 
-/**
- * AppCompat rather than plain ComponentActivity: below Android 13 that is what
- * applies a per-app language to the activity's resources.
- */
+/** AppCompatActivity rather than ComponentActivity: below Android 13 it applies the per-app language. */
 class MainActivity : AppCompatActivity() {
 
     private val onboardingPreference: OnboardingPreference by injectLazy()
@@ -154,14 +151,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePreDraw() {
-        // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
-        // Onboarding sets its flag on the last step; anything short of that and
-        // it re-opens and works out which step is still missing.
+        // Onboarding sets its flag on the last step, so anything short of that re-opens it.
         initialScreen = if (onboardingPreference.onboardingComplete().get()) TransactionsScreen else OnboardingScreen
         isReady = true
     }
 
-    /** Throttled to a day inside each checker, so this costs nothing on most starts. */
+    /** Each checker throttles itself to a day, so this is cheap on most starts. */
     @Composable
     private fun CheckForUpdates() {
         LaunchedEffect(Unit) {
@@ -174,8 +169,7 @@ class MainActivity : AppCompatActivity() {
     @Composable
     private fun HandleNewIntent(context: Context, navigator: Navigator) {
         LaunchedEffect(Unit) {
-            // A cold tap starts the activity, so its intent arrives here; a tap while
-            // the app is already up comes through addOnNewIntentListener below.
+            // A cold start delivers the intent here; a warm start arrives via addOnNewIntentListener.
             handleIntentAction(intent, navigator)
 
             callbackFlow {

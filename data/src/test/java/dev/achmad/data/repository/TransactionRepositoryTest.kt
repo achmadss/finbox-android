@@ -137,8 +137,7 @@ class TransactionRepositoryTest {
             listOf(
                 transaction(index = 0, merchant = "Indomaret", description = "Purchase"),
                 transaction(index = 1, merchant = " indomaret ", description = "PURCHASE"),
-                // Same merchant, different description: a classifier sees two
-                // different problems, so this one is not matched.
+                // Same merchant, different description: not the same problem to a classifier.
                 transaction(index = 2, merchant = "Indomaret", description = "Top up"),
                 transaction(index = 3, merchant = "Alfamart", description = "Purchase"),
             ),

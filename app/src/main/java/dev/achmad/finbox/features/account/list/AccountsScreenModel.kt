@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** One row of the list, with the count already worked out. */
 @Immutable
 data class AccountRow(
     val account: EmailAccount,
@@ -39,12 +38,8 @@ class AccountsScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
-     * Which parsers each account has switched **off**, not which it has switched on.
-     *
-     * That is what an assignment means to the update: a parser with no row runs, and an
-     * account with no rows at all runs everything installed (`TransactionUpdater.parsersFor`).
-     * Reading the rows the other way round showed every switch off on an account nobody had
-     * configured yet — while it was in fact reading with all of them.
+     * Which parsers each account has switched off, not on: a parser with no row runs, and
+     * an account with no rows at all runs everything installed.
      */
     val disabledByAccount: StateFlow<Map<String, Set<Long>>> =
         accountParserRepository.allAssignments()
@@ -58,12 +53,6 @@ class AccountsScreenModel(
     /** Parsers currently loaded — what an assignment's `parserId` points at. */
     val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
 
-    /**
-     * What the screen draws.
-     *
-     * The count is worked out here rather than in the composition so the list is
-     * data the screen only has to render.
-     */
     val rows: StateFlow<List<AccountRow>> =
         combine(accounts, disabledByAccount, parsers) { accounts, disabled, parsers ->
             accounts.map { account ->
@@ -74,7 +63,6 @@ class AccountsScreenModel(
             }
         }.stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The browser flow to launch for result; hand the result back to [addAccount]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
 
     fun addAccount(data: Intent?) {
@@ -86,9 +74,8 @@ class AccountsScreenModel(
     }
 
     /**
-     * Removes the account and forgets what it was configured with. Its mail and transactions
-     * stay: the account is keyed on its address, so adding the same mailbox back adopts them
-     * rather than fetching and writing the lot a second time.
+     * Removes the account and what it was configured with. Mail and transactions stay: the
+     * account is keyed on its address, so re-adding the same mailbox adopts them.
      */
     fun remove(id: String) {
         screenModelScope.launch {

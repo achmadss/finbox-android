@@ -50,18 +50,10 @@ class TransactionRepository(
     /**
      * Writes parsed transactions, updating parser-owned fields for an existing id.
      *
-     * An id is derived from the email, so re-parsing a message refreshes the rows
-     * it already wrote instead of adding more. Two different messages reporting
-     * one transaction — an alert and a receipt, say — are caught by the
-     * provider reference: the same reference from the same parser is the same
-     * transaction, and the row already stored wins, so user-owned fields such as
-     * the category survive.
-     *
-     * A row the user has edited is skipped outright. Their version is the more
-     * correct one, and a marker that said "edited" over silently reverted
-     * values would be a lie. The cost is deliberate: a parser bugfix will not
-     * reach an edited row, and the way out is deleting it so the next import
-     * parses it fresh.
+     * A re-parsed message refreshes the rows it already wrote. The same
+     * reference from the same parser in another message is the same transaction,
+     * and the row already stored wins. Rows the user edited are skipped: their
+     * version wins over anything a parser reads.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
@@ -74,14 +66,12 @@ class TransactionRepository(
                     }
                 when {
                     existing == null -> insert(transaction)
-                    // Hand-edited: the user's version wins over anything a
-                    // parser reads, this time and every time after.
+                    // Hand-edited: the user's version wins over any re-parse.
                     existing.edited_at != null -> Unit
-                    // Same email again: refresh the row it wrote, under whatever
-                    // id it already has.
+                    // Same email again: refresh under the id it already has.
                     existing.email_message_id == transaction.emailMessageId ->
                         updateParsed(transaction, existing.id)
-                    // A duplicate from another message: leave the stored row alone.
+                    // A duplicate from another message: the stored row wins.
                     else -> Unit
                 }
             }
@@ -91,8 +81,8 @@ class TransactionRepository(
     /**
      * The edit path: everything the user owns, stamped as a hand edit.
      *
-     * Stamping [Transaction.editedAt] here is what marks the row in the list
-     * and what makes [upsertAll] leave it alone from now on.
+     * Stamping [Transaction.editedAt] is what makes [upsertAll] leave the row
+     * alone from now on.
      */
     suspend fun update(transaction: Transaction) = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
@@ -117,8 +107,8 @@ class TransactionRepository(
     /**
      * Files rows under a category by hand — one row, a selection, or all of them.
      *
-     * Counts as an edit, so these survive a re-parse and a classify pass that
-     * was not told to replace manual work.
+     * Counts as an edit, so these survive re-parses and passes that do not
+     * replace manual work.
      */
     suspend fun setCategoryByUser(
         ids: Collection<String>,
@@ -133,11 +123,10 @@ class TransactionRepository(
     /**
      * A classify pass writing its own answer.
      *
-     * Leaves [Transaction.editedAt] alone: the marker says the user edited the
-     * transaction, which stays true even when a run replaces the category. A
-     * [source] of null goes with [TransactionCategory.UNKNOWN] — nobody decided
-     * that, code observed it — and is what lets a later pass re-evaluate the row
-     * once the missing merchant or description turns up.
+     * Leaves [Transaction.editedAt] alone, so a run that replaces a category
+     * does not unmark a user edit. A null [source] accompanies code-assigned
+     * [TransactionCategory.UNKNOWN], letting a later pass re-evaluate the row
+     * once the missing text turns up.
      */
     suspend fun setCategory(
         id: String,
@@ -156,9 +145,9 @@ class TransactionRepository(
     /**
      * Other rows a classifier would read exactly as it reads this one.
      *
-     * The cache only reaches rows classified after an answer existed, so
-     * correcting one INDOMARET row leaves the other thirty-nine wrong. This is
-     * what the offer to apply a correction backwards is counted from.
+     * The cache only covers rows classified after an answer existed, so
+     * correcting one row does not reach its peers; this is the pool an
+     * "apply the correction to matching rows" offer draws on.
      */
     suspend fun withSignature(
         signature: Signature,
@@ -172,16 +161,10 @@ class TransactionRepository(
     /**
      * Every signature somebody has already answered, best answer first.
      *
-     * The cache is the transactions table — a signature that has been
-     * classified once is stored in every row carrying it, so a separate table
-     * would only duplicate what is already there. The user's own answer wins
-     * over a model's; between two of the same kind, the most recent does.
-     *
-     * ponytail: grouped in memory rather than matched in SQL, because the
-     * normalization behind a signature is a Kotlin function and duplicating it
-     * as SQL is how the two drift apart. Fine while a ledger is thousands of
-     * rows; if it stops being fine, store the normalized key as a column and
-     * index it rather than writing the normalization twice.
+     * The cache is the transactions table itself: a classified signature is
+     * stored in every row carrying it, so a separate table would merely repeat
+     * it. The user's answer beats a model's; between two of the same kind, the
+     * newest wins.
      */
     suspend fun categoryCache(): Map<Signature, TransactionCategory> = withContext(Dispatchers.IO) {
         // ::Transactions because the WHERE narrows category to non-null, which
@@ -264,8 +247,8 @@ class TransactionRepository(
         accountId = account_id,
         parserId = parser_id,
         emailMessageId = email_message_id,
-        // The model derives its id from these four, so the number has to come back
-        // out of the stored one — nothing else records it.
+        // The model derives its id from these fields; the stored id is the only
+        // record of the number.
         index = transactionIndexOf(id),
         threadId = thread_id,
         reference = reference,

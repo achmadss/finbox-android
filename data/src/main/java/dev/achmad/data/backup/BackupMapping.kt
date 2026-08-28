@@ -9,9 +9,8 @@ import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.transactionIndexOf
 
-// Between what the database holds and what the file carries. Their own file
-// because they are the part that has to change whenever a model gains a column,
-// and the only part a format bump touches.
+// Between the database and the file. Their own file because they are the only
+// part a format bump touches.
 
 internal fun EmailAccount.toBackup() = BackupAccount(
     id, email, displayName, authTokenRef, enabled, createdAt, updatedAt,
@@ -54,9 +53,8 @@ internal fun BackupEmail.toModel() = StoredEmail(
     from = from,
     subject = subject,
     date = date,
-    // Bodies are deliberately not in a backup — they are most of the database,
-    // and a restored email only needs one again if a parser change re-reads it,
-    // which fetches and stores it then.
+    // Bodies are deliberately not backed up: they are most of the database and
+    // get refetched when a parser change re-reads them.
     body = null,
     triedParserIds = triedParserIds,
     parsedByParserId = parsedByParserId,
@@ -89,8 +87,8 @@ internal fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
     parserId = parserId,
     emailMessageId = emailMessageId,
-    // The backup still carries the whole id, so a file written by an older build
-    // restores under the identity it had.
+    // The backup carries the whole id, so an old file restores under the
+    // identity it had.
     index = transactionIndexOf(id),
     threadId = threadId,
     reference = reference,

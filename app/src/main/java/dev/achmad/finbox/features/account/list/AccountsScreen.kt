@@ -183,11 +183,6 @@ private fun AccountItem(
     }
 }
 
-/**
- * The account's Google picture, or the placeholder when there is none — an account added
- * before the app asked for the `profile` scope, an owner who set no picture, a load that
- * failed. The placeholder is the same icon the rest of the app uses for an account.
- */
 @Composable
 fun AccountAvatar(photoUrl: String?, size: Dp, modifier: Modifier = Modifier) {
     val shape = modifier.size(size).clip(CircleShape)
@@ -258,7 +253,6 @@ fun RemoveAccountConfirmation(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
         title = { Text(stringResource(R.string.action_remove_account)) },
-        // Says what survives, because nothing here deletes what was already read.
         text = { Text(stringResource(R.string.remove_account_confirmation, email)) },
         confirmButton = {
             TextButton(

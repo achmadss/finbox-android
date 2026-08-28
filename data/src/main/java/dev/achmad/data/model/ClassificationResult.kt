@@ -21,10 +21,8 @@ enum class ClassificationOrigin {
 /**
  * One decision a run made, kept as it was made.
  *
- * The text is copied, not referenced. Re-parsing a mailbox afterwards changes
- * what a transaction says, and a record of a decision that silently updates to
- * the new evidence cannot answer the question it exists for: what did the model
- * see when it said that.
+ * The text is copied, not referenced: re-parsing later changes what a row
+ * says, and the record must show what the model saw at the time.
  */
 data class ClassificationResult(
     val runId: Long,

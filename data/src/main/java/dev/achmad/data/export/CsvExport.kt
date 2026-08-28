@@ -8,23 +8,13 @@ import java.io.OutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * The ledger as CSV, for a spreadsheet.
- *
- * Export only — restoring the app is [dev.achmad.data.backup.BackupManager]'s
- * job, and a CSV can't carry the rest of the state.
- */
+/** The ledger as CSV, for a spreadsheet. */
 class CsvExport(
     private val context: Context,
     private val transactions: TransactionRepository,
 ) {
 
-    /**
-     * Writes every transaction to the document at [uri].
-     *
-     * Opening it lives here rather than at the call site: a screen that picked
-     * the document has no other reason to hold a Context.
-     */
+    /** Writes every transaction to the document at [uri]. */
     suspend fun exportTo(uri: Uri) {
         val out = context.contentResolver.openOutputStream(uri)
             ?: error("Could not open the file")

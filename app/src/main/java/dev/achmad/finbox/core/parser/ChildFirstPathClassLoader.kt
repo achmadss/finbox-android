@@ -3,10 +3,9 @@ package dev.achmad.finbox.core.parser
 import dalvik.system.DexClassLoader
 
 /**
- * Classloader that checks the parser APK's own classes before delegating
- * to the app classloader (parent-last). This lets parsers define classes
- * with the same FQNs as app-provided APIs while still being resolved against
- * the app's versions of shared dependencies (OkHttp, jsoup, serialization...).
+ * Checks the parser APK's classes before delegating to the app classloader, so
+ * parsers can define classes with the same FQNs as app-provided APIs while
+ * shared dependencies still resolve to the app's versions.
  */
 class ChildFirstPathClassLoader(
     dexPath: String,

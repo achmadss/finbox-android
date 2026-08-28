@@ -18,7 +18,6 @@ class EmailRepository(
         db.emailQueries.SELECTForAccount(accountId).executeAsList().map { it.toModel() }
     }
 
-    /** Emails no parser has claimed yet. */
     suspend fun unparsed(): List<StoredEmail> = withContext(Dispatchers.IO) {
         db.emailQueries.SELECTUnparsed().executeAsList().map { it.toModel() }
     }
@@ -29,11 +28,7 @@ class EmailRepository(
         db.emailQueries.SELECTByParser(parserIds).executeAsList().map { it.toModel() }
     }
 
-    /**
-     * Stores the emails that aren't here yet.
-     *
-     * @return how many were new.
-     */
+    /** Stores the emails that aren't here yet, returning how many were new. */
     suspend fun insertNew(emails: List<StoredEmail>): Int = withContext(Dispatchers.IO) {
         if (emails.isEmpty()) return@withContext 0
         var added = 0
@@ -62,7 +57,6 @@ class EmailRepository(
         added
     }
 
-    /** Writes back parse state for several emails at once. */
     suspend fun updateAll(emails: List<StoredEmail>) = withContext(Dispatchers.IO) {
         db.transaction {
             for (email in emails) {

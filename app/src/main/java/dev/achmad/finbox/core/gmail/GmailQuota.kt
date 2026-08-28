@@ -9,17 +9,8 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * Paces Gmail calls against the per-user quota.
  *
- * Gmail charges quota units per call, not per byte: `messages.get` costs 20,
- * `messages.list` 5, `history.list` 2, `getProfile` 1, against 6,000 units per
- * user per minute. Fetching one message is therefore twenty times a page of
- * five hundred ids, which is why an import narrows what it lists rather than
- * trimming what it downloads.
- *
- * A token bucket per account refills at the allowance and callers wait their
- * turn, so a long import runs at the limit instead of being cut off at it.
- *
- * ponytail: units are counted, not read back from Gmail — the API doesn't
- * report remaining quota. A 429 still backs off on top of this.
+ * Units are counted, not read back from Gmail — the API does not report
+ * remaining quota.
  */
 class GmailQuota(
     private val unitsPerMinute: Int = UNITS_PER_MINUTE,

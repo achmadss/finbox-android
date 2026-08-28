@@ -26,21 +26,18 @@ data class ParserIndexEntry(
     @SerialName("icon") val icon: String? = null,
 )
 
-/** Fetches the parser repo index (single hardcoded repo). */
+/** Fetches the parser repo index. */
 class ParserIndex(
     private val client: OkHttpClient,
 ) {
 
     suspend fun fetch(): List<AvailableParser> {
-        // Always over the wire: the index is a few hundred bytes, and it is only
-        // ever read to answer "what is published right now" — a cached copy
-        // hides a release for as long as it stays fresh.
+        // Always over the wire: a cached copy hides a release for as long as it
+        // stays fresh.
         val parsed = client.get(
             url = FinboxConfig.PARSER_INDEX_URL,
             cacheControl = CacheControl.FORCE_NETWORK,
         ).parseAs<ParserIndexResponse>()
-        // Entries the app could not load are dropped here rather than offered
-        // and then rejected by ParserLoader.
         return parsed.parsers.mapNotNull { entry ->
             val libVersion = entry.libVersion.toDoubleOrNull() ?: return@mapNotNull null
             if (!FinboxConfig.supportsLibVersion(libVersion)) return@mapNotNull null

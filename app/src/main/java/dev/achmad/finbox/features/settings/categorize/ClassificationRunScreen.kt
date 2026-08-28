@@ -33,14 +33,6 @@ import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 
-/**
- * What one run decided, transaction by transaction.
- *
- * The answers are paid for, so they are kept rather than re-derived, and this
- * is the view that makes them worth keeping: a category that looks wrong is
- * shown next to the exact text it was decided from, which is the difference
- * between a model reading receipts badly and receipts that do not say.
- */
 data class ClassificationRunScreen(private val runId: Long) : Screen {
 
     @Composable
@@ -54,8 +46,7 @@ data class ClassificationRunScreen(private val runId: Long) : Screen {
         Scaffold(
             topBar = {
                 AppBar(
-                    // The run's own timestamp, because that is what was tapped
-                    // to get here and the only thing telling two runs apart.
+                    // The run's own timestamp — the only thing telling two runs apart.
                     title = run?.let { formatDate(it.startedAt, use24Hour) }
                         ?: stringResource(R.string.run_detail_title),
                     navigateUp = navigator::pop,
@@ -128,9 +119,8 @@ data class ClassificationRunScreen(private val runId: Long) : Screen {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    // What the classifier had to go on, in the order it reads
-                    // it. A row with nothing here is exactly the case the run
-                    // never sent, and it should look that way.
+                    // What the classifier had to go on, in the order it reads it.
+                    // A row with nothing here is the case the run never sent.
                     text = result.merchant
                         ?: result.description
                         ?: stringResource(R.string.run_detail_no_text),

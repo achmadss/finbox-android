@@ -22,10 +22,7 @@ import kotlinx.coroutines.ensureActive
  * The classify pass: pick rows, reduce them to signatures, answer as few of
  * those as possible, write the answers back.
  *
- * **Never part of an import.** An import writes transactions with no category
- * and finishes. That is what makes the ledger work when no model is set up, or
- * when one is set up and broken — a classifier failure must never be able to
- * fail an import.
+ * Never part of an import: a classifier failure must never fail one.
  */
 class TransactionCategorizer(
     private val transactions: TransactionRepository,
@@ -37,9 +34,8 @@ class TransactionCategorizer(
     /**
      * What a run would cost, for a confirmation that names real numbers.
      *
-     * Worth showing because the number people expect — one request per
-     * transaction — is wrong by an order of magnitude in the cheap direction,
-     * and "about 4 requests" reads very differently from "387 transactions".
+     * Worth showing because the expected number — one request per transaction —
+     * is wrong by an order of magnitude in the cheap direction.
      */
     suspend fun estimate(
         scope: ClassificationScope,
@@ -62,9 +58,8 @@ class TransactionCategorizer(
     /**
      * Runs a pass, reporting progress in signature groups.
      *
-     * Cancellable at every batch boundary, and everything finished before a
-     * cancellation stays written. Running it again is safe by construction in
-     * the default mode: it only touches rows with no category.
+     * Cancellable at every batch boundary; whatever finished before a
+     * cancellation stays written.
      */
     suspend fun classify(
         scope: ClassificationScope,

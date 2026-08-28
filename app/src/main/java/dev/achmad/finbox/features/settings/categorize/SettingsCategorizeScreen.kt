@@ -42,13 +42,6 @@ import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDate
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 
-/**
- * Start a classify pass, and see what every pass has done.
- *
- * The history is not a debug view. A background job that spends someone's money
- * and rewrites their ledger has to be able to account for itself, or the honest
- * advice would be not to turn it on.
- */
 object SettingsCategorizeScreen : Screen {
     private fun readResolve(): Any = SettingsCategorizeScreen
 

@@ -43,7 +43,7 @@ class TransactionFilterTest {
         deleted = false,
     )
 
-    /** The fixture's own short name for a row — its id is derived and unreadable here. */
+    /** The fixture's own short name; the derived id is unreadable here. */
     private val Transaction.label: String get() = emailMessageId.removePrefix("m")
 
     private val transactions = listOf(

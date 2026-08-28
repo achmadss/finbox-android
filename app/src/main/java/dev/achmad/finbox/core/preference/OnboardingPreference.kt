@@ -16,12 +16,6 @@ class OnboardingPreference(
     /** The notification prompt only gets shown once, allowed or not. */
     fun notificationPromptSeen() = preferenceStore.getBoolean("onboarding_notification_seen", false)
 
-    /**
-     * The AI step only gets offered once, taken up or not.
-     *
-     * Without this, someone who does not want it would be asked again every
-     * time they reopened a half-finished setup, which is how an optional step
-     * starts reading as a required one.
-     */
+    /** The AI step only gets offered once, taken up or not. */
     fun aiPromptSeen() = preferenceStore.getBoolean("onboarding_ai_seen", false)
 }

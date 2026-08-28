@@ -28,13 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.achmad.finbox.R
 
-/**
- * The last step, and the only one that is genuinely optional.
- *
- * Skipping is a plain button rather than something to hunt for: a ledger that
- * needs an API key to be worth opening would be a worse product, and this step
- * has to be able to say so.
- */
+/** The last step, and the only one that is genuinely optional. */
 @Composable
 fun OnboardingAiContent(
     onClickSetup: () -> Unit = {},

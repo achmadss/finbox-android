@@ -67,10 +67,8 @@ class OnboardingScreenModel(
         mutableState.value = State.SignIn(isSigningIn = true)
     }
 
-    /** What the browser flow came back with. */
     fun onSignInResult(data: Intent?) {
-        // Null data is the user backing out of the browser; nothing to say beyond
-        // handing the step back.
+        // Null data is the user backing out of the browser.
         if (data == null) {
             mutableState.value = State.SignIn()
             return
@@ -95,10 +93,9 @@ class OnboardingScreenModel(
     }
 
     /**
-     * Set up or waved away — either way the offer has been made.
-     *
-     * Also called on returning from the provider screen, so finishing setup
-     * there moves onboarding along without a second confirmation.
+     * Set up or waved away — either way the offer has been made. Also called on
+     * returning from the provider screen, so finishing setup there moves onboarding
+     * along without a second confirmation.
      */
     fun onAiPromptSettled() {
         screenModelScope.launch {
@@ -122,16 +119,11 @@ class OnboardingScreenModel(
             val current = state.value as? State.InstallParsers ?: State.InstallParsers()
             mutableState.value = current.copy(isInstalling = true)
             Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
-            // The manager runs them, the same as the parsers screen does, so
-            // leaving mid-download does not cancel one. This step only waits
-            // for each to land: loaded, or failed with a reason on the row.
+            // The manager runs the installs, so leaving mid-download does not cancel one; this
+            // step only waits for each to land: loaded, or failed with a reason on the row.
             requested.forEach { parserManager.install(it) }
-            // Wait on the install jobs alone, never on the registry agreeing.
-            // install() marks every package Pending before this runs, and each
-            // one leaves that map when its job ends — removed once installed,
-            // kept as Error when it failed. An APK that installs and then fails
-            // to load never reaches the registry at all, so waiting for it there
-            // waits forever, which is what left this step stuck on "Installing".
+            // Wait on the install jobs, not the registry: an APK that installs but fails to load
+            // never reaches the registry, so waiting there would hang on "Installing" forever.
             parserManager.installSteps.first { steps ->
                 requested.all { steps[it.pkg].let { step -> step == null || step == InstallStep.Error } }
             }
@@ -140,10 +132,9 @@ class OnboardingScreenModel(
             requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
                 toastHelper.show(R.string.onboarding_parsers_install_failed, parser.name)
             }
-            // An APK can install and still not load: a lib version this build
-            // does not support, a missing parser class, or an API it was built
-            // against that has since changed under it. Say so — the install
-            // itself succeeded, so nothing else on this screen would.
+            // An APK can install and still not load — a lib version this build does
+            // not support, a missing parser class, or an API that changed under it.
+            // Say so — the install itself succeeded.
             val loaded = parserManager.installedInfo.value
             requested.filter { steps[it.pkg] != InstallStep.Error && it.pkg !in loaded }
                 .forEach { parser ->
@@ -163,9 +154,8 @@ class OnboardingScreenModel(
 
     /**
      * Moves to whichever step is still unfinished, or off the screen when none is.
-     *
-     * Every transition re-resolves rather than stepping forward one state: a step
-     * finished in an earlier session, or in the browser, is then skipped for free.
+     * Every transition re-resolves rather than stepping forward one state, so a step
+     * finished in an earlier session or in the browser is skipped for free.
      */
     private suspend fun next() {
         val resolved = resolve()
@@ -182,8 +172,7 @@ class OnboardingScreenModel(
         // The schedule turns itself away until that flag is set, so it is asked for here
         // rather than waiting for the next app start.
         transactionUpdateManager.schedule()
-        // Nobody pressed refresh — this is the way out of onboarding, and a parser
-        // install a moment earlier may still have its own re-read running.
+        // Not a user refresh: a parser install a moment earlier may still have a re-read running.
         transactionUpdateManager.runNow(userInitiated = false)
         mutableState.value = State.Done
     }
@@ -225,24 +214,21 @@ class OnboardingScreenModel(
             permissionHelper.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
 
-    /** Whether a provider is set up, which is what finishes the optional step. */
     fun hasProvider(): Boolean = classifier.isConfigured()
 
-    /** The browser flow to launch for result; its outcome comes back as [onSignInResult]. */
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
 
     sealed class State {
         /**
-         * Before the first [resolve]. Starting on [SignIn] instead would show the
-         * sign-in screen, then slide off it, every time an already-signed-in user
-         * opens the app.
+         * Before the first [resolve]. Starting on [SignIn] instead would flash the
+         * sign-in screen at an already-signed-in user and then slide off it.
          */
         object Resolving: State()
         /** [isSigningIn] while the browser flow is out and its token exchange runs. */
         data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
 
-        /** Offering the optional classifier. Nothing here is required. */
+        /** Nothing here is required. */
         object SetupAi: State()
         data class InstallParsers(
             /** What the index is offering. Carried here so the step draws from state alone. */

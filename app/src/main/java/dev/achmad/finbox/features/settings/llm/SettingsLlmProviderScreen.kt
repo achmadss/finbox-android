@@ -39,11 +39,9 @@ import dev.achmad.finbox.R
 import dev.achmad.finbox.theme.components.AppBar
 
 /**
- * One provider: label it, point it somewhere, and prove it works.
- *
- * The model is chosen from what the endpoint lists rather than typed. A
- * mistyped model id is the kind of mistake that surfaces halfway through a
- * backfill, which is the worst possible moment to learn about it.
+ * One provider: label it, point it somewhere, and prove it works. The model is
+ * chosen from what the endpoint lists rather than typed — a mistyped id would
+ * surface halfway through a backfill.
  */
 data class SettingsLlmProviderScreen(private val id: String?) : Screen {
 

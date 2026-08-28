@@ -8,8 +8,8 @@ import android.content.Intent
 /**
  * The notification buttons an app update offers.
  *
- * A broadcast rather than an activity: starting or stopping a download has no
- * screen to open, and opening one to do it would only get in the way.
+ * Broadcast rather than activity: starting or stopping a download has no screen
+ * to open.
  */
 class AppUpdateReceiver : BroadcastReceiver() {
 

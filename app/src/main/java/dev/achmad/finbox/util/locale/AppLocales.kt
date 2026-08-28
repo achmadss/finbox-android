@@ -10,11 +10,9 @@ import java.util.Locale
 import org.xmlpull.v1.XmlPullParser
 
 /**
- * The languages this build ships, and which one it is speaking.
- *
- * Nothing here is a list to maintain: the build writes the locale config from
- * the `values-*` folders, so adding `values-in/strings.xml` is all it takes for
- * Indonesian to appear in both the app's language screen and the system's.
+ * The languages this build ships. The build writes the locale config from the
+ * `values-*` folders, so adding `values-in/strings.xml` is all it takes for a
+ * language to appear in both the app's language screen and the system's.
  */
 
 /** What an unsupported or unset language falls back to — the `values/` folder. */
@@ -39,11 +37,8 @@ fun supportedLanguages(context: Context): List<String> {
 }
 
 /**
- * The language the app is currently showing.
- *
- * A language picked outside the app — the system's per-app language screen —
- * counts, and one this build has no translation for reads as English, since
- * that is what the user is actually looking at.
+ * The language the app is currently showing. A language picked in the system's
+ * per-app language screen counts; one with no translation reads as English.
  */
 fun currentLanguage(context: Context): String {
     val chosen = AppCompatDelegate.getApplicationLocales()
@@ -54,7 +49,7 @@ fun currentLanguage(context: Context): String {
     return supportedLanguages(context).firstOrNull { it == chosen } ?: DEFAULT_LANGUAGE
 }
 
-/** Applies [language] app-wide. Android remembers it across restarts. */
+/** Applies [language] app-wide; Android keeps it across restarts. */
 fun setLanguage(language: String) {
     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
 }
@@ -66,9 +61,8 @@ fun displayName(language: String): String {
 }
 
 /**
- * Reads the locale config the build generated, for Android versions without
- * [LocaleConfig]. The resource is AGP's; a build that stops generating it fails
- * here rather than silently offering no languages.
+ * The AGP-generated locale config, for Android versions without [LocaleConfig].
+ * A build that stops generating it fails here rather than offering no languages.
  */
 private fun readLocaleConfig(context: Context): List<String> {
     val parser = context.resources.getXml(R.xml._generated_res_locale_config)

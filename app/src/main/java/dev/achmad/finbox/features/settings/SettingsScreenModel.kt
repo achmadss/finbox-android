@@ -73,10 +73,9 @@ class SettingsScreenModel(
     fun rescheduleFetch() = transactionUpdateManager.schedule()
 
     /**
-     * Forced, so neither the daily throttle nor the switch swallows it.
-     *
-     * Parsers have no equivalent here: their list refreshes itself whenever
-     * the parsers screen opens, which is where a new one gets installed.
+     * Forced, so neither the daily throttle nor the switch swallows it. Parsers
+     * have no equivalent here: their list refreshes whenever the parsers screen
+     * opens.
      */
     fun checkAppUpdateNow() {
         screenModelScope.launch {

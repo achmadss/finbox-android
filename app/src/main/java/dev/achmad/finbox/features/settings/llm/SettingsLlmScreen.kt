@@ -44,10 +44,8 @@ import dev.achmad.finbox.core.llm.LlmProvider
 import dev.achmad.finbox.theme.components.AppBar
 
 /**
- * The endpoints available to classify with, and which one is in use.
- *
- * Reachable and empty is the normal state. Nothing in the app requires a
- * provider, so this screen has to read as an offer rather than as a gap.
+ * The endpoints available to classify with, and which one is in use. An empty
+ * screen is the normal state: nothing in the app requires a provider.
  */
 object SettingsLlmScreen : Screen {
     private fun readResolve(): Any = SettingsLlmScreen

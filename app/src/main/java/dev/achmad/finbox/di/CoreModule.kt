@@ -110,8 +110,7 @@ val coreModule = module {
         )
     }
 
-    // One instance per process, as WorkManager itself is: the only place the
-    // application Context is needed to reach the scheduler.
+    // One instance per process, like WorkManager itself: the app context is needed to reach the scheduler.
     single<WorkManager> { WorkManager.getInstance(androidContext()) }
     single<TransactionUpdateManager> {
         TransactionUpdateManager(

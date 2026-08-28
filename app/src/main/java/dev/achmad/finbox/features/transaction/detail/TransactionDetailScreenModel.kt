@@ -33,7 +33,7 @@ class TransactionDetailScreenModel(
 
     /**
      * What the method picker offers: the methods declared by the parser that read this row.
-     * Empty while the registry loads, and empty for a row whose parser is gone — the
+     * Empty until the registry loads, and empty for a row whose parser is gone — the
      * picker then only offers what the row already has.
      */
     val methods: StateFlow<List<TransactionMethod>> =
@@ -46,12 +46,8 @@ class TransactionDetailScreenModel(
     }
 
     /**
-     * Rows a classifier would read identically to [transaction] and that are not
-     * already filed under its category.
-     *
-     * What the "apply to similar" offer counts. Rows already carrying the
-     * category are left out: offering to change forty when thirty-nine already
-     * agree names a number that means nothing.
+     * Rows a classifier would read identically to [transaction], minus those already
+     * filed under its category — including them would name a number that means nothing.
      */
     suspend fun similarTo(transaction: Transaction): List<Transaction> =
         repository.withSignature(transaction.signature(), excludingId = transaction.id)

@@ -7,10 +7,8 @@ import dev.achmad.finbox.util.koin.inject
 import dev.achmad.finbox.util.ui.ToastHelper
 
 /**
- * Opens a screen the system owns.
- *
- * Guarded because these screens are optional: a device without the one asked
- * for throws rather than doing nothing, and a settings row must not crash the
+ * Opens a screen the system owns. Guarded: these screens are optional, and a
+ * device without the one asked for throws — a settings row must not crash the
  * app.
  */
 internal fun Context.openSystemSettings(intent: Intent) {

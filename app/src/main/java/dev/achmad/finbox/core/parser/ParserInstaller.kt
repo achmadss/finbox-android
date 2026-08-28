@@ -14,9 +14,8 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
 /**
- * Downloads a parser APK, verifies its SHA-256 against the repo index
- * (single trusted repo, so hash verification = trust) and copies it into
- * `filesDir/parsers/`. Old versions of the same provider are removed.
+ * Downloads a parser APK, verifies its SHA-256 against the repo index (single
+ * trusted repo, so the hash is trust), and copies it into `filesDir/parsers/`.
  */
 class ParserInstaller(
     private val client: OkHttpClient,
@@ -26,8 +25,7 @@ class ParserInstaller(
     /**
      * The install as it happens, so a row can show where it is and offer to stop it.
      *
-     * Nothing is handed to a system installer, so dropping the collector really
-     * does end it: the download stops and no file was written yet.
+     * Dropping the collector cancels it: nothing is handed to a system installer.
      */
     fun downloadAndInstall(parser: AvailableParser): Flow<InstallStep> = flow {
         emit(InstallStep.Pending)
@@ -56,7 +54,6 @@ class ParserInstaller(
             throw IOException("SHA-256 mismatch: expected ${parser.sha256}, got $actualHash")
         }
 
-        // Remove older versions of the same package (same provider pkg prefix).
         val dir = loader.parsersDir()
         dir.listFiles { f -> f.name.startsWith("${parser.pkg}-") && f.extension == "apk" }
             ?.forEach { it.delete() }

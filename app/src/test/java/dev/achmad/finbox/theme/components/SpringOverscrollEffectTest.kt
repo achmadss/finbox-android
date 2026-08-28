@@ -31,15 +31,12 @@ class SpringOverscrollEffectTest {
     fun `the end gives way, and the way back pays it off before scrolling`() {
         assertFalse(effect.isInProgress)
 
-        // Nothing scrolled, but the end moved: 100 * Give.
         assertEquals(Offset.Zero, dragAtTheEnd(100f))
         assertTrue(effect.isInProgress)
 
-        // Smaller than the displacement, so it is all absorbed and nothing reaches the pager.
         assertEquals(0f, dragBack(-10f), 0.01f)
         assertTrue(effect.isInProgress)
 
-        // Larger, so the remainder past zero scrolls as usual.
         assertEquals(-15f, dragBack(-20f), 0.01f)
         assertFalse(effect.isInProgress)
     }

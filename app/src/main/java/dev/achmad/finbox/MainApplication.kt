@@ -36,8 +36,7 @@ class MainApplication: Application() {
             modules(coreModule, dataModule, helperModule, networkModule, preferenceModule)
         }
 
-        // The fetch schedule is the app's, not a screen's: it has to exist even if
-        // nobody opens settings.
+        // The fetch schedule belongs to the app, so it runs even if settings are never opened.
         inject<TransactionUpdateManager>().schedule()
     }
 }

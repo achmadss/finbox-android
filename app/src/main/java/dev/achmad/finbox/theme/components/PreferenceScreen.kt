@@ -15,10 +15,8 @@ import dev.achmad.finbox.util.preference.collectAsState
 import kotlinx.coroutines.launch
 
 /**
- * Renders the [Preference] items a settings screen describes.
- *
- * A disabled item is left out rather than greyed: settings that do not apply —
- * a schedule's constraints while the schedule is off — are noise, not choices.
+ * Renders the [Preference] items a settings screen describes. Disabled items
+ * are left out rather than greyed: settings that do not apply are noise, not choices.
  */
 @Composable
 fun PreferenceItems(

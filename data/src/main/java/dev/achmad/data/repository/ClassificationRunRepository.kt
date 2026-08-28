@@ -39,12 +39,7 @@ class ClassificationRunRepository(
             .mapToList(Dispatchers.IO)
             .map { rows -> rows.map { it.toModel() } }
 
-    /**
-     * Records what a batch decided.
-     *
-     * One database transaction for the whole batch: a pass writes a few hundred
-     * of these and a round trip each would show up next to the request itself.
-     */
+    /** Records what a batch decided. */
     suspend fun recordResults(results: List<ClassificationResult>) = withContext(Dispatchers.IO) {
         db.transaction {
             results.forEach {
@@ -87,8 +82,8 @@ class ClassificationRunRepository(
     /**
      * Adds a finished batch to the running totals.
      *
-     * Written per batch rather than once at the end, so a run that is killed
-     * still says what it managed. Everything here is a delta.
+     * Written per batch, so a run that is killed still says what it managed.
+     * Everything here is a delta.
      */
     suspend fun addProgress(
         id: Long,
@@ -127,12 +122,7 @@ class ClassificationRunRepository(
         Unit
     }
 
-    /**
-     * Closes off runs the process died under.
-     *
-     * Nothing is going to finish them, and a history that shows a run still
-     * going three days later is worse than one that admits it was killed.
-     */
+    /** Closes off runs the process died under. */
     suspend fun cancelStale() = withContext(Dispatchers.IO) {
         db.classificationRunQueries.UPDATEStaleRuns(System.currentTimeMillis())
         Unit
