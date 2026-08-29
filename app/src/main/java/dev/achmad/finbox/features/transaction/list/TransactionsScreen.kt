@@ -33,11 +33,14 @@ import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -99,6 +102,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalLocale
 import dev.achmad.finbox.features.transaction.detail.TransactionDetailScreen
+import dev.achmad.finbox.features.categorize.CategoryGroupsScreen
 import kotlin.collections.get
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.annotation.StringRes
@@ -135,6 +139,7 @@ object TransactionsScreen : Screen {
         val accounts by model.accounts.collectAsState()
         val sources by model.sources.collectAsState()
         val selected by model.selected.collectAsState()
+        val groupOffer by model.groupOffer.collectAsState()
 
         TransactionsScreenContent(
             use24Hour = rememberUse24HourClock(),
@@ -159,6 +164,9 @@ object TransactionsScreen : Screen {
             onOpenSources = { navigator.push(SourcesScreen) },
             noEnabledSources = noEnabledSources,
             onOpenSettings = { navigator.push(SettingsScreen) },
+            groupOffer = groupOffer,
+            onOpenGroupOffer = { navigator.push(CategoryGroupsScreen) },
+            onDismissGroupOffer = model::dismissGroupOffer,
         )
     }
 }
@@ -186,6 +194,10 @@ fun TransactionsScreenContent(
     /** Every source switched off; the empty ledger says so. */
     noEnabledSources: Boolean = false,
     onOpenSettings: () -> Unit,
+    /** Groups still uncategorized, when the after-import offer is standing. 0 = hidden. */
+    groupOffer: Int = 0,
+    onOpenGroupOffer: () -> Unit = {},
+    onDismissGroupOffer: () -> Unit = {},
     /** Ids picked for a bulk action. Non-empty is what "selection mode" means. */
     selected: Set<String> = emptySet(),
     onToggleSelection: (String) -> Unit = {},
@@ -322,6 +334,13 @@ fun TransactionsScreenContent(
                 .padding(contentPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                if (groupOffer > 0) {
+                    GroupOfferCard(
+                        groups = groupOffer,
+                        onOpen = onOpenGroupOffer,
+                        onDismiss = onDismissGroupOffer,
+                    )
+                }
                 val page = months.indexOf(month).coerceAtLeast(0)
                 val pagerState = rememberPagerState(initialPage = page, pageCount = { months.size })
                 val latestMonths by rememberUpdatedState(months)
@@ -492,6 +511,50 @@ private fun RowScope.MonthTotal(label: String, amount: Long) {
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
         )
+    }
+}
+
+/**
+ * The one offer this screen ever makes: after a first import, filing groups is
+ * the fastest way to a categorized ledger, and it is where the user's own
+ * knowledge outranks any model. Dismissing it is permanent.
+ */
+@Composable
+private fun GroupOfferCard(
+    groups: Int,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.category_groups_offer_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.category_groups_offer_info, groups),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = onOpen) {
+                Text(stringResource(R.string.category_groups_offer_action))
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.category_groups_offer_dismiss),
+                )
+            }
+        }
     }
 }
 

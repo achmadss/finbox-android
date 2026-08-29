@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
-"""What the signature design is worth on a real ledger, and how a classifier is doing.
+"""What the signature design is worth on a real ledger.
 
 Reads the app's database — from a connected device by default, or from a file
-with --db — and prints two reports:
-
-  Coverage    needs no labels at all. How many transactions collapse into how
-              many signatures, how many carry nothing to classify with, and
-              which groups are big enough to be worth getting right.
-
-  Agreement   needs no labelling *chore*. The labels are the categories the user
-              set by hand, which ordinary use of the app produces. It reports
-              how often the classifier agreed with them.
+with --db — and prints: how many transactions collapse into how many
+signatures, how many name no merchant to file, which groups are big enough to
+be worth getting right, and what the once-seen tail is made of.
 
 Nothing here uploads anything. The database holds real mail and real money, so
 the copy stays where you point it and no output should be committed.
@@ -58,26 +52,29 @@ def pull() -> pathlib.Path:
 
 
 def signature(row) -> tuple:
-    """The tuple a classifier sees. Amount stays out — it is unique per row."""
+    """The tuple a classifier sees. Amount stays out — it is unique per row.
+
+    The merchant is the whole text input: description was dropped from the
+    signature in the app, so this must match or the report stops describing
+    what the app does. Direction is included because same-merchant money in
+    one direction and out the other is a different classification question.
+    """
     return (
         normalize(row["merchant"]),
-        normalize(row["description"]),
         row["direction"],
     )
 
 
 def named(sig) -> bool:
-    """Whether the receipt named a counterparty or said anything about this one."""
-    return sig[0] is not None or sig[1] is not None
+    """Whether the receipt named a counterparty."""
+    return sig[0] is not None
 
 
 def sendable(sig) -> bool:
-    """Whether the app would send it, which is any text at all.
+    """Whether the app would file it, which is any merchant at all.
 
-    Mirrors Signature.isComplete. It used to also count `method`, and a receipt
-    naming nothing but a method was still worth a call. There is no method now,
-    so the two questions collapsed into one and the middle bucket below is
-    always empty — see plans/03, which rebuilds what this measures.
+    Mirrors Signature.isComplete: description is gone from the app's
+    signature, so a merchant-less row is UNKNOWN regardless of its note.
     """
     return named(sig)
 
@@ -93,67 +90,54 @@ def coverage(rows):
     print(f"rows per signature      {len(rows) / len(groups):.1f}x")
     print(f"classifier calls saved  {100 * (1 - len(groups) / len(rows)):.0f}%")
     print()
-    print("What the classifier is being asked:")
-    print(f"  a counterparty or a note   {rows_in(identified):>4} rows in {len(identified):>3} signatures")
-    print(f"  nothing at all, not sent   {rows_in(empty):>4} rows in {len(empty):>3} signatures")
+    print("What the file screen is being asked:")
+    print(f"  a merchant to file            {rows_in(identified):>4} rows in {len(identified):>3} signatures")
+    print(f"  no merchant, stays UNKNOWN    {rows_in(empty):>4} rows in {len(empty):>3} signatures")
     once = [s for s in identified if groups[s] == 1]
-    print(f"  identified and seen once   {len(once):>4} signatures")
+    print(f"  identified and seen once      {len(once):>4} signatures")
     print()
-    print("The second row is the ceiling. Those receipts name no counterparty and")
-    print("no note, so nothing can be asked about them and UNKNOWN is the honest")
-    print("answer — Jago states neither on about half its mail, and that is the")
-    print("bank never writing it down rather than anything to fix here.")
+    print("The second row is the ceiling. Those receipts name no counterparty, so no")
+    print("filing is possible and UNKNOWN is the honest answer — Jago states none on")
+    print("much of its mail, and that is the bank never writing it down rather than")
+    print("anything to fix here.")
     print()
     print("The biggest groups decide most of the ledger. One wrong answer here")
     print("is wrong for every row under it, so these are the ones to check:")
     for sig, count in groups.most_common(10):
-        merchant, description, direction = sig
+        merchant, direction = sig
         share = 100 * count / len(rows)
         flag = "  <- no counterparty named" if not named(sig) else ""
-        print(f"  {count:>4} rows ({share:>4.1f}%)  {str(merchant)[:24]:<24} | "
-              f"{str(description)[:38]:<38} | {direction}{flag}")
+        print(f"  {count:>4} rows ({share:>4.1f}%)  {str(merchant)[:40]:<40} | {direction}{flag}")
 
 
-def agreement(rows):
-    """Score the classifier against the categories the user set by hand.
+def once_seen(groups):
+    """What the tail actually is: singleton signatures, grouped by first token.
 
-    Corrections are a biased sample — people fix what looks wrong and leave
-    what looks right — so this reads low rather than high. That makes it a
-    reasonable regression signal and a poor accuracy claim.
+    If they are variations on a few shops (SHOPEE ID, SHOPEEPAY, SHOPEE -
+    4471), keyword rules absorb them all. If they are fifty genuinely distinct
+    merchants, nothing helps; each is seen once either way and the tail stops
+    being worth thinking about.
     """
-    by_user = [r for r in rows if r["category_source"] == "USER" and r["category"]]
-    if not by_user:
-        print("No hand-set categories yet, so there is nothing to score against.")
-        print("This fills in on its own: every category set by hand becomes a label.")
-        return
-
-    answers = {}
-    for row in rows:
-        if row["category_source"] == "AI" and row["category"]:
-            answers[signature(row)] = row["category"]
-
-    checked = [(r, answers[signature(r)]) for r in by_user if signature(r) in answers]
-    if not checked:
-        print(f"{len(by_user)} hand-set categories, none of them on a signature the")
-        print("classifier has also answered, so there is nothing to compare yet.")
-        return
-
-    agreed = [r for r, guess in checked if guess == r["category"]]
-    print(f"hand-set categories     {len(by_user)}")
-    print(f"also answered by AI     {len(checked)}")
-    print(f"agreed                  {len(agreed)} ({100 * len(agreed) / len(checked):.0f}%)")
-    print()
-    confusion = collections.Counter(
-        (guess, r["category"]) for r, guess in checked if guess != r["category"]
+    singletons = [s for s, count in groups.items() if count == 1]
+    by_first_token = collections.Counter(
+        s[0].split()[0] if s[0] else "(no merchant)"
+        for s in singletons
     )
-    if confusion:
-        print("Where it disagreed — the model said, you said:")
-        for (guess, actual), count in confusion.most_common(10):
-            print(f"  {count:>3}  {guess} -> {actual}")
+    print(f"once-seen signatures   {len(singletons)}")
+    print("grouped by first token:")
+    for token, count in by_first_token.most_common(15):
+        print(f"  {count:>4}  {token[:48]}")
+    print()
+    print("Both numbers matter: a small set of first tokens means keyword rules")
+    print("cover the tail; a wide spread means there is nothing to generalize.")
+
+    print("The once-seen signatures themselves:")
+    for merchant, direction in sorted(singletons, key=lambda s: s[0] or ""):
+        print(f"  {str(merchant or '(none)')[:48]:<48} | {direction}")
 
 
 def main() -> int:
-    extension = argparse.ArgumentExtension(description=__doc__)
+    extension = argparse.ArgumentParser(description=__doc__)
     extension.add_argument("--db", type=pathlib.Path, help="a database file instead of a device")
     args = extension.parse_args()
 
@@ -166,11 +150,8 @@ def main() -> int:
 
     print("== coverage ==\n")
     coverage(rows)
-    print("\n== agreement ==\n")
-    if "category_source" in rows[0].keys():
-        agreement(rows)
-    else:
-        print("This database predates category_source, so there is nothing to score.")
+    print("\n== once-seen tail ==\n")
+    once_seen(collections.Counter(signature(r) for r in rows))
     return 0
 
 

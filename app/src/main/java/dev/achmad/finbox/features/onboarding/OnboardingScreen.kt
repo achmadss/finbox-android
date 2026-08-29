@@ -31,9 +31,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import dev.achmad.finbox.R
-import dev.achmad.finbox.features.onboarding.content.OnboardingAiContent
 import dev.achmad.finbox.features.onboarding.content.OnboardingAuthContent
-import dev.achmad.finbox.features.settings.llm.SettingsLlmProviderScreen
 import dev.achmad.finbox.features.onboarding.content.OnboardingNotificationPermissionContent
 import dev.achmad.finbox.features.transaction.list.TransactionsScreen
 import dev.achmad.finbox.theme.AppTheme
@@ -63,16 +61,6 @@ object OnboardingScreen: Screen {
             if (state is OnboardingScreenModel.State.Done) navigator.replace(TransactionsScreen)
         }
 
-        // Provider setup happens on another screen; coming back is the only signal that the step is done.
-        LaunchedEffect(navigator.lastItem, state) {
-            if (state is OnboardingScreenModel.State.SetupAi &&
-                navigator.lastItem is OnboardingScreen &&
-                screenModel.hasProvider()
-            ) {
-                screenModel.onAiPromptSettled()
-            }
-        }
-
         // The grant lands on the activity result, not on the button press.
         LaunchedEffect(notificationPermission.status.isGranted, state) {
             if (state is OnboardingScreenModel.State.NotificationPermission &&
@@ -90,8 +78,6 @@ object OnboardingScreen: Screen {
             },
             onClickAllowNotification = notificationPermission::launchPermissionRequest,
             onNotificationPromptSettled = screenModel::onNotificationPromptSettled,
-            onSetupAi = { navigator.push(SettingsLlmProviderScreen(null)) },
-            onSkipAi = screenModel::onAiPromptSettled,
             onExit = { activity?.finish() },
         )
     }
@@ -103,8 +89,6 @@ fun OnboardingScreenContent(
     onClickSignIn: () -> Unit = {},
     onClickAllowNotification: () -> Unit = {},
     onNotificationPromptSettled: () -> Unit = {},
-    onSetupAi: () -> Unit = {},
-    onSkipAi: () -> Unit = {},
     onExit: () -> Unit = {},
 ) {
     val slideDistance = rememberSlideDistance()
@@ -164,9 +148,6 @@ fun OnboardingScreenContent(
                     onClickAllowNotification = onClickAllowNotification,
                     onSkipNotificationPermission = onNotificationPromptSettled,
                 )
-            }
-            is OnboardingScreenModel.State.SetupAi -> {
-                OnboardingAiContent(onClickSetup = onSetupAi, onSkip = onSkipAi)
             }
         }
     }

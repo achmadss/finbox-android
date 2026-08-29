@@ -61,12 +61,6 @@ WHERE deleted = 0
   AND (description LIKE '%' || :query || '%' OR merchant LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%')
 ORDER BY COALESCE(date, created_at) DESC;
 
--- Every row carrying a category worth reusing, for the signature cache. UNKNOWN
--- is excluded because it says the opposite: there was nothing to classify with.
-SELECTCategorized:
-SELECT * FROM transactions
-WHERE deleted = 0 AND category IS NOT NULL AND category != 'UNKNOWN';
-
 -- Ids derive from the Gmail message, so re-reading one overwrites instead of
 -- duplicating.
 INSERTOrReplace:

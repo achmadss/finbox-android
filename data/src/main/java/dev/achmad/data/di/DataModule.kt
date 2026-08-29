@@ -6,8 +6,8 @@ import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
+import dev.achmad.data.repository.CategoryRuleRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.ClassificationRunRepository
 import dev.achmad.data.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -20,7 +20,7 @@ val dataModule = module {
     single { AccountSourceRepository(get()) }
     single { EmailRepository(get()) }
     single { TransactionRepository(get()) }
-    single { ClassificationRunRepository(get()) }
+    single { CategoryRuleRepository(get()) }
 
     /** Whole-app backup and restore, `.finboxbackup`. */
     single { BackupManager(androidContext(), get(), get(), get(), get()) }

@@ -1,6 +1,7 @@
 package dev.achmad.finbox.di
 
 import android.content.Context
+import dev.achmad.finbox.core.preference.CategorizePreferences
 import dev.achmad.finbox.core.preference.SourcePreferences
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.core.preference.SyncPreferences
@@ -28,4 +29,5 @@ val preferenceModule = module {
     single<SourcePreferences> {
         SourcePreferences(preferenceStore = get())
     }
+    single<CategorizePreferences> { CategorizePreferences(preferenceStore = get()) }
 }

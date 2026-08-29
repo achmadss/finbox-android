@@ -12,12 +12,6 @@ import dev.achmad.finbox.core.update.transaction.TransactionUpdateStatus
 import dev.achmad.finbox.core.update.transaction.TransactionUpdater
 import dev.achmad.finbox.core.update.app.AppUpdateChecker
 import androidx.work.WorkManager
-import dev.achmad.finbox.core.categorization.CategorizationManager
-import dev.achmad.finbox.core.categorization.TransactionCategorizer
-import dev.achmad.finbox.core.llm.LlmClient
-import dev.achmad.finbox.core.llm.TransactionClassifier
-import dev.achmad.finbox.core.llm.LlmKeyStore
-import dev.achmad.finbox.core.llm.LlmProviderStore
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -43,19 +37,6 @@ val coreModule = module {
             accountRepository = get()
         )
     }
-    single<LlmKeyStore> { LlmKeyStore(context = androidContext()) }
-    single<LlmProviderStore> { LlmProviderStore(preferenceStore = get(), keys = get()) }
-    single<LlmClient> { LlmClient(client = get(), providers = get()) }
-    single<TransactionClassifier> { TransactionClassifier(client = get(), providers = get()) }
-    single<TransactionCategorizer> {
-        TransactionCategorizer(
-            transactions = get(),
-            runs = get(),
-            classifier = get(),
-            providers = get(),
-        )
-    }
-    single<CategorizationManager> { CategorizationManager(categorizer = get(), runs = get()) }
 
     single<SourceManager> {
         SourceManager(
@@ -78,6 +59,7 @@ val coreModule = module {
             emailRepository = get(),
             transactionRepository = get(),
             gmailApi = get(),
+            rules = get(),
         )
     }
 

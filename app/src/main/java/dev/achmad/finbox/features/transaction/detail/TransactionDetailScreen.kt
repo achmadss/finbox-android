@@ -213,7 +213,7 @@ private fun TransactionDetailPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 categoryName = TransactionCategory.FOOD.name,
-                categorySource = CategorySource.AI,
+                categorySource = CategorySource.RULE,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,

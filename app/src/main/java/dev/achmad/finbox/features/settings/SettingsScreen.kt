@@ -20,6 +20,8 @@ import dev.achmad.finbox.core.preference.SyncPreferences
 import dev.achmad.finbox.core.preference.ThemeMode
 import dev.achmad.finbox.core.preference.UiPreferences
 import dev.achmad.finbox.core.preference.UpdatePreferences
+import dev.achmad.finbox.features.categorize.CategoryGroupsScreen
+import dev.achmad.finbox.features.rules.CategoryRulesScreen
 import dev.achmad.finbox.features.settings.language.SettingsLanguageScreen
 import dev.achmad.finbox.theme.components.Preference
 import dev.achmad.finbox.theme.components.PreferenceScreen
@@ -31,9 +33,6 @@ import dev.achmad.finbox.util.preference.collectAsState
 import dev.achmad.finbox.util.ui.rememberUse24HourClock
 import androidx.compose.ui.res.stringResource
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.llm.LlmProviderStore
-import dev.achmad.finbox.features.settings.categorize.SettingsCategorizeScreen
-import dev.achmad.finbox.features.settings.llm.SettingsLlmScreen
 
 object SettingsScreen : Screen {
     private fun readResolve(): Any = SettingsScreen
@@ -59,34 +58,30 @@ object SettingsScreen : Screen {
     }
 
     /**
-     * Its own group rather than a line under Sync: setting a provider up is a
-     * decision — it sends signatures to somebody else's server — and nothing
-     * else in the app needs it.
+     * Its own group rather than a line under Sync: categorizing is a decision
+     * — it sends signatures to somebody else's server when a model is
+     * involved — and nothing else in the app needs it.
+     *
+     * Only filing survives. The provider-setting and auto-categorize entries
+     * are deliberately absent: the classifier is shelved, unreachable, and may
+     * come back, so nothing here should claim it exists now.
      */
     @Composable
     private fun categorizationGroup(): Preference.PreferenceGroup {
         val navigator = LocalNavigator.currentOrThrow
-        val providers = remember { inject<LlmProviderStore>() }
-        val active = remember { providers.active() }
 
         return Preference.PreferenceGroup(
             title = stringResource(R.string.pref_category_categorization),
             preferenceItems = listOf(
                 Preference.PreferenceItem.TextPreference(
-                    title = stringResource(R.string.pref_llm_providers),
-                    subtitle = active
-                        ?.let { stringResource(R.string.pref_llm_providers_summ, it.name, it.model) }
-                        ?: stringResource(R.string.pref_llm_providers_summ_none),
-                    onClick = { navigator.push(SettingsLlmScreen) },
+                    title = stringResource(R.string.category_groups_title),
+                    subtitle = stringResource(R.string.category_groups_settings_summ),
+                    onClick = { navigator.push(CategoryGroupsScreen) },
                 ),
                 Preference.PreferenceItem.TextPreference(
-                    title = stringResource(R.string.pref_auto_categorize),
-                    subtitle = if (active != null) {
-                        stringResource(R.string.pref_auto_categorize_summ)
-                    } else {
-                        stringResource(R.string.pref_auto_categorize_summ_off)
-                    },
-                    onClick = { navigator.push(SettingsCategorizeScreen) },
+                    title = stringResource(R.string.rules_title),
+                    subtitle = stringResource(R.string.rules_settings_summ),
+                    onClick = { navigator.push(CategoryRulesScreen) },
                 ),
             ),
         )

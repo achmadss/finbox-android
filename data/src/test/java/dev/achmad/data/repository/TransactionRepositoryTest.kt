@@ -65,50 +65,15 @@ class TransactionRepositoryTest {
     }
 
     @Test
-    fun `a classify pass writing a category does not mark the row as edited`() = runBlocking {
+    fun `a pass writing a category is not a hand edit but a rule is`() = runBlocking {
         repository.upsertAll(listOf(transaction(merchant = "GRABFOOD")))
         val id = repository.all().single().id
 
-        repository.setCategory(id, TransactionCategory.FOOD, CategorySource.AI)
+        repository.setCategory(id, TransactionCategory.FOOD, CategorySource.RULE)
 
         val stored = repository.all().single()
-        assertEquals(CategorySource.AI, stored.categorySource)
+        assertEquals(CategorySource.RULE, stored.categorySource)
         assertNull(stored.editedAt)
-    }
-
-    @Test
-    fun `the cache answers a signature another row already carries`() = runBlocking {
-        repository.upsertAll(
-            listOf(
-                transaction(index = 0, merchant = "GrabFood", description = "Order"),
-                // The same signature once normalized: spacing and case do not
-                // make it a different classification problem.
-                transaction(index = 1, merchant = "  GRABFOOD ", description = "order"),
-            ),
-        )
-        val (first, second) = repository.all().sortedBy { it.id }
-        repository.setCategory(first.id, TransactionCategory.FOOD, CategorySource.AI)
-
-        val cache = repository.categoryCache()
-
-        assertEquals(TransactionCategory.FOOD, cache[second.signature()])
-    }
-
-    @Test
-    fun `the cache prefers the user's answer over a model's`() = runBlocking {
-        repository.upsertAll(
-            listOf(
-                transaction(index = 0, merchant = "Indomaret"),
-                transaction(index = 1, merchant = "Indomaret"),
-            ),
-        )
-        val (byModel, byUser) = repository.all().sortedBy { it.id }
-        repository.setCategory(byModel.id, TransactionCategory.SHOPPING, CategorySource.AI)
-        repository.setCategoryByUser(listOf(byUser.id), TransactionCategory.GROCERIES)
-
-        val cache = repository.categoryCache()
-
-        assertEquals(TransactionCategory.GROCERIES, cache[byUser.signature()])
     }
 
     @Test
@@ -137,7 +102,8 @@ class TransactionRepositoryTest {
             listOf(
                 transaction(index = 0, merchant = "Indomaret", description = "Purchase"),
                 transaction(index = 1, merchant = " indomaret ", description = "PURCHASE"),
-                // Same merchant, different description: not the same problem to a classifier.
+                // Same merchant, different description: still the same place, so
+                // still the same classification question.
                 transaction(index = 2, merchant = "Indomaret", description = "Top up"),
                 transaction(index = 3, merchant = "Alfamart", description = "Purchase"),
             ),
@@ -146,16 +112,7 @@ class TransactionRepositoryTest {
 
         val matching = repository.withSignature(rows[0].signature(), excludingId = rows[0].id)
 
-        assertEquals(listOf(rows[1].id), matching.map { it.id })
-    }
-
-    @Test
-    fun `an UNKNOWN row never becomes a cached answer`() = runBlocking {
-        repository.upsertAll(listOf(transaction(merchant = null, description = null)))
-        val id = repository.all().single().id
-        repository.setCategory(id, TransactionCategory.UNKNOWN, source = null)
-
-        assertTrue(repository.categoryCache().isEmpty())
+        assertEquals(listOf(rows[1].id, rows[2].id), matching.map { it.id })
     }
 
     @Test
@@ -173,24 +130,19 @@ class TransactionRepositoryTest {
         // receipt did not say what the money was for. The third was looked at
         // and genuinely is miscellaneous.
         repository.setCategory(noPurpose.id, TransactionCategory.UNKNOWN, source = null)
-        repository.setCategory(miscellaneous.id, TransactionCategory.OTHER, CategorySource.AI)
+        repository.setCategory(miscellaneous.id, TransactionCategory.OTHER, CategorySource.RULE)
 
         val stored = repository.all().sortedBy { it.id }
         assertNull(stored[0].category)
         assertEquals(TransactionCategory.UNKNOWN, stored[1].category)
         assertEquals(TransactionCategory.OTHER, stored[2].category)
-
-        // Only OTHER is an answer worth reusing. UNKNOWN and null both mean the
-        // question is still open, for different reasons, and collapsing either
-        // into the cache would stop the pass ever asking again.
-        val cache = repository.categoryCache()
-        assertEquals(listOf(TransactionCategory.OTHER), cache.values.toList())
     }
 
     @Test
-    fun `an imported row lands uncategorized and stays available to the classify pass`() = runBlocking {
-        // What the import path writes: no category, no source. A classifier that
-        // is unavailable, slow or wrong cannot fail this, because it is not run.
+    fun `an imported row lands uncategorized`() = runBlocking {
+        // What the import path writes: no category, no source. Nothing that
+        // runs at import time can slow or fail it with classification work,
+        // because no classification runs.
         repository.upsertAll(listOf(transaction(merchant = "Kopi Kenangan")))
 
         val stored = repository.all().single()
@@ -210,15 +162,72 @@ class TransactionRepositoryTest {
         assertEquals(1, repository.all().size)
     }
 
+    @Test
+    fun `filing a group writes every row under it and leaves others alone`() = runBlocking {
+        // Forty identical receipts, plus one merchant that is not in the group.
+        repository.upsertAll(
+            List(40) { i -> transaction(index = i, merchant = "SHOPEE - 4471") } +
+                listOf(transaction(index = 0, merchant = "Indomaret", emailMessageId = "other")),
+        )
+
+        val group = repository.fileableGroups().first { it.title == "SHOPEE - 4471" }
+        assertEquals(40, group.rowCount)
+        repository.setCategoryByUser(group.rows.map { it.id }, TransactionCategory.SHOPPING)
+
+        val stored = repository.all()
+        val filed = stored.filter { it.merchant == "SHOPEE - 4471" }
+        assertEquals(40, filed.size)
+        assertTrue(filed.all { it.category == TransactionCategory.SHOPPING })
+        assertTrue(filed.all { it.categorySource == CategorySource.USER })
+        assertTrue(filed.all { it.edited })
+        val other = stored.single { it.merchant == "Indomaret" }
+        assertNull(other.category)
+        assertNull(other.editedAt)
+    }
+
+    @Test
+    fun `a group already fully filed is not fileable`() = runBlocking {
+        repository.upsertAll(listOf(transaction(index = 0, merchant = "Kopi Kenangan")))
+        repository.setCategoryByUser(
+            listOf(repository.all().single().id),
+            TransactionCategory.FOOD,
+        )
+
+        assertEquals(0, repository.fileableGroups().size)
+    }
+
+    @Test
+    fun `a group filed half by user and half by pass files the rest`() = runBlocking {
+        repository.upsertAll(
+            listOf(
+                transaction(index = 0, merchant = "Kopi Kenangan", emailMessageId = "m0"),
+                transaction(index = 0, merchant = "Kopi Kenangan", emailMessageId = "m1"),
+                transaction(index = 0, merchant = "Kopi Kenangan", emailMessageId = "m2"),
+            ),
+        )
+        val first = repository.all().sortedBy { it.id }.first()
+        repository.setCategoryByUser(listOf(first.id), TransactionCategory.FOOD)
+
+        val group = repository.fileableGroups().single()
+        // The user's row is not re-filed; the two it missed are.
+        assertEquals(2, group.rowCount)
+        repository.setCategoryByUser(group.rows.map { it.id }, TransactionCategory.GROCERIES)
+
+        val found = repository.all()
+        assertEquals(1, found.count { it.category == TransactionCategory.FOOD })
+        assertEquals(2, found.count { it.category == TransactionCategory.GROCERIES })
+    }
+
     private fun transaction(
         index: Int = 0,
         merchant: String? = "Kopi Kenangan",
         description: String? = "Coffee",
         amount: Long = 25_000,
+        emailMessageId: String = "message-$index",
     ) = Transaction(
         accountId = "account",
         sourceId = "test",
-        emailMessageId = "message-$index",
+        emailMessageId = emailMessageId,
         index = index,
         threadId = null,
         reference = null,

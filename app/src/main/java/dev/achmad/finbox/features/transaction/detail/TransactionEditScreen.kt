@@ -342,8 +342,8 @@ private fun TransactionEditor(
 
 /**
  * The app's categories, plus Uncategorized. It clears the row back to
- * unprocessed, which is what hands it to the next classify pass; UNKNOWN is
- * missing on purpose, since code assigns that after looking.
+ * unprocessed; UNKNOWN is missing on purpose, since code assigns that after
+ * looking.
  */
 @Composable
 internal fun CategoryPickerDialog(
@@ -516,8 +516,7 @@ internal fun Draft.applyTo(transaction: Transaction): Transaction {
         merchant = merchant.blankToNull(),
     )
     return when {
-        // Filing it yourself makes it yours, and a classify pass then leaves it
-        // alone unless it is told outright to replace manual work.
+        // Filing it yourself makes it yours.
         category != transaction.category -> edited.copy(
             categoryName = category?.name,
             categorySource = category?.let { CategorySource.USER },
@@ -552,7 +551,7 @@ private fun TransactionEditPreview() {
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
                 categoryName = TransactionCategory.FOOD.name,
-                categorySource = CategorySource.AI,
+                categorySource = CategorySource.RULE,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,

@@ -9,7 +9,6 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.llm.TransactionClassifier
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
@@ -28,7 +27,6 @@ class OnboardingScreenModel(
     private val preferences: OnboardingPreference = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
     private val permissionHelper: PermissionHelper = inject(),
-    private val classifier: TransactionClassifier = inject(),
 ): StateScreenModel<OnboardingScreenModel.State>(State.Resolving) {
     init {
         screenModelScope.launch {
@@ -73,18 +71,8 @@ class OnboardingScreenModel(
     }
 
     /**
-     * Set up or waved away — either way the offer has been made. Also called on
-     * returning from the provider screen, so finishing setup there moves onboarding
-     * along without a second confirmation.
+     * Granted or skipped — either way the prompt has been seen and the step is done.
      */
-    fun onAiPromptSettled() {
-        screenModelScope.launch {
-            preferences.aiPromptSeen().set(true)
-            next()
-        }
-    }
-
-    /** Granted or skipped — either way the prompt has been seen and the step is done. */
     fun onNotificationPromptSettled() {
         screenModelScope.launch {
             preferences.notificationPromptSeen().set(true)
@@ -124,13 +112,15 @@ class OnboardingScreenModel(
      * bank before the user has seen anything. So it moved out: the home screen
      * says a source is needed and links to the list, which is one prompt at
      * a moment the user asked for it.
+     *
+     * The AI setup step is skipped deliberately: filing by group covers most
+     * of the ledger without any provider, and the LLM settings are hidden
+     * while that is the path. The step still exists below, in code, for a
+     * future re-enablement.
      */
     private suspend fun resolve(): State? = when {
         accountRepository.all().isEmpty() -> State.SignIn()
         !notificationSettled() -> State.NotificationPermission
-        // Last, and the only step that asks for nothing: a provider already set
-        // up, or the offer already made, both count as settled.
-        !classifier.isConfigured() && !preferences.aiPromptSeen().get() -> State.SetupAi
         else -> null
     }
 
@@ -139,8 +129,6 @@ class OnboardingScreenModel(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             permissionHelper.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
-
-    fun hasProvider(): Boolean = classifier.isConfigured()
 
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
 
@@ -153,9 +141,6 @@ class OnboardingScreenModel(
         /** [isSigningIn] while the browser flow is out and its token exchange runs. */
         data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
-
-        /** Nothing here is required. */
-        object SetupAi: State()
         /** Setup is finished; the screen leaves for the transaction list. */
         object Done: State()
     }

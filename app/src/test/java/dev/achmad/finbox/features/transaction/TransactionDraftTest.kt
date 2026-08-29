@@ -69,12 +69,12 @@ class TransactionDraftTest {
 
     @Test
     fun `editing another field leaves the category and its source alone`() {
-        val byModel = transaction.copy(categorySource = CategorySource.AI)
+        val byRule = transaction.copy(categorySource = CategorySource.RULE)
 
-        val edited = byModel.toDraft().copy(merchant = "Kopi Kenangan Sudirman").applyTo(byModel)
+        val edited = byRule.toDraft().copy(merchant = "Kopi Kenangan Sudirman").applyTo(byRule)
 
         assertEquals(TransactionCategory.FOOD, edited.category)
-        assertEquals(CategorySource.AI, edited.categorySource)
+        assertEquals(CategorySource.RULE, edited.categorySource)
     }
 
     @Test

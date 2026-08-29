@@ -5,10 +5,13 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.normalizedThreadId
+import dev.achmad.data.model.signature
 import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
+import dev.achmad.data.repository.CategoryRuleRepository
 import dev.achmad.data.repository.EmailRepository
 import dev.achmad.data.repository.TransactionRepository
+import dev.achmad.data.repository.matches
 import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.core.gmail.GmailApi
 import dev.achmad.finbox.core.gmail.combineSourceQueries
@@ -41,6 +44,7 @@ class TransactionUpdater(
     private val emailRepository: EmailRepository,
     private val transactionRepository: TransactionRepository,
     private val gmailApi: GmailApi,
+    private val rules: CategoryRuleRepository,
 ) {
 
     /** One update at a time per account, so two refreshes can't race the cursor. */
@@ -358,7 +362,7 @@ class TransactionUpdater(
                                     parsedBySourceId = null,
                                     fetchedAt = System.currentTimeMillis(),
                                 )
-                            parse(email, message, sources)
+                            parseEmail(email, message, sources, force = false, now = System.currentTimeMillis())
                         }
                     }.awaitAll()
                 }
@@ -369,6 +373,7 @@ class TransactionUpdater(
             // Transactions first: an id derives from the email, so a re-run
             // overwrites the same reference rather than duplicating it.
             transactionRepository.upsertAll(transactions)
+            transactionRepository.applyRules(rules.all())
             val emails = results.map { it.email }
             emailRepository.insertNew(emails.filter { it.messageId !in stored })
             emailRepository.updateAll(emails.filter { it.messageId in stored })
@@ -497,12 +502,13 @@ class TransactionUpdater(
             val results = withContext(Dispatchers.Default) {
                 coroutineScope {
                     batch.map { email ->
-                        async { parse(email, email.asSourceEmail(), sources, force) }
+                        async { parseEmail(email, email.asSourceEmail(), sources, force) }
                     }.awaitAll()
                 }
             }
             val transactions = results.flatMap { it.transactions }.distinctBy { it.id }
             transactionRepository.upsertAll(transactions)
+            transactionRepository.applyRules(rules.all())
             emailRepository.updateAll(results.map { it.email })
             parsed += transactions.size
             onProgress(Progress(account.id, transactions.size))
@@ -519,72 +525,6 @@ class TransactionUpdater(
         date = date,
         body = body.orEmpty(),
     )
-
-    private class Parsed(val email: StoredEmail, val transactions: List<Transaction>)
-
-    /**
-     * Runs [message] past the sources that haven't tried it, first claim wins.
-     *
-     * [force] runs it past all of them regardless: a method switched back on has
-     * to reach the source that already claimed this email.
-     */
-    private suspend fun parse(
-        email: StoredEmail,
-        message: Email,
-        sources: List<SourceEntry>,
-        force: Boolean = false,
-    ): Parsed {
-        val candidates = if (force) sources else sources.filter { it.id !in email.triedSourceIds }
-        val tried = (email.triedSourceIds + candidates.map { it.id }).distinct()
-        val now = System.currentTimeMillis()
-
-        for (source in candidates) {
-            // A source that reads something other than mail has nothing to
-            // say about this, and is not a failure.
-            val emailSource = source.email ?: continue
-            // Empty is how a source disowns an email.
-            val parsed = runCatching { emailSource.parse(message) }.getOrNull()
-                ?.takeIf { it.isNotEmpty() }
-                ?: continue
-
-            val transactions = parsed.mapIndexed { index, transaction ->
-                Transaction(
-                    accountId = email.accountId,
-                    sourceId = source.id,
-                    emailMessageId = email.messageId,
-                    index = index,
-                    threadId = email.threadId,
-                    reference = transaction.reference?.trim()?.takeIf { it.isNotEmpty() },
-                    date = transaction.date,
-                    amount = transaction.amount,
-                    currency = transaction.currency,
-                    // By name, not mapped: a source built against a later API
-                    // could name a direction this build has never heard of, and
-                    // an unsigned row beats a crash.
-                    direction = runCatching {
-                        TransactionDirection.valueOf(transaction.direction.name)
-                    }.getOrNull(),
-                    // Import never classifies: a row lands uncategorized and the
-                    // classify pass picks it up later, so a classifier that is
-                    // unavailable, slow or wrong can never fail an import.
-                    categoryName = null,
-                    categorySource = null,
-                    description = transaction.description,
-                    merchant = transaction.merchant,
-                    createdAt = now,
-                    updatedAt = now,
-                    editedAt = null,
-                    deleted = false,
-                )
-            }
-            return Parsed(
-                email.copy(triedSourceIds = tried, parsedBySourceId = source.id),
-                transactions,
-            )
-        }
-        // Remember who looked, so only a new or updated source tries again.
-        return Parsed(email.copy(triedSourceIds = tried), emptyList())
-    }
 
     /** Advances the cursor. Only reached once the work above succeeded. */
     private suspend fun finish(account: EmailAccount, historyId: String?) {
@@ -626,4 +566,80 @@ class TransactionUpdater(
         const val NARROW_CAP = 2_000
 
     }
+}
+
+/** What one email became: the record to store, and the transactions it yielded. */
+internal data class Parsed(
+    val email: StoredEmail,
+    val transactions: List<Transaction>,
+)
+
+/**
+ * Runs [message] past the sources that haven't tried it, first claim wins.
+ *
+ * [force] runs it past all of them regardless: a source switched back on has
+ * to reach the email that already claimed it.
+ *
+ * This is the whole of the "nothing recognised is dropped quietly" decision.
+ * A source that yields nothing, or that fails, simply did not recognise the
+ * email; the mail is recorded as tried and no error, placeholder or review
+ * queue entry exists. What a source did not read costs nothing to try again
+ * only until someone claims it — after that the record says who.
+ */
+internal suspend fun parseEmail(
+    email: StoredEmail,
+    message: Email,
+    sources: List<SourceEntry>,
+    force: Boolean = false,
+    now: Long = System.currentTimeMillis(),
+): Parsed {
+    val candidates = if (force) sources else sources.filter { it.id !in email.triedSourceIds }
+    val tried = (email.triedSourceIds + candidates.map { it.id }).distinct()
+
+    for (source in candidates) {
+        // A source that reads something other than mail has nothing to
+        // say about this, and is not a failure.
+        val emailSource = source.email ?: continue
+        // Empty is how a source disowns an email.
+        val parsed = runCatching { emailSource.parse(message) }.getOrNull()
+            ?.takeIf { it.isNotEmpty() }
+            ?: continue
+
+        val transactions = parsed.mapIndexed { index, transaction ->
+            Transaction(
+                accountId = email.accountId,
+                sourceId = source.id,
+                emailMessageId = email.messageId,
+                index = index,
+                threadId = email.threadId,
+                reference = transaction.reference?.trim()?.takeIf { it.isNotEmpty() },
+                date = transaction.date,
+                amount = transaction.amount,
+                currency = transaction.currency,
+                // By name, not mapped: a source built against a later API
+                // could name a direction this build has never heard of, and
+                // an unsigned row beats a crash.
+                direction = runCatching {
+                    TransactionDirection.valueOf(transaction.direction.name)
+                }.getOrNull(),
+                // Import never assigns a category: a row lands uncategorized,
+                // and the user or a rule decides later, so nothing here can
+                // slow or fail the import with classification work.
+                categoryName = null,
+                categorySource = null,
+                description = transaction.description,
+                merchant = transaction.merchant,
+                createdAt = now,
+                updatedAt = now,
+                editedAt = null,
+                deleted = false,
+            )
+        }
+        return Parsed(
+            email.copy(triedSourceIds = tried, parsedBySourceId = source.id),
+            transactions,
+        )
+    }
+    // Remember who looked, so only a new or updated source tries again.
+    return Parsed(email.copy(triedSourceIds = tried), emptyList())
 }
