@@ -16,7 +16,7 @@ class BriTest {
     private val source = Bri()
 
     private fun fixture(name: String): String =
-        checkNotNull(javaClass.getResourceAsStream("/bri/$name.txt")) { "missing fixture $name" }
+        checkNotNull(javaClass.getResourceAsStream("/$name.txt")) { "missing fixture $name" }
             .bufferedReader()
             .readText()
 

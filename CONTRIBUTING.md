@@ -19,7 +19,7 @@ source/lib/id/jago/
     src/main/res/mipmap-<density>/ic_launcher.png
     src/main/kotlin/dev/achmad/finbox/source/id/jago/Jago.kt
     src/test/kotlin/dev/achmad/finbox/source/id/jago/JagoTest.kt
-    src/test/resources/jago/*.txt
+    src/test/emails/*.txt
 ```
 
 `id` is the ISO 3166-1 alpha-2 country the bank operates in, and `jago` is the
@@ -209,10 +209,14 @@ other source has to carry and none of them can correct.
 
 Plain JUnit on the JVM, no Android, no instrumentation.
 
-Save a real email as `src/test/resources/<id>/<case>.txt`, flattened the way the
-app hands it over — one line per table row — **with names, account numbers and
-card numbers redacted**, and assert the parsed amount, date, direction and
-merchant. `BriTest` and `JagoTest` are worth copying. Cover each distinct layout
+Save a real email as `src/test/emails/<case>.txt`, flattened the way the app
+hands it over — one line per table row — **with names, account numbers and card
+numbers redacted**, and assert the parsed amount, date, direction and merchant.
+
+`src/test/emails` is this project's name for what Gradle calls
+`src/test/resources`: the test classpath. It is not `src/main/res`, which is
+Android resources and ships inside the app — saved receipts belong nowhere near
+the APK, and a plain JVM test could not read them there anyway. `BriTest` and `JagoTest` are worth copying. Cover each distinct layout
 the bank sends, and one email that must *not* be claimed.
 
 The fixtures are examples of a layout, not a list of what the source supports,

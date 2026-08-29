@@ -62,6 +62,12 @@ class SourcePlugin : Plugin<Project> {
             // anything unprefixed. `ic_launcher` is the deliberate exception:
             // it is never read, only copied to a prefixed drawable.
             resourcePrefix = "${bank}_"
+
+            // Saved emails, not Android resources — they are on the test
+            // classpath and never reach the APK. The default name for this is
+            // src/test/resources, one letter and a world away from src/main/res
+            // next door; naming it for what is in it is worth the deviation.
+            sourceSets.getByName("test").resources.setSrcDirs(listOf("src/test/emails"))
         }
 
         // The variant API rather than a res srcDir: it takes the task provider,

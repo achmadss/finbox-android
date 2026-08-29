@@ -17,7 +17,7 @@ class BniTest {
     private val source = Bni()
 
     private fun fixture(name: String): String =
-        checkNotNull(javaClass.getResourceAsStream("/bni/$name.txt")) { "missing fixture $name" }
+        checkNotNull(javaClass.getResourceAsStream("/$name.txt")) { "missing fixture $name" }
             .bufferedReader()
             .readText()
 

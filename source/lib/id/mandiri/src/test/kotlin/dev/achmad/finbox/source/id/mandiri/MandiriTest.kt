@@ -17,7 +17,7 @@ class MandiriTest {
     private val source = Mandiri()
 
     private fun fixture(name: String): String =
-        checkNotNull(javaClass.getResourceAsStream("/mandiri/$name.txt")) { "missing fixture $name" }
+        checkNotNull(javaClass.getResourceAsStream("/$name.txt")) { "missing fixture $name" }
             .bufferedReader()
             .readText()
 

@@ -17,7 +17,7 @@ class JagoTest {
     private val source = Jago()
 
     private fun fixture(name: String): String =
-        checkNotNull(javaClass.getResourceAsStream("/jago/$name.txt")) { "missing fixture $name" }
+        checkNotNull(javaClass.getResourceAsStream("/$name.txt")) { "missing fixture $name" }
             .bufferedReader()
             .readText()
 
