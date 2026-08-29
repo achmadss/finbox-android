@@ -31,33 +31,38 @@ it — every directory under `source/lib/<country>/` is a module.
 **1. Declare it** in `build.gradle.kts`:
 
 ```kotlin
+plugins {
+    id("finbox.source")
+}
+
 source {
     id = "jago"
     name = "Bank Jago"
 }
 ```
 
-Both are required and the build fails without them. `id` has to match the
+`finbox.source` is what makes the module an Android library and wires the rest.
+`id` and `name` are both required, and the build fails without them. `id` has to match the
 directory name, which the build checks: the directory is how a source is found,
 the id is what the database stores on every transaction and in `account_source`,
 and two words for one thing is how they drift. Renaming it costs a reimport.
 
-Everything else about being a source — the Android library plugin, the
-namespace, the processor, the test dependencies — is configured centrally, so
-the rest of this file is only ever what this one bank needs on top.
+Everything else about being a source — the namespace, the resource prefix, the
+icon, the processor, the test dependencies — is the plugin's job, so the rest of
+this file is only ever what this one bank needs on top.
 
 **2. Add the icon** at `src/main/res/mipmap-<density>/ic_launcher.png`. This is
 the ordinary launcher-icon layout, and the same one an extension in Tachiyomi's
 `extensions-source` uses, so a set copies in unchanged. It is required: a source
 with no icon fails the build rather than showing a blank row.
 
-You never reference it. Every source's resources merge into one app and
-`ic_launcher` is the name the app's own launcher icon already answers to — an
-app resource beats a library one, so four sources declaring it would every one
-of them render finbox's icon. The build copies yours to
-`drawable-<density>/<id>_icon.png` and the generated registry points at that.
-Anything *else* you put under `src/main/res/` has to carry the `<id>_` prefix
-for the same reason; AGP warns when it does not.
+You never reference it, and it is never read where you put it. Every source's
+resources merge into one app and `ic_launcher` is the name the app's own
+launcher icon already answers to — an app resource beats a library one, so four
+sources reading it would every one of them get finbox's icon. The build copies
+yours to `drawable-<density>/<id>_icon.png` and the generated registry points at
+that. Anything *else* you put under `src/main/res/` has to carry the `<id>_`
+prefix, which AGP warns about when it does not.
 
 **3. Write the class:**
 

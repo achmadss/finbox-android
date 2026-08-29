@@ -1,4 +1,9 @@
 pluginManagement {
+    // The finbox.source convention plugin. An included build rather than
+    // buildSrc, so it can depend on AGP without putting AGP on the root build
+    // classpath — see build-logic/build.gradle.kts.
+    includeBuild("build-logic")
+
     repositories {
         google {
             content {

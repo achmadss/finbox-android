@@ -1,3 +1,5 @@
+package dev.achmad.finbox.gradle
+
 import org.gradle.api.provider.Property
 
 /**
@@ -10,10 +12,7 @@ import org.gradle.api.provider.Property
  * }
  * ```
  *
- * Both are required, and the build fails without them. It lives in buildSrc
- * rather than in the root build script because a source module's build file has
- * to be able to name this type, and a class declared in the root script is not
- * on any subproject's classpath.
+ * Both are required, and the build fails without them.
  */
 abstract class SourceExtension {
 
