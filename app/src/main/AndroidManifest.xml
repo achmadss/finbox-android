@@ -8,7 +8,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- The app is installed from an APK, so it updates itself. -->
+    <!-- The app is installed from an APK, so it updates itself. The other
+         three package permissions went with the source installer: sources
+         ship inside this APK now and nothing installs, removes or enumerates a
+         package on their behalf. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application

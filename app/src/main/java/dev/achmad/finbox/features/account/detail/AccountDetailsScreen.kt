@@ -58,7 +58,7 @@ data class AccountDetailsScreen(private val id: String) : Screen {
         val model = rememberScreenModel(tag = id) { AccountDetailsScreenModel(id) }
         val account by model.account.collectAsState()
         val disabled by model.disabled.collectAsState()
-        val parsers by model.parsers.collectAsState()
+        val sources by model.sources.collectAsState()
 
         // Gone only once it has been here: a null at the start is the first read still running.
         var everLoaded by remember { mutableStateOf(false) }
@@ -68,28 +68,28 @@ data class AccountDetailsScreen(private val id: String) : Screen {
 
         AccountDetailsScreenContent(
             account = account,
-            parsers = parsers.map { ParserToggle(it.id, it.name, enabled = it.id !in disabled) },
+            sources = sources.map { SourceToggle(it.id, it.name, enabled = it.id !in disabled) },
             use24Hour = rememberUse24HourClock(),
             onBack = navigator::pop,
             onSyncEnabledChange = model::setSyncEnabled,
-            onParserEnabledChange = model::setParserEnabled,
+            onSourceEnabledChange = model::setSourceEnabled,
             onRemove = model::remove,
         )
     }
 }
 
-data class ParserToggle(val id: Long, val name: String, val enabled: Boolean)
+data class SourceToggle(val id: String, val name: String, val enabled: Boolean)
 
 /** Null [account] is the first read still running. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountDetailsScreenContent(
     account: EmailAccount?,
-    parsers: List<ParserToggle>,
+    sources: List<SourceToggle>,
     use24Hour: Boolean,
     onBack: () -> Unit = {},
     onSyncEnabledChange: (Boolean) -> Unit = {},
-    onParserEnabledChange: (Long, Boolean) -> Unit = { _, _ -> },
+    onSourceEnabledChange: (String, Boolean) -> Unit = { _, _ -> },
     onRemove: () -> Unit = {},
 ) {
     var confirmRemove by remember { mutableStateOf(false) }
@@ -121,8 +121,8 @@ fun AccountDetailsScreenContent(
         ) {
             DetailsHeader(
                 account = account,
-                parsers = parsers.count { it.enabled },
-                totalParsers = parsers.size,
+                sources = sources.count { it.enabled },
+                totalSources = sources.size,
                 use24Hour = use24Hour,
                 onClickRemove = { confirmRemove = true },
             )
@@ -135,24 +135,24 @@ fun AccountDetailsScreenContent(
             )
             HorizontalDivider()
             Text(
-                text = stringResource(R.string.parsers),
+                text = stringResource(R.string.sources),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 4.dp),
             )
-            if (parsers.isEmpty()) {
+            if (sources.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.account_no_parsers),
+                    text = stringResource(R.string.account_no_sources),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
             }
-            parsers.forEach { parser ->
+            sources.forEach { source ->
                 SwitchRow(
-                    title = parser.name,
-                    checked = parser.enabled,
-                    onCheckedChange = { onParserEnabledChange(parser.id, it) },
+                    title = source.name,
+                    checked = source.enabled,
+                    onCheckedChange = { onSourceEnabledChange(source.id, it) },
                 )
             }
             HorizontalDivider()
@@ -171,8 +171,8 @@ fun AccountDetailsScreenContent(
 @Composable
 private fun DetailsHeader(
     account: EmailAccount,
-    parsers: Int,
-    totalParsers: Int,
+    sources: Int,
+    totalSources: Int,
     use24Hour: Boolean,
     onClickRemove: () -> Unit,
 ) {
@@ -278,9 +278,9 @@ private fun AccountDetailsPreview() {
                 updatedAt = 1_700_000_000_000L,
                 lastSyncAt = 1_700_000_000_000L,
             ),
-            parsers = listOf(
-                ParserToggle(1L, "Jago", enabled = true),
-                ParserToggle(2L, "BRI", enabled = false),
+            sources = listOf(
+                SourceToggle("dev.achmad.finbox.source.jago", "Jago", enabled = true),
+                SourceToggle("dev.achmad.finbox.source.bri", "BRI", enabled = false),
             ),
             use24Hour = true,
         )
@@ -291,6 +291,6 @@ private fun AccountDetailsPreview() {
 @Composable
 private fun AccountDetailsLoadingPreview() {
     AppTheme {
-        AccountDetailsScreenContent(account = null, parsers = emptyList(), use24Hour = true)
+        AccountDetailsScreenContent(account = null, sources = emptyList(), use24Hour = true)
     }
 }

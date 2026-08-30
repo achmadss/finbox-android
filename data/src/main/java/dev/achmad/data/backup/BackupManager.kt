@@ -2,10 +2,9 @@ package dev.achmad.data.backup
 
 import android.content.Context
 import android.net.Uri
-import dev.achmad.data.repository.AccountParserRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.EmailRepository
-import dev.achmad.data.repository.InstalledParserRepository
 import dev.achmad.data.repository.TransactionRepository
 import java.io.InputStream
 import java.io.OutputStream
@@ -26,8 +25,7 @@ import kotlinx.serialization.json.Json
 class BackupManager(
     private val context: Context,
     private val accounts: AccountRepository,
-    private val assignments: AccountParserRepository,
-    private val parsers: InstalledParserRepository,
+    private val assignments: AccountSourceRepository,
     private val emails: EmailRepository,
     private val transactions: TransactionRepository,
 ) {
@@ -58,7 +56,6 @@ class BackupManager(
             createdAt = System.currentTimeMillis(),
             accounts = accounts.all().map { it.toBackup() },
             assignments = assignments.all().map { it.toBackup() },
-            parsers = parsers.all().map { it.toBackup() },
             emails = emails.all().map { it.toBackup() },
             transactions = transactions.all().map { it.toBackup() },
         )
@@ -67,6 +64,7 @@ class BackupManager(
 
     private suspend fun read(input: InputStream): BackupData = withContext(Dispatchers.IO) {
         val text = GZIPInputStream(input).use { it.readBytes().decodeToString() }
+        requireRestorable(text)
         json.decodeFromString<BackupData>(text)
     }
 
@@ -76,7 +74,6 @@ class BackupManager(
             "Backup format ${data.version} is newer than this app understands"
         }
         accounts.replaceAll(data.accounts.map { it.toModel() })
-        parsers.replaceAll(data.parsers.map { it.toModel() })
         assignments.replaceAll(data.assignments.map { it.toModel() })
         emails.replaceAll(data.emails.map { it.toModel() })
         transactions.replaceAll(data.transactions.map { it.toModel() })

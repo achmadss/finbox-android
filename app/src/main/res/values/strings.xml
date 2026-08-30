@@ -3,7 +3,6 @@
 
     <!-- Generic strings -->
     <string name="unknown">Unknown</string>
-    <string name="none">None</string>
     <string name="not_set">Not set</string>
     <string name="synced">Synced %1$s</string>
     <string name="never_synced">Never synced</string>
@@ -17,17 +16,14 @@
     <string name="transaction">Transaction</string>
     <string name="transactions">Transactions</string>
     <string name="accounts">Accounts</string>
-    <string name="parsers">Parsers</string>
+    <string name="sources">Sources</string>
     <string name="direction">Direction</string>
-    <string name="method">Method</string>
     <string name="amount">Amount</string>
     <string name="date">Date</string>
     <string name="time">Time</string>
     <string name="category">Category</string>
     <string name="description">Description</string>
     <string name="merchant">Merchant</string>
-    <string name="version">Version</string>
-    <string name="size">Size</string>
     <string name="language">Language</string>
     <string name="sync">Sync</string>
     <string name="direction_outgoing">Expense</string>
@@ -37,7 +33,7 @@
     <string name="label_settings">Settings</string>
     <string name="label_edit_transaction">Edit transaction</string>
     <string name="label_account_info">Account info</string>
-    <string name="label_parser_info">Parser info</string>
+    <string name="label_source_info">Source info</string>
     <string name="label_select_period">Select period</string>
 
     <!-- Shared labels -->
@@ -63,9 +59,6 @@
     <string name="action_retry">Retry</string>
     <string name="action_install">Install</string>
     <string name="action_download">Download</string>
-    <string name="action_update">Update</string>
-    <string name="action_update_all">Update all</string>
-    <string name="action_uninstall">Uninstall</string>
     <string name="action_discard">Discard</string>
     <string name="action_keep_editing">Keep editing</string>
     <string name="action_add_account">Add account</string>
@@ -100,11 +93,6 @@
     <string name="app_update_download_error">Could not download the update</string>
     <string name="app_update_up_to_date">Finbox is up to date</string>
     <string name="app_update_check_failed">Could not check for app updates</string>
-    <string name="parser_updates">Parser updates</string>
-    <plurals name="parser_update_available">
-        <item quantity="one">%1$d parser update available</item>
-        <item quantity="other">%1$d parser updates available</item>
-    </plurals>
 
     <!-- Onboarding -->
     <string name="onboarding_auth_title">From inbox to transactions</string>
@@ -119,13 +107,6 @@
     <string name="onboarding_notification_note">You can skip notifications and Finbox will continue working normally. You just won\'t receive updates outside the app.</string>
     <string name="onboarding_notification_allow">Allow Notifications</string>
     <string name="onboarding_notification_skip">Not now</string>
-    <string name="onboarding_parsers_subtitle">Install at least one parser to start:</string>
-    <string name="onboarding_parsers_install">Install and Continue</string>
-    <string name="onboarding_parsers_installing">Installing…</string>
-    <string name="onboarding_parsers_select_all">Select all</string>
-    <string name="onboarding_parsers_info">A parser tells Finbox which provider to use, which emails to fetch, and how to read them.</string>
-    <string name="onboarding_parsers_install_failed">Could not install %1$s</string>
-    <string name="onboarding_parsers_load_failed">%1$s installed but could not be loaded. It was probably built against a different parser API.</string>
     <string name="onboarding_exit_title">Finish setup later?</string>
     <string name="onboarding_exit_message">Finbox needs the rest of this setup before it can read your email. You can pick up where you left off next time.</string>
     <string name="onboarding_exit_confirm">Exit</string>
@@ -133,13 +114,16 @@
     <!-- Transactions screen -->
     <string name="transactions_empty">Nothing this month</string>
     <string name="transactions_empty_info">Transactions parsed out of your email show up here.</string>
+    <string name="transactions_empty_no_source">Every source is off</string>
+    <string name="transactions_empty_no_source_info">finbox reads receipts through a bank source, and all of them are switched off. Turn on the one for your bank to start building a ledger.</string>
+    <string name="transactions_empty_no_source_action">Open sources</string>
     <string name="transactions_empty_filtered">Nothing matches the filter</string>
     <string name="transactions_empty_filtered_info">Loosen the filter, or pick another month.</string>
 
     <!-- Transaction filter sheet -->
     <string name="filter_section_count">%1$s (%2$d)</string>
     <string name="filter_sort_by">Sort by</string>
-    <string name="filter_no_parsers">No parsers installed</string>
+    <string name="filter_no_sources">No sources turned on</string>
     <string name="filter_no_accounts">No accounts added</string>
 
     <!-- Transaction screen -->
@@ -195,43 +179,27 @@
     <string name="pref_check_updates_summ">Check once a day when the app opens</string>
     <string name="pref_check_app_updates_now">Check for app updates now</string>
 
-    <!-- Parsers screen -->
-    <string name="parsers_empty">Nothing to show. Pull to refresh.</string>
-    <string name="parsers_header_updates">Update pending</string>
-    <string name="parsers_header_installed">Installed</string>
-    <string name="parsers_header_available">Available</string>
-    <string name="parsers_header_errors">Failed to load</string>
-    <string name="parser_load_error">%1$s: %2$s</string>
-    <string name="parser_version_name">v%1$s</string>
-    <string name="parser_step_pending">Pending</string>
-    <string name="parser_step_downloading">Downloading</string>
-    <string name="parser_step_installing">Installing</string>
-    <string name="parser_step_ongoing">%1$s…</string>
-    <string name="parser_badge_failed">FAILED</string>
-    <string name="parser_badge_disabled">DISABLED</string>
-    <string name="uninstall_parser">Uninstall parser</string>
-    <string name="uninstall_parser_confirmation">Remove %1$s? Transactions it already parsed stay.</string>
+    <!-- Sources screen -->
 
-    <!-- Parser info screen -->
-    <string name="parser_transaction_methods">Transaction methods</string>
-    <string name="parser_retry_update">Retry update</string>
-    <string name="parser_update_to">Update to v%1$s</string>
-    <string name="parser_summary_expense_only">Expense only</string>
-    <string name="parser_summary_income_only">Income only</string>
-    <string name="parser_summary_multi_method">Multi method</string>
+    <!-- Source info screen -->
+    <!-- What a source can read, derived from the interfaces it implements. -->
+    <string name="source_reads">Reads</string>
+    <string name="source_email">Email</string>
+    <string name="source_none">Nothing</string>
+    <string name="source_unknown">No source with that id.</string>
 
     <!-- Accounts screen -->
     <string name="accounts_empty">No accounts yet. Add the mailbox your transactions arrive in.</string>
-    <plurals name="account_parser_count">
-        <item quantity="one">%1$d parser</item>
-        <item quantity="other">%1$d parsers</item>
+    <plurals name="account_source_count">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
     </plurals>
     <string name="account_badge_sync_off">SYNC OFF</string>
-    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its parser choices go. Transactions already read from it stay.</string>
+    <string name="remove_account_confirmation">Remove %1$s? It stops syncing and its source choices go. Transactions already read from it stay.</string>
 
     <!-- Account info screen -->
     <string name="account_sync_summ">Read new transactions from this mailbox</string>
-    <string name="account_no_parsers">No parsers installed. Install a parser first.</string>
+    <string name="account_no_sources">Every source is off. Turn one on first.</string>
 
     <!-- Categories. What the money was for, the app's own vocabulary. -->
     <string name="category_uncategorized">Uncategorized</string>
@@ -266,76 +234,35 @@
     <string name="action_apply_to_similar">Apply to all</string>
     <string name="action_only_this_one">Only this one</string>
 
-    <!-- Categorization and the optional LLM -->
+    <!-- Categorization -->
     <string name="pref_category_categorization">Categorization</string>
-    <string name="pref_llm_providers">AI provider</string>
-    <string name="pref_llm_providers_summ_none">Not set up. Categories can still be set by hand.</string>
-    <string name="pref_llm_providers_summ">%1$s · %2$s</string>
-    <string name="llm_providers_title">AI providers</string>
-    <string name="llm_provider_title">Provider</string>
-    <string name="llm_add_provider">Add a provider</string>
-    <string name="llm_empty">No provider yet.\n\nCategorizing with AI is optional — everything else works without it, and you can always file transactions by hand.</string>
-    <string name="llm_name">Name</string>
-    <string name="llm_name_hint">A label for you, such as OpenAI or Groq</string>
-    <string name="llm_endpoint">Endpoint</string>
-    <string name="llm_endpoint_hint">Base URL, such as https://api.openai.com/v1</string>
-    <string name="llm_api_key">API key</string>
-    <string name="llm_api_key_saved">Saved. Leave blank to keep it.</string>
-    <string name="llm_model">Model</string>
-    <string name="llm_connect">Fetch models</string>
-    <string name="llm_connect_failed">Could not reach the endpoint: %1$s</string>
-    <string name="llm_no_models">The endpoint listed no models. Type the id instead.</string>
-    <string name="llm_model_manual">Model id</string>
-    <string name="llm_test">Test</string>
-    <string name="llm_test_ok">Working. The model replied: %1$s</string>
-    <string name="llm_test_failed">Test failed: %1$s</string>
-    <string name="llm_active">Active</string>
-    <string name="llm_set_active">Use this one</string>
-    <string name="llm_delete_confirmation">Remove %1$s? The API key is deleted with it.</string>
 
-    <!-- Auto categorization -->
-    <string name="pref_auto_categorize">Auto-categorize</string>
-    <string name="pref_auto_categorize_summ">Fill in categories with AI, and see what each run did</string>
-    <string name="pref_auto_categorize_summ_off">Set up a provider first</string>
-    <string name="categorize_title">Auto-categorize</string>
-    <string name="categorize_estimate_title">Nothing to categorize</string>
-    <string name="categorize_estimate">%1$d transactions, in %2$d groups a classifier would read identically. About %3$d requests.</string>
-    <string name="categorize_estimate_cached">%1$d of those groups are already answered and cost nothing.</string>
-    <string name="categorize_start">Categorize</string>
-    <string name="categorize_start_all">Redo everything</string>
-    <string name="categorize_cancel">Stop</string>
-    <string name="categorize_running">Group %1$d of %2$d</string>
-    <string name="categorize_no_provider">No AI provider is set up, so only groups already answered can be filled in.</string>
-    <string name="categorize_redo_confirmation">This asks the model again for every transaction, including %1$d you categorized yourself. Your backup file is the only way back.</string>
-    <string name="categorize_redo_keep_mine">Keep mine</string>
-    <string name="categorize_redo_replace">Replace mine too</string>
-    <string name="categorize_history">Recent runs</string>
-    <string name="categorize_history_empty">No runs yet.</string>
-    <string name="categorize_run_summary">%1$d categorized · %2$d unknown</string>
-    <string name="categorize_run_cost">%1$d requests · %2$s</string>
-    <string name="categorize_run_tokens">%1$d tokens</string>
-    <string name="categorize_run_no_tokens">usage not reported</string>
-    <string name="categorize_run_cached">%1$d groups from cache</string>
-    <string name="categorize_status_running">Running</string>
-    <string name="categorize_status_done">Done</string>
-    <string name="categorize_status_failed">Failed</string>
-    <string name="categorize_status_cancelled">Stopped</string>
-    <string name="categorize_scope_uncategorized">Uncategorized</string>
-    <string name="categorize_scope_selection">Selected</string>
-    <string name="categorize_scope_all">Everything</string>
-    <string name="run_detail_title">Run</string>
-    <string name="run_detail_summary">%1$d transactions · %2$d asked · %3$d from cache · %4$d never sent</string>
-    <string name="run_detail_empty">This run recorded nothing.</string>
-    <string name="run_detail_group">%1$s · %2$d</string>
-    <string name="run_detail_no_text">No merchant or note</string>
-    <string name="run_detail_origin_asked">asked the model</string>
-    <string name="run_detail_origin_cached">from an earlier answer</string>
-    <string name="run_detail_origin_no_input">nothing to send</string>
+    <!-- Group filing: the "file groups, not rows" screen -->
+    <string name="category_groups_title">Categorize by group</string>
+    <string name="category_groups_settings_summ">Receipts that read the same, filed in one tap each</string>
+    <string name="category_groups_hint">Receipts that read the same are filed together. One pick covers every row under it.</string>
+    <string name="category_groups_rows">%1$d rows</string>
+    <string name="category_groups_no_merchant">No merchant, no note</string>
+    <string name="category_groups_pick">Pick a category</string>
+    <string name="category_groups_empty">Nothing is left to file</string>
+    <string name="category_groups_empty_info">Every group has a category. New transactions appear here after the next sync.</string>
+    <string name="category_groups_offer_title">Start here: file by group</string>
+    <string name="category_groups_offer_info">%1$d groups of reading-alike receipts are still uncategorized. Filing them is one tap each — no AI, no key, offline.</string>
+    <string name="category_groups_offer_action">Open groups</string>
+    <string name="category_groups_offer_dismiss">Dismiss</string>
 
-    <!-- Onboarding: the optional AI step -->
-    <string name="onboarding_ai_title">Categorize automatically</string>
-    <string name="onboarding_ai_body">Connect an AI provider and finbox can work out what each transaction was for. It reads only the merchant and note your bank already sent, never the email itself.</string>
-    <string name="onboarding_ai_note">Entirely optional. Everything else works without it, and you can set it up later in Settings.</string>
-    <string name="onboarding_ai_setup">Set up a provider</string>
-    <string name="onboarding_ai_skip">Not now</string>
+    <!-- Category rules: the declarations behind auto-filed merchants -->
+    <string name="rules_title">Category rules</string>
+    <string name="rules_empty">No rules yet</string>
+    <string name="rules_empty_info">File a group on the categorize screen and a rule is declared for that merchant. You can also add one here.</string>
+    <string name="rules_add">Add a rule</string>
+    <string name="rules_edit">Edit rule</string>
+    <string name="rules_delete_confirm">Delete the rule for %1$s? Existing transactions keep their current category.</string>
+    <string name="rules_any_direction">Any</string>
+    <string name="rules_apply_scope_title">Where does this apply?</string>
+    <string name="rules_apply_scope_info">%1$s — your new choice</string>
+    <string name="rules_apply_future_only">Future transactions only</string>
+    <string name="rules_apply_existing_too">Also replace existing transactions</string>
+    <string name="rules_apply_replace_count">Will replace categories on %1$d existing transactions.</string>
+    <string name="rules_settings_summ">Merchants that file themselves — add, edit or delete</string>
 </resources>

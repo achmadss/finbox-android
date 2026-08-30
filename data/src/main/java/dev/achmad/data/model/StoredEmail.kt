@@ -1,7 +1,7 @@
 package dev.achmad.data.model
 
 /**
- * One fetched email, cached so a parser installed later re-reads it from here
+ * One fetched email, cached so a source installed later re-reads it from here
  * instead of the provider: a re-parse then costs no fetch at all.
  */
 data class StoredEmail(
@@ -15,11 +15,11 @@ data class StoredEmail(
     val date: Long,
     /** The body as the provider sent it, html where there is any. */
     val body: String?,
-    /** Every parser that has looked, so an update only re-reads what is new to one. */
-    val triedParserIds: List<Long>,
-    /** The parser that claimed it, null while unparsed. */
-    val parsedByParserId: Long?,
+    /** Every source that has looked, so an update only re-reads what is new to one. */
+    val triedSourceIds: List<String>,
+    /** The source that claimed it, null while unparsed. */
+    val parsedBySourceId: String?,
     val fetchedAt: Long,
 ) {
-    val parsed: Boolean get() = parsedByParserId != null
+    val parsed: Boolean get() = parsedBySourceId != null
 }

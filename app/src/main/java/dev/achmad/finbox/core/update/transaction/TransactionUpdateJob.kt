@@ -8,7 +8,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.util.koin.injectLazy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -16,7 +15,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Brings every enabled account's transactions up to date, on a schedule or on
- * demand, and re-reads stored mail after a parser changes.
+ * demand, and re-reads stored mail after a source changes.
  *
  * [TransactionUpdateManager] decides when to run one; this only runs it.
  */
@@ -26,20 +25,15 @@ class TransactionUpdateJob(
 ) : CoroutineWorker(context, params) {
 
     private val updater: TransactionUpdater by injectLazy()
-    private val parserManager: ParserManager by injectLazy()
     private val notifier by lazy { TransactionUpdateNotifier(applicationContext) }
 
     override suspend fun doWork(): Result = try {
         // Held here so a refresh or a re-index is always visibly acknowledged:
         // a run with nothing to do would otherwise finish before the banner shows.
         delay(1.seconds)
-        // The registry only fills on reload, and a worker often runs in a process
-        // with no screen: without it the update downloads mail no parser sees.
-        parserManager.reload()
-
         val parseOnly = inputData.getBoolean(TransactionUpdateWork.PARSE_ONLY, false)
-        val reparseParserIds = inputData
-            .getLongArray(TransactionUpdateWork.REPARSE_PARSERS)
+        val reparseSourceIds = inputData
+            .getStringArray(TransactionUpdateWork.REPARSE_SOURCES)
             ?.toSet()
             .orEmpty()
         val needsForeground = parseOnly || updater.isImporting()
@@ -65,10 +59,10 @@ class TransactionUpdateJob(
         }
         // Stored mail comes first: re-reading it costs nothing, and a refresh
         // should not ask Gmail for new mail while unparsed mail is lying here.
-        // Reparse before unparsed, too: an updated parser has both claimed and
+        // Reparse before unparsed, too: an updated source has both claimed and
         // unreadable mail to look at again.
-        var imported = if (reparseParserIds.isNotEmpty()) {
-            updater.reparseParsers(reparseParserIds, onProgress)
+        var imported = if (reparseSourceIds.isNotEmpty()) {
+            updater.reparseSources(reparseSourceIds, onProgress)
         } else {
             0
         }

@@ -40,7 +40,6 @@ import dev.achmad.finbox.features.transaction.categoryLabel
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatAmount
 import dev.achmad.finbox.util.formatter.formatDate
@@ -57,7 +56,6 @@ data class TransactionDetailScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val methods by model.methods.collectAsState()
 
         // Gone once it was here means deleted; gone at the start is just the first read still running.
         var everLoaded by remember { mutableStateOf(false) }
@@ -67,7 +65,6 @@ data class TransactionDetailScreen(private val id: String) : Screen {
 
         TransactionDetailScreenContent(
             transaction = transaction,
-            methods = methods,
             use24Hour = rememberUse24HourClock(),
             onBack = navigator::pop,
             onClickEdit = { navigator.push(TransactionEditScreen(id)) },
@@ -80,7 +77,6 @@ data class TransactionDetailScreen(private val id: String) : Screen {
 @Composable
 fun TransactionDetailScreenContent(
     transaction: Transaction?,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     onBack: () -> Unit = {},
     onClickEdit: () -> Unit = {},
@@ -124,7 +120,7 @@ fun TransactionDetailScreenContent(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            TransactionView(transaction = transaction, methods = methods, use24Hour = use24Hour)
+            TransactionView(transaction = transaction, use24Hour = use24Hour)
         }
     }
 
@@ -151,7 +147,6 @@ fun TransactionDetailScreenContent(
 @Composable
 private fun TransactionView(
     transaction: Transaction,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
 ) {
     Column(
@@ -174,9 +169,6 @@ private fun TransactionView(
     }
     HorizontalDivider()
     Field(stringResource(R.string.direction), transaction.direction?.let { stringResource(it.labelRes) })
-    // The parser's own word for the method, falling back to the stored key when its
-    // parser is gone or dropped it.
-    Field(stringResource(R.string.method), methods.nameOf(transaction.method) ?: transaction.method)
     Field(stringResource(R.string.category), categoryLabel(transaction.category))
     Field(stringResource(R.string.description), transaction.description)
     Field(stringResource(R.string.merchant), transaction.merchant)
@@ -211,7 +203,7 @@ private fun TransactionDetailPreview() {
         TransactionDetailScreenContent(
             transaction = Transaction(
                 accountId = "preview",
-                parserId = 1L,
+                sourceId = "dev.achmad.finbox.source.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,
@@ -220,9 +212,8 @@ private fun TransactionDetailPreview() {
                 amount = 125_000,
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
-                method = "QRIS",
                 categoryName = TransactionCategory.FOOD.name,
-                categorySource = CategorySource.AI,
+                categorySource = CategorySource.RULE,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,
@@ -230,7 +221,6 @@ private fun TransactionDetailPreview() {
                 editedAt = null,
                 deleted = false,
             ),
-            methods = emptyList(),
             use24Hour = true,
         )
     }
@@ -240,6 +230,6 @@ private fun TransactionDetailPreview() {
 @Composable
 private fun TransactionDetailLoadingPreview() {
     AppTheme {
-        TransactionDetailScreenContent(transaction = null, methods = emptyList(), use24Hour = true)
+        TransactionDetailScreenContent(transaction = null, use24Hour = true)
     }
 }

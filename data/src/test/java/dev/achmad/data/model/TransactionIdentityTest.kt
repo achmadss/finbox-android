@@ -8,7 +8,7 @@ class TransactionIdentityTest {
 
     private fun transaction(messageId: String, index: Int) = Transaction(
         accountId = "account",
-        parserId = 1L,
+        sourceId = "test",
         emailMessageId = messageId,
         index = index,
         threadId = "thread",
@@ -17,7 +17,6 @@ class TransactionIdentityTest {
         amount = null,
         currency = null,
         direction = null,
-        method = null,
         categoryName = null,
         categorySource = null,
         description = null,
@@ -29,7 +28,7 @@ class TransactionIdentityTest {
     )
 
     @Test
-    fun `identity is stable for the same message, parser and index`() {
+    fun `identity is stable for the same message, source and index`() {
         assertEquals(transaction("message-a", 0).id, transaction("message-a", 0).id)
     }
 

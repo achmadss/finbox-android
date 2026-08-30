@@ -15,7 +15,4 @@ class OnboardingPreference(
 
     /** The notification prompt only gets shown once, allowed or not. */
     fun notificationPromptSeen() = preferenceStore.getBoolean("onboarding_notification_seen", false)
-
-    /** The AI step only gets offered once, taken up or not. */
-    fun aiPromptSeen() = preferenceStore.getBoolean("onboarding_ai_seen", false)
 }

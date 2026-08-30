@@ -5,8 +5,12 @@ import app.cash.sqldelight.coroutines.mapToList
 import dev.achmad.data.db.FinboxDatabase
 import dev.achmad.data.db.Transactions
 import dev.achmad.data.model.CategorySource
+import dev.achmad.data.model.CategoryRule
 import dev.achmad.data.model.Signature
+import dev.achmad.data.model.SignatureGroup
 import dev.achmad.data.model.Transaction
+import dev.achmad.data.model.signature
+import dev.achmad.data.repository.matches
 import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.data.model.signature
@@ -48,12 +52,12 @@ class TransactionRepository(
     }
 
     /**
-     * Writes parsed transactions, updating parser-owned fields for an existing id.
+     * Writes parsed transactions, updating source-owned fields for an existing id.
      *
      * A re-parsed message refreshes the rows it already wrote. The same
-     * reference from the same parser in another message is the same transaction,
+     * reference from the same source in another message is the same transaction,
      * and the row already stored wins. Rows the user edited are skipped: their
-     * version wins over anything a parser reads.
+     * version wins over anything a source reads.
      */
     suspend fun upsertAll(transactions: List<Transaction>) = withContext(Dispatchers.IO) {
         db.transaction {
@@ -61,7 +65,7 @@ class TransactionRepository(
                 val existing = db.transactionQueries.SELECTById(transaction.id).executeAsOneOrNull()
                     ?: transaction.reference?.let { reference ->
                         db.transactionQueries
-                            .SELECTByReference(transaction.accountId, transaction.parserId, reference)
+                            .SELECTByReference(transaction.accountId, transaction.sourceId, reference)
                             .executeAsOneOrNull()
                     }
                 when {
@@ -92,7 +96,6 @@ class TransactionRepository(
             amount = transaction.amount,
             currency = transaction.currency,
             direction = transaction.direction?.name,
-            method = transaction.method,
             category = transaction.categoryName,
             category_source = transaction.categorySource?.name,
             description = transaction.description,
@@ -121,12 +124,11 @@ class TransactionRepository(
     }
 
     /**
-     * A classify pass writing its own answer.
+     * A rule writing its own answer.
      *
-     * Leaves [Transaction.editedAt] alone, so a run that replaces a category
-     * does not unmark a user edit. A null [source] accompanies code-assigned
-     * [TransactionCategory.UNKNOWN], letting a later pass re-evaluate the row
-     * once the missing text turns up.
+     * Leaves [Transaction.editedAt] alone, so a rule applying does not unmark
+     * a user edit. A null [source] accompanies code-assigned
+     * [TransactionCategory.UNKNOWN], letting it be re-evaluated later.
      */
     suspend fun setCategory(
         id: String,
@@ -145,8 +147,7 @@ class TransactionRepository(
     /**
      * Other rows a classifier would read exactly as it reads this one.
      *
-     * The cache only covers rows classified after an answer existed, so
-     * correcting one row does not reach its peers; this is the pool an
+     * Correcting one row does not reach its peers; this is the pool an
      * "apply the correction to matching rows" offer draws on.
      */
     suspend fun withSignature(
@@ -159,42 +160,47 @@ class TransactionRepository(
     }
 
     /**
-     * Every signature somebody has already answered, best answer first.
+     * Signature groups a user could file, biggest first.
      *
-     * The cache is the transactions table itself: a classified signature is
-     * stored in every row carrying it, so a separate table would merely repeat
-     * it. The user's answer beats a model's; between two of the same kind, the
-     * newest wins.
+     * A group is "fileable" when at least one row under it has no category: a
+     * group every row of which is already filed has nothing left to do. The
+     * group's rows are the uncategorized ones — filing must not touch rows the
+     * user or the pass already answered.
      */
-    suspend fun categoryCache(): Map<Signature, TransactionCategory> = withContext(Dispatchers.IO) {
-        // ::Transactions because the WHERE narrows category to non-null, which
-        // makes SQLDelight generate a row type of its own that nothing else uses.
-        db.transactionQueries.SELECTCategorized(::Transactions).executeAsList()
+    suspend fun fileableGroups(): List<SignatureGroup> = withContext(Dispatchers.IO) {
+        db.transactionQueries.SELECTEverything().executeAsList()
             .map { it.toModel() }
-            .sortedWith(
-                compareByDescending<Transaction> { it.categorySource == CategorySource.USER }
-                    .thenByDescending { it.updatedAt },
-            )
-            .mapNotNull { transaction -> transaction.category?.let { transaction.signature() to it } }
-            // First wins, and the sort above put the best answer first. toMap
-            // would quietly do the opposite.
-            .distinctBy { (signature, _) -> signature }
-            .toMap()
-    }
-
-    /**
-     * Drops everything a parser parsed under one method — what switching that method
-     * off means, since a re-parse will not write them back.
-     */
-    suspend fun deleteByMethod(parserIds: Collection<Long>, method: String) = withContext(Dispatchers.IO) {
-        db.transaction {
-            parserIds.forEach { db.transactionQueries.DELETEByMethod(it, method) }
-        }
+            .filterNot { it.deleted }
+            .groupBy { it.signature() }
+            .map { (signature, rows) ->
+                val uncategorized = rows.filter { it.categoryName == null }
+                SignatureGroup(signature, uncategorized)
+            }
+            .filter { it.rows.isNotEmpty() }
+            .sortedByDescending { it.rowCount }
     }
 
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         db.transactionQueries.DELETEById(System.currentTimeMillis(), id)
         Unit
+    }
+
+    /**
+     * Applies declarations to matching open rows — `category = RULE`.
+     *
+     * What reaches [upsertAll] fresh, and what a declaration finds in the
+     * ledger, both come through here. Rows the user or a pass already decided
+     * stay decided: a rule is about what is still open, not about overruling.
+     */
+    suspend fun applyRules(rules: List<CategoryRule>) = withContext(Dispatchers.IO) {
+        if (rules.isEmpty()) return@withContext
+        db.transactionQueries.SELECTEverything().executeAsList()
+            .map { it.toModel() }
+            .filter { it.categoryName == null && !it.deleted }
+            .forEach { row ->
+                val rule = rules.firstOrNull { it.matches(row.signature()) } ?: return@forEach
+                setCategory(row.id, rule.category, CategorySource.RULE)
+            }
     }
 
     /** Restore path: replaces everything. */
@@ -208,7 +214,7 @@ class TransactionRepository(
     private fun insert(transaction: Transaction) = db.transactionQueries.INSERTOrReplace(
         id = transaction.id,
         account_id = transaction.accountId,
-        parser_id = transaction.parserId,
+        source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -216,7 +222,6 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         direction = transaction.direction?.name,
-        method = transaction.method,
         category = transaction.categoryName,
         category_source = transaction.categorySource?.name,
         description = transaction.description,
@@ -228,7 +233,7 @@ class TransactionRepository(
     )
 
     private fun updateParsed(transaction: Transaction, id: String) = db.transactionQueries.UPDATEParsedById(
-        parser_id = transaction.parserId,
+        source_id = transaction.sourceId,
         email_message_id = transaction.emailMessageId,
         thread_id = transaction.threadId,
         reference = transaction.reference,
@@ -236,7 +241,6 @@ class TransactionRepository(
         amount = transaction.amount,
         currency = transaction.currency,
         direction = transaction.direction?.name,
-        method = transaction.method,
         description = transaction.description,
         merchant = transaction.merchant,
         updated_at = transaction.updatedAt,
@@ -245,7 +249,7 @@ class TransactionRepository(
 
     private fun Transactions.toModel() = Transaction(
         accountId = account_id,
-        parserId = parser_id,
+        sourceId = source_id,
         emailMessageId = email_message_id,
         // The model derives its id from these fields; the stored id is the only
         // record of the number.
@@ -256,7 +260,6 @@ class TransactionRepository(
         amount = amount,
         currency = currency,
         direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
-        method = method,
         categoryName = category,
         categorySource = CategorySource.fromStringOrNull(category_source),
         description = description,

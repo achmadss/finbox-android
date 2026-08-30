@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.annotation.StringRes
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import dev.achmad.data.backup.BACKUP_FILE_EXTENSION
+import dev.achmad.data.backup.BACKUP_FILE_SOURCE
 import dev.achmad.data.backup.BackupManager
 import dev.achmad.data.export.CsvExport
 import dev.achmad.data.repository.AccountRepository
@@ -41,7 +41,7 @@ class SettingsScreenModel(
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
-    fun backupFileName(): String = "finbox_${LocalDate.now()}.$BACKUP_FILE_EXTENSION"
+    fun backupFileName(): String = "finbox_${LocalDate.now()}.$BACKUP_FILE_SOURCE"
 
     fun csvFileName(): String = "finbox_${LocalDate.now()}.csv"
 
@@ -61,7 +61,7 @@ class SettingsScreenModel(
         screenModelScope.launch { transactionUpdateManager.runNow() }
     }
 
-    /** Hands stored mail to the current parsers again, in the background. */
+    /** Hands stored mail to the current sources again, in the background. */
     fun reindexTransactions() {
         screenModelScope.launch { transactionUpdateManager.reparseNow() }
     }
@@ -73,8 +73,8 @@ class SettingsScreenModel(
     fun rescheduleFetch() = transactionUpdateManager.schedule()
 
     /**
-     * Forced, so neither the daily throttle nor the switch swallows it. Parsers
-     * have no equivalent here: their list refreshes whenever the parsers screen
+     * Forced, so neither the daily throttle nor the switch swallows it. Sources
+     * have no equivalent here: their list refreshes whenever the sources screen
      * opens.
      */
     fun checkAppUpdateNow() {

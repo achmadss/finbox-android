@@ -1,6 +1,6 @@
 package dev.achmad.data.model
 
-/** What the money was for — the app's own vocabulary, never a parser's. */
+/** What the money was for — the app's own vocabulary, never a source's. */
 enum class TransactionCategory {
     INCOME,
     FOOD,
@@ -43,10 +43,15 @@ enum class TransactionCategory {
  *
  * Null means nobody decided — not classified yet, or assigned UNKNOWN by code.
  * There is no DEFAULT; null says it better.
+ *
+ * AI is gone with the LLM. A rule is [RULE], a hand pick is [USER], and the
+ * single-map cache surfaces only these two. A stored value named AI may still
+ * exist on a pre-refactor database and reads back as null — pre-release, so
+ * that is the expected cost of the drop, not a shim.
  */
 enum class CategorySource {
     USER,
-    AI,
+    RULE,
     ;
 
     companion object {

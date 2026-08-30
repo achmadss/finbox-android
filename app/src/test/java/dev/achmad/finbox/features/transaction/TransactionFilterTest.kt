@@ -19,11 +19,11 @@ class TransactionFilterTest {
         amount: Long? = 1_000,
         date: Long = 0,
         accountId: String = "account",
-        parserId: Long = 1,
+        sourceId: String = "test",
         description: String? = null,
     ) = Transaction(
         accountId = accountId,
-        parserId = parserId,
+        sourceId = sourceId,
         emailMessageId = "m$id",
         index = 0,
         threadId = null,
@@ -32,7 +32,6 @@ class TransactionFilterTest {
         amount = amount,
         currency = "IDR",
         direction = direction,
-        method = null,
         categoryName = null,
         categorySource = null,
         description = description,
@@ -49,7 +48,7 @@ class TransactionFilterTest {
     private val transactions = listOf(
         transaction("a", amount = 300, date = 100, description = "Bakso"),
         transaction("b", amount = null, date = 300, description = "Cendol", direction = TransactionDirection.INCOMING),
-        transaction("c", amount = 200, date = 200, description = "Ayam", parserId = 2, accountId = "other"),
+        transaction("c", amount = 200, date = 200, description = "Ayam", sourceId = "other", accountId = "other"),
     )
 
     @Test
@@ -68,7 +67,7 @@ class TransactionFilterTest {
         )
         assertEquals(
             listOf("c"),
-            TransactionFilter(parserIds = setOf(2)).applyTo(transactions).map { it.label },
+            TransactionFilter(sourceIds = setOf("other")).applyTo(transactions).map { it.label },
         )
         assertEquals(
             listOf("c"),

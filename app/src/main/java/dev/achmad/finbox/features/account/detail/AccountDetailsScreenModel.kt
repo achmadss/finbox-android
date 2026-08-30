@@ -3,11 +3,11 @@ package dev.achmad.finbox.features.account.detail
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.repository.AccountParserRepository
+import dev.achmad.data.repository.AccountSourceRepository
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.core.gmail.GmailTokenStore
-import dev.achmad.finbox.core.parser.LoadedParser
-import dev.achmad.finbox.core.parser.ParserManager
+import dev.achmad.finbox.source.core.SourceEntry
+import dev.achmad.finbox.core.source.SourceManager
 import dev.achmad.finbox.util.koin.inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,9 +18,9 @@ import kotlinx.coroutines.launch
 class AccountDetailsScreenModel(
     private val id: String,
     private val accountRepository: AccountRepository = inject(),
-    private val accountParserRepository: AccountParserRepository = inject(),
+    private val accountSourceRepository: AccountSourceRepository = inject(),
     private val tokenStore: GmailTokenStore = inject(),
-    parserManager: ParserManager = inject(),
+    sourceManager: SourceManager = inject(),
 ) : ScreenModel {
 
     /**
@@ -32,22 +32,22 @@ class AccountDetailsScreenModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
 
     /**
-     * Which parsers this account has switched off, not on: a parser with no row runs, and
-     * an account with no rows at all runs everything installed.
+     * Which sources this account has switched off, not on: a source with no row runs, and
+     * an account with no rows at all runs everything the app ships.
      */
-    val disabled: StateFlow<Set<Long>> = accountParserRepository.forAccount(id)
-        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.parserId } }
+    val disabled: StateFlow<Set<String>> = accountSourceRepository.forAccount(id)
+        .map { assignments -> assignments.filterNot { it.enabled }.mapTo(mutableSetOf()) { it.sourceId } }
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptySet())
 
-    /** Parsers currently loaded — what an assignment's `parserId` points at. */
-    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
+    /** The sources that run — what an assignment's `sourceId` points at. */
+    val sources: StateFlow<List<SourceEntry>> = sourceManager.enabled
 
     fun setSyncEnabled(enabled: Boolean) {
         screenModelScope.launch { accountRepository.setEnabled(id, enabled) }
     }
 
-    fun setParserEnabled(parserId: Long, enabled: Boolean) {
-        screenModelScope.launch { accountParserRepository.setEnabled(id, parserId, enabled) }
+    fun setSourceEnabled(sourceId: String, enabled: Boolean) {
+        screenModelScope.launch { accountSourceRepository.setEnabled(id, sourceId, enabled) }
     }
 
     /**
@@ -57,7 +57,7 @@ class AccountDetailsScreenModel(
     fun remove() {
         screenModelScope.launch {
             accountRepository.delete(id)
-            accountParserRepository.deleteForAccount(id)
+            accountSourceRepository.deleteForAccount(id)
             // A removed account keeping a live refresh token is a token nothing will ever use.
             tokenStore.clear(id)
         }

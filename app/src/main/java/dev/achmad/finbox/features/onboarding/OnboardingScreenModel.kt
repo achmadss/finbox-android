@@ -9,10 +9,6 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.finbox.R
-import dev.achmad.finbox.core.llm.TransactionClassifier
-import dev.achmad.finbox.core.parser.AvailableParser
-import dev.achmad.finbox.core.parser.InstallStep
-import dev.achmad.finbox.core.parser.ParserManager
 import dev.achmad.finbox.core.gmail.GmailAuthManager
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.ui.ToastHelper
@@ -21,43 +17,25 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import dev.achmad.finbox.core.preference.OnboardingPreference
 import dev.achmad.finbox.util.permission.PermissionHelper
 
 class OnboardingScreenModel(
     private val toastHelper: ToastHelper = inject(),
     private val accountRepository: AccountRepository = inject(),
-    private val parserManager: ParserManager = inject(),
     private val authManager: GmailAuthManager = inject(),
     private val preferences: OnboardingPreference = inject(),
     private val transactionUpdateManager: TransactionUpdateManager = inject(),
     private val permissionHelper: PermissionHelper = inject(),
-    private val classifier: TransactionClassifier = inject(),
 ): StateScreenModel<OnboardingScreenModel.State>(State.Resolving) {
     init {
         screenModelScope.launch {
-            // What's on disk decides which step is next, and the index fills the
-            // parser list; neither is known when the screen is constructed.
-            runCatching { parserManager.reload() }
             next()
 
             // Sign-in finishes in the browser and lands in AuthCallbackActivity.
             // The account row appearing is the only signal this screen gets.
             accountRepository.accounts().collect {
                 if (state.value is State.SignIn && it.isNotEmpty()) next()
-            }
-        }
-
-        // The step renders what the state holds, so the published list is folded
-        // in here rather than read from the composition.
-        screenModelScope.launch {
-            parserManager.available.collect { available ->
-                val current = state.value
-                if (current is State.InstallParsers) {
-                    mutableState.value = current.copy(parsers = available)
-                }
             }
         }
     }
@@ -93,61 +71,11 @@ class OnboardingScreenModel(
     }
 
     /**
-     * Set up or waved away — either way the offer has been made. Also called on
-     * returning from the provider screen, so finishing setup there moves onboarding
-     * along without a second confirmation.
+     * Granted or skipped — either way the prompt has been seen and the step is done.
      */
-    fun onAiPromptSettled() {
-        screenModelScope.launch {
-            preferences.aiPromptSeen().set(true)
-            next()
-        }
-    }
-
-    /** Granted or skipped — either way the prompt has been seen and the step is done. */
     fun onNotificationPromptSettled() {
         screenModelScope.launch {
             preferences.notificationPromptSeen().set(true)
-            next()
-        }
-    }
-
-    fun onRefreshParsers() = refreshIndex(settle = 1.seconds)
-
-    fun onInstallParsers(requested: List<AvailableParser>) {
-        screenModelScope.launch {
-            val current = state.value as? State.InstallParsers ?: State.InstallParsers()
-            mutableState.value = current.copy(isInstalling = true)
-            Log.i("Onboarding", "Installing ${requested.map { it.pkg }}")
-            // The manager runs the installs, so leaving mid-download does not cancel one; this
-            // step only waits for each to land: loaded, or failed with a reason on the row.
-            requested.forEach { parserManager.install(it) }
-            // Wait on the install jobs, not the registry: an APK that installs but fails to load
-            // never reaches the registry, so waiting there would hang on "Installing" forever.
-            parserManager.installSteps.first { steps ->
-                requested.all { steps[it.pkg].let { step -> step == null || step == InstallStep.Error } }
-            }
-
-            val steps = parserManager.installSteps.value
-            requested.filter { steps[it.pkg] == InstallStep.Error }.forEach { parser ->
-                toastHelper.show(R.string.onboarding_parsers_install_failed, parser.name)
-            }
-            // An APK can install and still not load — a lib version this build does
-            // not support, a missing parser class, or an API that changed under it.
-            // Say so — the install itself succeeded.
-            val loaded = parserManager.installedInfo.value
-            requested.filter { steps[it.pkg] != InstallStep.Error && it.pkg !in loaded }
-                .forEach { parser ->
-                    Log.e("Onboarding", "${parser.pkg} installed but did not load")
-                    toastHelper.show(
-                        R.string.onboarding_parsers_load_failed,
-                        parser.name,
-                        duration = Toast.LENGTH_LONG,
-                    )
-                }
-            parserManager.loadErrors.value.forEach { (file, reason) ->
-                Log.e("Onboarding", "$file did not load: $reason")
-            }
             next()
         }
     }
@@ -161,9 +89,6 @@ class OnboardingScreenModel(
         val resolved = resolve()
         if (resolved != null) {
             mutableState.value = resolved
-            // What's published changes without the app hearing about it, so the
-            // list is fetched on arrival rather than once per screen model.
-            if (resolved is State.InstallParsers) refreshIndex()
             return
         }
         // Nothing left to ask: remember that, and start the first import on the
@@ -172,40 +97,31 @@ class OnboardingScreenModel(
         // The schedule turns itself away until that flag is set, so it is asked for here
         // rather than waiting for the next app start.
         transactionUpdateManager.schedule()
-        // Not a user refresh: a parser install a moment earlier may still have a re-read running.
+        // Not a user refresh, and there may be nothing to fetch yet: onboarding
+        // no longer installs a source, so a first run reaches Home with none.
+        // The home screen says so; this just starts whatever can start.
         transactionUpdateManager.runNow(userInitiated = false)
         mutableState.value = State.Done
     }
 
+    /**
+     * Account and permissions only.
+     *
+     * Installing a source used to be a step here, and under the app-install
+     * model that is a REQUEST_INSTALL_PACKAGES grant plus one system dialog per
+     * bank before the user has seen anything. So it moved out: the home screen
+     * says a source is needed and links to the list, which is one prompt at
+     * a moment the user asked for it.
+     *
+     * The AI setup step is skipped deliberately: filing by group covers most
+     * of the ledger without any provider, and the LLM settings are hidden
+     * while that is the path. The step still exists below, in code, for a
+     * future re-enablement.
+     */
     private suspend fun resolve(): State? = when {
         accountRepository.all().isEmpty() -> State.SignIn()
         !notificationSettled() -> State.NotificationPermission
-        parserManager.installedInfo.value.isEmpty() ->
-            State.InstallParsers(parsers = parserManager.available.value)
-        // Last, and the only step that asks for nothing: a provider already set
-        // up, or the offer already made, both count as settled.
-        !classifier.isConfigured() && !preferences.aiPromptSeen().get() -> State.SetupAi
         else -> null
-    }
-
-    /** Refetches the published index, leaving the step's other flags alone. */
-    private fun refreshIndex(settle: Duration = Duration.ZERO) {
-        screenModelScope.launch {
-            setLoading(true)
-            // A pull passes a settle time: the fetch is one small request, and without
-            // it the indicator blinks in and back out before it reads as a refresh.
-            delay(settle)
-            runCatching { parserManager.refreshIndex() }
-                .onFailure { Log.e("Onboarding", "Parser index fetch failed", it) }
-            setLoading(false)
-        }
-    }
-
-    private fun setLoading(loading: Boolean) {
-        val current = state.value
-        if (current is State.InstallParsers) {
-            mutableState.value = current.copy(isLoading = loading)
-        }
     }
 
     /** Granted, or already asked once and declined — either way, don't ask again. */
@@ -213,8 +129,6 @@ class OnboardingScreenModel(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             permissionHelper.arePermissionsAllowed(listOf(Manifest.permission.POST_NOTIFICATIONS)) ||
             preferences.notificationPromptSeen().get()
-
-    fun hasProvider(): Boolean = classifier.isConfigured()
 
     fun authorizationIntent(): Intent = authManager.authorizationIntent()
 
@@ -227,16 +141,6 @@ class OnboardingScreenModel(
         /** [isSigningIn] while the browser flow is out and its token exchange runs. */
         data class SignIn(val isSigningIn: Boolean = false): State()
         object NotificationPermission: State()
-
-        /** Nothing here is required. */
-        object SetupAi: State()
-        data class InstallParsers(
-            /** What the index is offering. Carried here so the step draws from state alone. */
-            val parsers: List<AvailableParser> = emptyList(),
-            val isLoading: Boolean = false,
-            val isInstalling: Boolean = false,
-        ): State()
-
         /** Setup is finished; the screen leaves for the transaction list. */
         object Done: State()
     }

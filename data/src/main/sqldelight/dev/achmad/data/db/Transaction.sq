@@ -1,7 +1,12 @@
 CREATE TABLE transactions (
     id TEXT NOT NULL PRIMARY KEY,
     account_id TEXT NOT NULL,
-    parser_id INTEGER NOT NULL,
+    -- The source's id, e.g. `bri` — see Sources.all. Short again now
+    -- that a source is not a package; renaming one costs a reimport.
+    -- Stored directly rather than hashed into an integer: the package is
+    -- already unique and already stable across releases, so the hash bought
+    -- nothing and cost a dump, a backup and the report tool their readability.
+    source_id TEXT NOT NULL,
     email_message_id TEXT NOT NULL,
     -- Gmail's conversation id, carried for export and debugging only: a thread
     -- can hold unrelated mail, so it says nothing about whether two rows are
@@ -12,9 +17,6 @@ CREATE TABLE transactions (
     amount INTEGER,
     currency TEXT,
     direction TEXT,
-    -- The key of one of the parser's declared methods, e.g. QRIS. The user
-    -- switches these on and off, so a row has to say which it was parsed under.
-    method TEXT,
     category TEXT,
     -- Who decided the category: USER or AI. Null when nobody did — a row not
     -- classified yet, or one code folded to UNKNOWN because its signature had
@@ -35,7 +37,7 @@ CREATE TABLE transactions (
 );
 
 CREATE INDEX idx_transaction_email ON transactions(account_id, email_message_id);
-CREATE INDEX idx_transaction_reference ON transactions(account_id, parser_id, reference);
+CREATE INDEX idx_transaction_reference ON transactions(account_id, source_id, reference);
 
 SELECTAll:
 SELECT * FROM transactions WHERE deleted = 0 ORDER BY COALESCE(date, created_at) DESC;
@@ -46,11 +48,11 @@ SELECT * FROM transactions;
 SELECTById:
 SELECT * FROM transactions WHERE id = :id;
 
--- The duplicate check: the same provider reference from the same parser is
+-- The duplicate check: the same provider reference from the same source is
 -- the same transaction, whichever message reported it.
 SELECTByReference:
 SELECT * FROM transactions
-WHERE account_id = :accountId AND parser_id = :parserId AND reference = :reference
+WHERE account_id = :accountId AND source_id = :sourceId AND reference = :reference
 LIMIT 1;
 
 SELECTSearch:
@@ -59,21 +61,15 @@ WHERE deleted = 0
   AND (description LIKE '%' || :query || '%' OR merchant LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%')
 ORDER BY COALESCE(date, created_at) DESC;
 
--- Every row carrying a category worth reusing, for the signature cache. UNKNOWN
--- is excluded because it says the opposite: there was nothing to classify with.
-SELECTCategorized:
-SELECT * FROM transactions
-WHERE deleted = 0 AND category IS NOT NULL AND category != 'UNKNOWN';
-
 -- Ids derive from the Gmail message, so re-reading one overwrites instead of
 -- duplicating.
 INSERTOrReplace:
-INSERT OR REPLACE INTO transactions(id, account_id, parser_id, email_message_id, thread_id, reference, date, amount, currency, direction, method, category, category_source, description, merchant, created_at, updated_at, edited_at, deleted)
-VALUES (:id, :account_id, :parser_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :direction, :method, :category, :category_source, :description, :merchant, :created_at, :updated_at, :edited_at, :deleted);
+INSERT OR REPLACE INTO transactions(id, account_id, source_id, email_message_id, thread_id, reference, date, amount, currency, direction, category, category_source, description, merchant, created_at, updated_at, edited_at, deleted)
+VALUES (:id, :account_id, :source_id, :email_message_id, :thread_id, :reference, :date, :amount, :currency, :direction, :category, :category_source, :description, :merchant, :created_at, :updated_at, :edited_at, :deleted);
 
 UPDATEParsedById:
 UPDATE transactions SET
-    parser_id = :parser_id,
+    source_id = :source_id,
     email_message_id = :email_message_id,
     thread_id = :thread_id,
     reference = :reference,
@@ -81,7 +77,6 @@ UPDATE transactions SET
     amount = :amount,
     currency = :currency,
     direction = :direction,
-    method = :method,
     description = :description,
     merchant = :merchant,
     updated_at = :updated_at
@@ -96,7 +91,6 @@ UPDATE transactions SET
     amount = :amount,
     currency = :currency,
     direction = :direction,
-    method = :method,
     category = :category,
     category_source = :category_source,
     description = :description,
@@ -124,11 +118,6 @@ UPDATE transactions SET
     category_source = :category_source,
     updated_at = :updated_at
 WHERE id = :id;
-
--- Hard delete: with the method off a re-parse would not write these back, so a
--- soft-deleted row would sit there forever. Switching it on re-parses.
-DELETEByMethod:
-DELETE FROM transactions WHERE parser_id = :parser_id AND method = :method;
 
 DELETEById:
 UPDATE transactions SET deleted = 1, updated_at = :updated_at WHERE id = :id;

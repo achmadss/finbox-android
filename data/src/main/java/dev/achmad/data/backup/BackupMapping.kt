@@ -1,9 +1,8 @@
 package dev.achmad.data.backup
 
-import dev.achmad.data.model.AccountParser
+import dev.achmad.data.model.AccountSource
 import dev.achmad.data.model.CategorySource
 import dev.achmad.data.model.EmailAccount
-import dev.achmad.data.model.InstalledParser
 import dev.achmad.data.model.StoredEmail
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
@@ -22,17 +21,9 @@ internal fun BackupAccount.toModel() = EmailAccount(
     lastSyncAt, lastHistoryId, syncQuery, importCursor, importedBackTo,
 )
 
-internal fun AccountParser.toBackup() = BackupAssignment(accountId, parserId, enabled, position)
+internal fun AccountSource.toBackup() = BackupAssignment(accountId, sourceId, enabled, position)
 
-internal fun BackupAssignment.toModel() = AccountParser(accountId, parserId, enabled, position)
-
-internal fun InstalledParser.toBackup() = BackupParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
-)
-
-internal fun BackupParser.toModel() = InstalledParser(
-    pkg, provider, name, file, versionCode, versionName, libVersion, sha256, parserIds, enabled,
-)
+internal fun BackupAssignment.toModel() = AccountSource(accountId, sourceId, enabled, position)
 
 internal fun StoredEmail.toBackup() = BackupEmail(
     messageId = messageId,
@@ -41,8 +32,8 @@ internal fun StoredEmail.toBackup() = BackupEmail(
     from = from,
     subject = subject,
     date = date,
-    triedParserIds = triedParserIds,
-    parsedByParserId = parsedByParserId,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
     fetchedAt = fetchedAt,
 )
 
@@ -54,17 +45,17 @@ internal fun BackupEmail.toModel() = StoredEmail(
     subject = subject,
     date = date,
     // Bodies are deliberately not backed up: they are most of the database and
-    // get refetched when a parser change re-reads them.
+    // get refetched when a source change re-reads them.
     body = null,
-    triedParserIds = triedParserIds,
-    parsedByParserId = parsedByParserId,
+    triedSourceIds = triedSourceIds,
+    parsedBySourceId = parsedBySourceId,
     fetchedAt = fetchedAt,
 )
 
 internal fun Transaction.toBackup() = BackupTransaction(
     id = id,
     accountId = accountId,
-    parserId = parserId,
+    sourceId = sourceId,
     emailMessageId = emailMessageId,
     threadId = threadId,
     reference = reference,
@@ -72,7 +63,6 @@ internal fun Transaction.toBackup() = BackupTransaction(
     amount = amount,
     currency = currency,
     direction = direction?.name,
-    method = method,
     category = categoryName,
     categorySource = categorySource?.name,
     description = description,
@@ -85,7 +75,7 @@ internal fun Transaction.toBackup() = BackupTransaction(
 
 internal fun BackupTransaction.toModel() = Transaction(
     accountId = accountId,
-    parserId = parserId,
+    sourceId = sourceId,
     emailMessageId = emailMessageId,
     // The backup carries the whole id, so an old file restores under the
     // identity it had.
@@ -96,7 +86,6 @@ internal fun BackupTransaction.toModel() = Transaction(
     amount = amount,
     currency = currency,
     direction = direction?.let { runCatching { TransactionDirection.valueOf(it) }.getOrNull() },
-    method = method,
     categoryName = category,
     categorySource = CategorySource.fromStringOrNull(categorySource),
     description = description,

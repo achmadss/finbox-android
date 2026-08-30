@@ -14,7 +14,7 @@ class TransactionDraftTest {
 
     private val transaction = Transaction(
         accountId = "a1",
-        parserId = 1L,
+        sourceId = "test",
         emailMessageId = "m1",
         index = 0,
         threadId = "th1",
@@ -23,7 +23,6 @@ class TransactionDraftTest {
         amount = 24_000L,
         currency = "IDR",
         direction = TransactionDirection.OUTGOING,
-        method = "QRIS",
         categoryName = TransactionCategory.FOOD.name,
         categorySource = null,
         description = "Kopi Kenangan",
@@ -70,12 +69,12 @@ class TransactionDraftTest {
 
     @Test
     fun `editing another field leaves the category and its source alone`() {
-        val byModel = transaction.copy(categorySource = CategorySource.AI)
+        val byRule = transaction.copy(categorySource = CategorySource.RULE)
 
-        val edited = byModel.toDraft().copy(merchant = "Kopi Kenangan Sudirman").applyTo(byModel)
+        val edited = byRule.toDraft().copy(merchant = "Kopi Kenangan Sudirman").applyTo(byRule)
 
         assertEquals(TransactionCategory.FOOD, edited.category)
-        assertEquals(CategorySource.AI, edited.categorySource)
+        assertEquals(CategorySource.RULE, edited.categorySource)
     }
 
     @Test

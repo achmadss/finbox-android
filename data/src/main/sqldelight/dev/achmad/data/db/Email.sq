@@ -6,19 +6,19 @@ CREATE TABLE email (
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
     date INTEGER NOT NULL,
-    -- Kept so a parser installed later re-reads it from here instead of paying
+    -- Kept so a source installed later re-reads it from here instead of paying
     -- Gmail 20 quota units again. NULL when the message carried no body.
     -- ponytail: stored as it arrived. Gzip into a BLOB if the db gets fat.
     body TEXT,
-    -- Space separated parser ids that have already looked at this email.
-    tried_parser_ids TEXT NOT NULL DEFAULT '',
-    -- The parser that claimed it, NULL while unparsed.
-    parsed_by_parser_id INTEGER,
+    -- Space separated source ids that have already looked at this email.
+    tried_source_ids TEXT NOT NULL DEFAULT '',
+    -- The source that claimed it, NULL while unparsed.
+    parsed_by_source_id TEXT,
     fetched_at INTEGER NOT NULL,
     PRIMARY KEY (account_id, message_id)
 );
 
-CREATE INDEX idx_email_unparsed ON email(parsed_by_parser_id);
+CREATE INDEX idx_email_unparsed ON email(parsed_by_source_id);
 
 SELECTAllEmails:
 SELECT * FROM email;
@@ -30,24 +30,24 @@ CountForAccount:
 SELECT count(*) FROM email WHERE account_id = :accountId;
 
 SELECTUnparsed:
-SELECT * FROM email WHERE parsed_by_parser_id IS NULL;
+SELECT * FROM email WHERE parsed_by_source_id IS NULL;
 
--- Mail one parser claimed, for re-reading it after that parser's settings change.
-SELECTByParser:
-SELECT * FROM email WHERE parsed_by_parser_id IN :parserIds;
+-- Mail one source claimed, for re-reading it after that source's settings change.
+SELECTBySource:
+SELECT * FROM email WHERE parsed_by_source_id IN :sourceIds;
 
 INSERTOrIgnore:
-INSERT OR IGNORE INTO email(message_id, thread_id, account_id, sender, subject, date, body, tried_parser_ids, parsed_by_parser_id, fetched_at)
-VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :body, :tried_parser_ids, :parsed_by_parser_id, :fetched_at);
+INSERT OR IGNORE INTO email(message_id, thread_id, account_id, sender, subject, date, body, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :body, :tried_source_ids, :parsed_by_source_id, :fetched_at);
 
 INSERTOrReplace:
-INSERT OR REPLACE INTO email(message_id, thread_id, account_id, sender, subject, date, body, tried_parser_ids, parsed_by_parser_id, fetched_at)
-VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :body, :tried_parser_ids, :parsed_by_parser_id, :fetched_at);
+INSERT OR REPLACE INTO email(message_id, thread_id, account_id, sender, subject, date, body, tried_source_ids, parsed_by_source_id, fetched_at)
+VALUES (:message_id, :thread_id, :account_id, :sender, :subject, :date, :body, :tried_source_ids, :parsed_by_source_id, :fetched_at);
 
 SETParseState:
 -- The body is written here too: an email is re-read from what it stored, so a
 -- fetch that had to happen anyway backfills it for next time.
-UPDATE email SET thread_id = :thread_id, body = :body, tried_parser_ids = :tried_parser_ids, parsed_by_parser_id = :parsed_by_parser_id
+UPDATE email SET thread_id = :thread_id, body = :body, tried_source_ids = :tried_source_ids, parsed_by_source_id = :parsed_by_source_id
 WHERE account_id = :account_id AND message_id = :message_id;
 
 DELETEForAccount:

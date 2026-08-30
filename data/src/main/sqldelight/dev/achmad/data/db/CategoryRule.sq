@@ -1,0 +1,41 @@
+-- A declaration the user made by filing a group: exact merchant (+ direction)
+-- -> category. Stored normalized, so what is stored is what is matched, and
+-- no substring/regex machinery is involved — a rule means the one merchant
+-- the user looked at. Applied to existing rows when declared, and to matching
+-- rows the next time anything re-reads the ledger.
+CREATE TABLE category_rule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    merchant TEXT NOT NULL,
+    direction TEXT,
+    category TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+SELECTAllRules:
+SELECT * FROM category_rule;
+
+-- Correction is replacement, not stacking.
+DELETERuleByMerchant:
+DELETE FROM category_rule WHERE merchant = :merchant AND (:direction IS NULL OR direction = :direction);
+
+INSERTRule:
+INSERT INTO category_rule(merchant, direction, category, created_at)
+VALUES (:merchant, :direction, :category, :created_at);
+
+DELETERule:
+DELETE FROM category_rule WHERE id = :id;
+
+-- "Apply to existing". Replaces the category on every matching row — the
+-- user's own decision to do so; a rule changing its mind about a merchant is
+-- exactly the case where replacement is wanted. Marked RULE, not USER: the
+-- declaration is what it comes from. Matching follows the same normalized
+-- merchant text everything else uses: UPPER(merchant), so a stored lowercase
+-- spelling is the same merchant.
+UPDATERuleReplace:
+UPDATE transactions SET category = :category, category_source = 'RULE', updated_at = :now
+WHERE deleted = 0 AND UPPER(merchant) = :merchant AND (:direction IS NULL OR direction = :direction);
+
+-- Count for the confirmation: how many rows the replacement above would touch.
+COUNTRuleReplace:
+SELECT count(*) FROM transactions
+WHERE deleted = 0 AND UPPER(merchant) = :merchant AND (:direction IS NULL OR direction = :direction);

@@ -53,7 +53,6 @@ import dev.achmad.finbox.features.transaction.pickableCategories
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionDirection
 import dev.achmad.finbox.features.transaction.list.labelRes
-import dev.achmad.finbox.parser.TransactionMethod
 import dev.achmad.finbox.theme.components.AppBar
 import dev.achmad.finbox.util.formatter.formatDateOnly
 import dev.achmad.finbox.util.formatter.formatTime
@@ -74,7 +73,7 @@ import dev.achmad.finbox.R
 
 /**
  * Edits one transaction. The ids, timestamps, and the deleted flag belong to the
- * parser and the database, so they stay out of the form; currency and reference
+ * source and the database, so they stay out of the form; currency and reference
  * are editable but not offered here.
  */
 data class TransactionEditScreen(private val id: String) : Screen {
@@ -84,7 +83,6 @@ data class TransactionEditScreen(private val id: String) : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel(tag = id) { TransactionDetailScreenModel(id) }
         val transaction by model.transaction.collectAsState()
-        val methods by model.methods.collectAsState()
 
         // Seeded once, from the row as it was when this screen opened; re-seeding on
         // every emission would throw away what is being typed.
@@ -103,7 +101,6 @@ data class TransactionEditScreen(private val id: String) : Screen {
 
         TransactionEditScreenContent(
             draft = draft,
-            methods = methods,
             use24Hour = rememberUse24HourClock(),
             // What is on screen against what is stored: the only thing worth warning about.
             dirty = draft != null && draft != transaction?.toDraft(),
@@ -178,7 +175,6 @@ private data class SimilarCategoryOffer(
 @Composable
 internal fun TransactionEditScreenContent(
     draft: Draft?,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     dirty: Boolean = false,
     onDraftChange: (Draft) -> Unit = {},
@@ -222,8 +218,7 @@ internal fun TransactionEditScreenContent(
         ) {
             TransactionEditor(
                 draft = draft,
-                methods = methods,
-                use24Hour = use24Hour,
+                    use24Hour = use24Hour,
                 onChange = onDraftChange,
             )
         }
@@ -252,13 +247,11 @@ internal fun TransactionEditScreenContent(
 @Composable
 private fun TransactionEditor(
     draft: Draft,
-    methods: List<TransactionMethod>,
     use24Hour: Boolean,
     onChange: (Draft) -> Unit,
 ) {
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
-    var pickMethod by remember { mutableStateOf(false) }
     var pickCategory by remember { mutableStateOf(false) }
 
     Column(
@@ -301,12 +294,6 @@ private fun TransactionEditor(
             )
         }
         PickerField(
-            label = stringResource(R.string.method),
-            value = methods.nameOf(draft.method) ?: draft.method ?: stringResource(R.string.none),
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { pickMethod = true },
-        )
-        PickerField(
             label = stringResource(R.string.category),
             value = categoryLabel(draft.category),
             modifier = Modifier.fillMaxWidth(),
@@ -344,15 +331,6 @@ private fun TransactionEditor(
         )
     }
 
-    if (pickMethod) {
-        MethodPickerDialog(
-            selected = draft.method,
-            methods = methods,
-            onDismiss = { pickMethod = false },
-            onSelect = { onChange(draft.copy(method = it)) },
-        )
-    }
-
     if (pickCategory) {
         CategoryPickerDialog(
             selected = draft.category,
@@ -364,8 +342,8 @@ private fun TransactionEditor(
 
 /**
  * The app's categories, plus Uncategorized. It clears the row back to
- * unprocessed, which is what hands it to the next classify pass; UNKNOWN is
- * missing on purpose, since code assigns that after looking.
+ * unprocessed; UNKNOWN is missing on purpose, since code assigns that after
+ * looking.
  */
 @Composable
 internal fun CategoryPickerDialog(
@@ -456,7 +434,7 @@ private fun DatePickerSheet(date: Long?, onDismiss: () -> Unit, onSelect: (Long?
             ) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
-            // A row the parser found no date for is a real state, so it has to be reachable.
+            // A row the source found no date for is a real state, so it has to be reachable.
             TextButton(
                 onClick = {
                     onSelect(null)
@@ -500,66 +478,17 @@ private fun TimePickerDialog(
     )
 }
 
-/**
- * The methods the row's parser declares, plus None. A method the parser dropped stays in the
- * list while it is the one selected, so opening the picker cannot quietly discard it.
- */
-@Composable
-private fun MethodPickerDialog(
-    selected: String?,
-    methods: List<TransactionMethod>,
-    onDismiss: () -> Unit,
-    onSelect: (String?) -> Unit,
-) {
-    val none = stringResource(R.string.none)
-    val options = buildList<Pair<String?, String>> {
-        add(null to none)
-        methods.forEach { add(it.key to it.name) }
-        if (selected != null && methods.none { it.key == selected }) add(selected to selected)
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.method)) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                options.forEach { (key, name) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelect(key)
-                                onDismiss()
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = key == selected, onClick = null)
-                        Text(text = name, modifier = Modifier.padding(start = 12.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
-}
-
 private fun Long.toLocalDate(): LocalDate =
     Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
 private fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-internal fun List<TransactionMethod>.nameOf(key: String?): String? =
-    key?.let { stored -> firstOrNull { it.key == stored }?.name }
-
 /** The form's state: text while it is being typed, parsed back into a [Transaction] on save. */
 internal data class Draft(
     val date: Long?,
     val amount: String,
     val direction: TransactionDirection?,
-    val method: String?,
     val category: TransactionCategory?,
     val description: String,
     val merchant: String,
@@ -569,14 +498,13 @@ internal fun Transaction.toDraft() = Draft(
     date = date,
     amount = amount?.toString().orEmpty(),
     direction = direction,
-    method = method,
     category = category,
     description = description.orEmpty(),
     merchant = merchant.orEmpty(),
 )
 
 /**
- * Blank means "the parser found nothing", i.e. null — the same as an untouched row.
+ * Blank means "the source found nothing", i.e. null — the same as an untouched row.
  * Fields the form does not offer keep whatever the row already holds.
  */
 internal fun Draft.applyTo(transaction: Transaction): Transaction {
@@ -584,13 +512,11 @@ internal fun Draft.applyTo(transaction: Transaction): Transaction {
         date = date,
         amount = amount.trim().toLongOrNull(),
         direction = direction,
-        method = method,
         description = description.blankToNull(),
         merchant = merchant.blankToNull(),
     )
     return when {
-        // Filing it yourself makes it yours, and a classify pass then leaves it
-        // alone unless it is told outright to replace manual work.
+        // Filing it yourself makes it yours.
         category != transaction.category -> edited.copy(
             categoryName = category?.name,
             categorySource = category?.let { CategorySource.USER },
@@ -615,7 +541,7 @@ private fun TransactionEditPreview() {
         TransactionEditScreenContent(
             draft = Transaction(
                 accountId = "preview",
-                parserId = 1L,
+                sourceId = "dev.achmad.finbox.source.preview",
                 emailMessageId = "message-1",
                 index = 0,
                 threadId = null,
@@ -624,9 +550,8 @@ private fun TransactionEditPreview() {
                 amount = 125_000,
                 currency = "IDR",
                 direction = TransactionDirection.OUTGOING,
-                method = "QRIS",
                 categoryName = TransactionCategory.FOOD.name,
-                categorySource = CategorySource.AI,
+                categorySource = CategorySource.RULE,
                 description = "Coffee and a croissant",
                 merchant = "Kopi Kenangan",
                 createdAt = 1_700_000_000_000L,
@@ -634,7 +559,6 @@ private fun TransactionEditPreview() {
                 editedAt = null,
                 deleted = false,
             ).toDraft(),
-            methods = emptyList(),
             use24Hour = true,
         )
     }

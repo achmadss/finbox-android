@@ -1,4 +1,9 @@
 pluginManagement {
+    // The finbox.source convention plugin. An included build rather than
+    // buildSrc, so it can depend on AGP without putting AGP on the root build
+    // classpath — see build-logic/build.gradle.kts.
+    includeBuild("build-logic")
+
     repositories {
         google {
             content {
@@ -22,4 +27,21 @@ dependencyResolutionManagement {
 rootProject.name = "Finbox"
 include(":app")
 include(":data")
-include(":parser-api")
+include(":source:core")
+
+// Every directory under source/lib/<country>/<bank> is a source module.
+// Included by walking the tree rather than listed, for the same reason the
+// registry is generated rather than written: a source you forgot to add here
+// would be a directory that quietly is not built.
+file("source/lib").eachDir { country ->
+    country.eachDir { bank ->
+        include(":source:lib:${country.name}:${bank.name}")
+    }
+}
+
+fun File.eachDir(block: (File) -> Unit) {
+    listFiles()
+        ?.filter { it.isDirectory && it.name != "build" && !it.name.startsWith(".") }
+        ?.sortedBy { it.name }
+        ?.forEach(block)
+}

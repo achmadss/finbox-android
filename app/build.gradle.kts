@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.ksp)
 }
 
 // OAuth client ids live in local.properties (gitignored). Google ties a client
@@ -75,6 +76,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     testImplementation(libs.junit)
+    // The re-parse is a test on a real database, not a fake: what matters is
+    // how upsert meets a hand-edited row, and that lives in the queries.
+    testImplementation(libs.sqldelight.sqlite.driver)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
@@ -94,10 +98,6 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
 
-    // No app code uses jsoup — parsers do, and they resolve it from here
-    // through ChildFirstPathClassLoader's parent rather than bundling their own.
-    // Dropping it as "unused" breaks every parser at runtime.
-    implementation(libs.jsoup)
     implementation(libs.security.crypto)
     implementation(libs.appauth)
     implementation(libs.work.runtime.ktx)
@@ -110,5 +110,22 @@ dependencies {
     implementation(libs.okhttp.logging)
 
     implementation(project(":data"))
-    implementation(project(":parser-api"))
+    api(project(":source:core"))
+
+    // Every source module, found the same way settings.gradle.kts found them.
+    // Listing them here would be the hand-written registry again, one layer
+    // down: a source left out would build, test green, and never be asked for
+    // anything.
+    rootProject.subprojects
+        .filter { it.parent?.parent?.name == "lib" }
+        .forEach { implementation(project(it.path)) }
+
+    // Assembles GeneratedSources from every source on the classpath. Only :app
+    // aggregates; a source module runs the same processor to leave its calling
+    // card and nothing more.
+    ksp(project(mapOf("path" to ":source:core", "configuration" to "processor")))
+}
+
+ksp {
+    arg("finbox.source.aggregate", "true")
 }

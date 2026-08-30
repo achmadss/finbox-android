@@ -6,10 +6,12 @@ import dev.achmad.data.model.EmailAccount
 import dev.achmad.data.model.Transaction
 import dev.achmad.data.model.TransactionCategory
 import dev.achmad.data.model.TransactionDirection
+import dev.achmad.data.model.signature
 import dev.achmad.data.repository.AccountRepository
 import dev.achmad.data.repository.TransactionRepository
-import dev.achmad.finbox.core.parser.ParserManager
-import dev.achmad.finbox.core.parser.LoadedParser
+import dev.achmad.finbox.core.preference.CategorizePreferences
+import dev.achmad.finbox.core.source.SourceManager
+import dev.achmad.finbox.source.core.SourceEntry
 import dev.achmad.finbox.core.update.transaction.TransactionUpdateManager
 import dev.achmad.finbox.util.formatter.toLocalDate
 import dev.achmad.finbox.util.koin.inject
@@ -28,14 +30,14 @@ enum class TransactionSort { DATE, AMOUNT }
 /** An empty set means "no restriction", so the default filter lets everything through. */
 data class TransactionFilter(
     val directions: Set<TransactionDirection> = emptySet(),
-    val parserIds: Set<Long> = emptySet(),
+    val sourceIds: Set<String> = emptySet(),
     val accountIds: Set<String> = emptySet(),
     val sort: TransactionSort = TransactionSort.DATE,
     val descending: Boolean = true,
 ) {
     val isActive: Boolean
         get() = directions.isNotEmpty() ||
-            parserIds.isNotEmpty() ||
+            sourceIds.isNotEmpty() ||
             accountIds.isNotEmpty() ||
             sort != TransactionSort.DATE ||
             !descending
@@ -43,7 +45,7 @@ data class TransactionFilter(
     fun applyTo(transactions: List<Transaction>): List<Transaction> {
         val kept = transactions.filter {
             (directions.isEmpty() || it.direction in directions) &&
-                (parserIds.isEmpty() || it.parserId in parserIds) &&
+                (sourceIds.isEmpty() || it.sourceId in sourceIds) &&
                 (accountIds.isEmpty() || it.accountId in accountIds)
         }
         val sorted = when (sort) {
@@ -73,20 +75,25 @@ internal fun monthRange(
 class TransactionsScreenModel(
     private val transactionRepository: TransactionRepository = inject(),
     accountRepository: AccountRepository = inject(),
-    private val parserManager: ParserManager = inject(),
-    private val transactionUpdateManager: TransactionUpdateManager = inject()
+    private val sourceManager: SourceManager = inject(),
+    private val transactionUpdateManager: TransactionUpdateManager = inject(),
+    private val categorizePreferences: CategorizePreferences = inject(),
 ) : ScreenModel {
 
-    /** Parsers currently loaded — what a transaction's `parserId` points at. */
-    val parsers: StateFlow<List<LoadedParser>> = parserManager.parsersFlow
+    /** The sources that run — what a transaction's `sourceId` points at. */
+    val sources: StateFlow<List<SourceEntry>> = sourceManager.enabled
 
-    val parserUpdates: StateFlow<Int> = parserManager.updatesCount
-
-    init {
-        // The registry only fills on reload, and opening straight onto this screen means nothing
-        // has done that yet — the filter sheet would offer no parsers. Idempotent and cheap.
-        screenModelScope.launch { parserManager.reload() }
-    }
+    /**
+     * Every source switched off.
+     *
+     * Drives the prompt on an empty ledger. It used to mean "none installed",
+     * which cannot happen now — four ship in the APK — so what is left worth
+     * saying is that the user has turned them all off and nothing will read
+     * their mail.
+     */
+    val noEnabledSources: StateFlow<Boolean> = sourceManager.enabled
+        .map { it.isEmpty() }
+        .stateIn(screenModelScope, SharingStarted.Eagerly, false)
 
     private val picked = MutableStateFlow<YearMonth?>(null)
 
@@ -99,6 +106,37 @@ class TransactionsScreenModel(
     /** Null until the first read comes back — the screen waits rather than guessing a month. */
     private val transactions: StateFlow<List<Transaction>?> = transactionRepository.transactions()
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
+
+    /**
+     * Groups left to file, when the offer is still standing.
+     *
+     * The offer appears after a first import (at least one account has a
+     * history cursor) and only while groups are actually left — an empty
+     * unrelated number shows an empty card. [CategorizePreferences.groupOfferDismissed]
+     * is checked the same way: this is an offer, not a checklist.
+     */
+    val groupOffer: StateFlow<Int> = combine(
+        transactions,
+        accounts,
+        categorizePreferences.groupOfferDismissed().changes(),
+    ) { all, accounts, dismissed ->
+        if (dismissed || accounts.none { it.lastHistoryId != null }) {
+            0
+        } else {
+            all.orEmpty()
+                .groupBy { it.signature() }
+                .count { (_, rows) -> rows.any { it.categoryName == null } }
+        }
+    }.stateIn(screenModelScope, SharingStarted.Eagerly, 0)
+
+    /**
+     * Waving the offer away is permanent; filing is the alternative. Since the
+     * screen is stale for a frame either way, the value it emits on dismiss is
+     * already 0.
+     */
+    fun dismissGroupOffer() {
+        categorizePreferences.groupOfferDismissed().set(true)
+    }
 
     val loading: StateFlow<Boolean> = transactions
         .map { it == null }
